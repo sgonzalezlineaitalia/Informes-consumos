@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consumo de Materiales — Línea Italia</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f7f8fa;
+  --panel:#ffffff;
+  --panel-2:#f0f2f5;
+  --line:#dde3e9;
+  --text:#1c2733;
+  --muted:#6b7a89;
+  --accent:#e07b39;
+  --accent-2:#2f80c9;
+  --good:#1e9e6a;
+  --bad:#d1453b;
+  --warn:#c98a1a;
+  --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+  --sans:'IBM Plex Sans',-apple-system,Segoe UI,Roboto,sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 24px; border-bottom:1px solid var(--line); background:var(--panel);
+  position:sticky; top:0; z-index:20;
+}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .dot{width:10px;height:10px;border-radius:2px;background:var(--accent);}
+.brand h1{font-size:15px; font-weight:600; margin:0; letter-spacing:.02em;}
+.brand span{color:var(--muted); font-size:12px;}
+
+.tabs{display:flex; gap:4px;}
+.tab-btn{
+  background:transparent; border:1px solid transparent; color:var(--muted);
+  padding:8px 14px; border-radius:6px; font-size:13px; cursor:pointer; font-family:var(--sans);
+  font-weight:500;
+}
+.tab-btn.active{background:var(--panel-2); color:var(--text); border-color:var(--line);}
+.tab-btn:hover{color:var(--text);}
+
+.period-bar{
+  display:flex; gap:6px; padding:12px 24px; background:var(--panel); border-bottom:1px solid var(--line);
+  align-items:center; flex-wrap:wrap;
+}
+.period-btn{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
+  padding:6px 14px; border-radius:20px; font-size:12px; cursor:pointer; font-family:var(--sans); font-weight:500;
+}
+.period-btn.active{background:var(--accent); color:#ffffff; border-color:var(--accent);}
+.period-bar input[type=date]{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+  padding:5px 8px; border-radius:6px; font-family:var(--mono); font-size:12px;
+}
+.period-label{margin-left:auto; color:var(--muted); font-size:12px; font-family:var(--mono);}
+
+main{max-width:1180px; margin:0 auto; padding:24px;}
+.hidden{display:none !important;}
+
+/* Big picture */
+.bigrow{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 20px;
+}
+.card .label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:8px; font-weight:600;}
+.card .big{font-family:var(--mono); font-size:28px; font-weight:600; line-height:1.1;}
+.card .sub{font-size:12px; color:var(--muted); margin-top:6px;}
+.card.deviation .big.pos{color:var(--bad);}
+.card.deviation .big.neg{color:var(--good);}
+
+.alertrow{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;}
+.alertcard{background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:16px 20px;}
+.alertcard .label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:600; margin-bottom:10px;}
+.alertcard .headline{font-size:18px; font-weight:600; color:var(--accent);}
+.alertcard .detail{font-size:12px; color:var(--muted); margin-top:4px; font-family:var(--mono);}
+
+/* Phase table */
+.section-title{font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:26px 0 10px;}
+table{width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+th{background:var(--panel-2); text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:10px 12px; font-weight:600; border-bottom:1px solid var(--line);}
+td{padding:10px 12px; font-size:13px; border-bottom:1px solid var(--line); font-family:var(--mono);}
+tr:last-child td{border-bottom:none;}
+tr.clickable{cursor:pointer;}
+tr.clickable:hover{background:var(--panel-2);}
+.pct{font-weight:600;}
+.pct.alert{color:var(--bad);}
+.pct.ok{color:var(--good);}
+.money{font-family:var(--mono);}
+
+.breadcrumb{display:flex; gap:6px; align-items:center; font-size:12px; color:var(--muted); margin-bottom:14px;}
+.breadcrumb a{color:var(--accent-2); cursor:pointer; text-decoration:none;}
+.breadcrumb .sep{color:var(--line);}
+
+.toolbar{display:flex; gap:8px; margin-bottom:12px; align-items:center;}
+.btn{background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 14px; border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--sans); font-weight:500;}
+.btn:hover{border-color:var(--accent);}
+.btn.primary{background:var(--accent); color:#ffffff; border-color:var(--accent); font-weight:600;}
+.btn.small{padding:4px 10px; font-size:11px;}
+select.razon{background:var(--panel); border:1px solid var(--line); color:var(--text); padding:4px 8px; border-radius:5px; font-size:12px; font-family:var(--sans);}
+select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
+
+/* Admin */
+.admin-grid{display:grid; grid-template-columns:220px 1fr; gap:20px;}
+.admin-nav{display:flex; flex-direction:column; gap:2px;}
+.admin-nav button{
+  text-align:left; background:transparent; border:none; color:var(--muted); padding:10px 12px;
+  border-radius:6px; cursor:pointer; font-family:var(--sans); font-size:13px;
+}
+.admin-nav button.active{background:var(--panel-2); color:var(--text); font-weight:600;}
+.admin-panel{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px;}
+.admin-panel h3{margin-top:0; font-size:15px;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:500;}
+.field input[type=file], .field input[type=number], .field input[type=text]{
+  width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+  padding:8px 10px; border-radius:6px; font-family:var(--sans); font-size:13px;
+}
+.field-hint{font-size:11px; color:var(--muted); margin-top:4px;}
+.pin-gate{max-width:340px; margin:80px auto; text-align:center;}
+.pin-gate input{width:100%; text-align:center; letter-spacing:.3em; font-family:var(--mono); font-size:20px; padding:12px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); border-radius:8px;}
+.status-msg{font-size:12px; padding:8px 12px; border-radius:6px; margin-top:8px;}
+.status-msg.ok{background:#e6f7ef; color:var(--good); border:1px solid #b9e6cf;}
+.status-msg.err{background:#fbe9e8; color:var(--bad); border:1px solid #f2bfbb;}
+.status-msg.info{background:#e8f1fa; color:var(--accent-2); border:1px solid #bcdcf5;}
+.tag{display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; text-transform:uppercase;}
+.tag.auto{background:#fbf0dd; color:var(--warn);}
+.tag.manual{background:#e8f1fa; color:var(--accent-2);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="dot"></div>
+    <div>
+      <h1>Consumo de Materiales</h1>
+      <span>Línea Italia · Reporte Diario</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="viewer">Reporte</button>
+    <button class="tab-btn" data-tab="admin">Admin</button>
+  </div>
+</div>
+<div id="localModeBanner" class="hidden" style="background:#fbf0dd; color:#8a5a00; padding:8px 24px; font-size:12px; text-align:center; border-bottom:1px solid #e6d19a;">
+  ⚠ Modo local: los datos se guardan solo en este navegador (no se comparten con otras personas todavía). Conecta Firebase cuando puedas para que jefes y demás vean el reporte.
+</div>
+
+<!-- ===================== VIEWER ===================== -->
+<div id="tab-viewer">
+  <div class="period-bar">
+    <button class="period-btn active" data-period="dia">Diario</button>
+    <button class="period-btn" data-period="semana">Semanal</button>
+    <button class="period-btn" data-period="mes">Mensual</button>
+    <button class="period-btn" data-period="anio">Anual</button>
+    <input type="date" id="fechaSelector">
+    <span class="period-label" id="periodoLabel"></span>
+  </div>
+
+  <main>
+    <div id="viewer-level-0">
+      <div class="bigrow">
+        <div class="card">
+          <div class="label">$ Estándar</div>
+          <div class="big" id="bigEstandar">$0</div>
+          <div class="sub" id="subEstandar">&nbsp;</div>
+        </div>
+        <div class="card">
+          <div class="label">$ Real Consumido</div>
+          <div class="big" id="bigReal">$0</div>
+          <div class="sub" id="subReal">&nbsp;</div>
+        </div>
+        <div class="card deviation">
+          <div class="label">$ Desviación</div>
+          <div class="big" id="bigDesv">$0</div>
+          <div class="sub" id="subDesv">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="alertrow">
+        <div class="alertcard">
+          <div class="label">📌 Error más común</div>
+          <div class="headline" id="errorComun">—</div>
+          <div class="detail" id="errorComunDetail">&nbsp;</div>
+        </div>
+        <div class="alertcard">
+          <div class="label">📌 Atraso</div>
+          <div class="headline" id="atrasoHeadline">—</div>
+          <div class="detail" id="atrasoDetail">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="section-title">Fases de Producción — clic para ver detalle</div>
+      <table>
+        <thead><tr><th>Fase</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
+        <tbody id="tablaFases"></tbody>
+      </table>
+    </div>
+
+    <div id="viewer-level-1" class="hidden">
+      <div class="breadcrumb">
+        <a onclick="goToLevel0()">Big Picture</a><span class="sep">/</span><span id="faseBreadcrumb">Fase</span>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="btnExportExcel">⬇ Exportar Excel</button>
+        <button class="btn" id="btnExportPdf">⬇ Exportar PDF</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th><th>OP</th><th>Modelo</th><th>No. Componente</th><th>Descripción</th>
+            <th>Cant. Estándar</th><th>Cant. Real</th><th>Diferencia</th><th>%</th>
+            <th>$ Estándar</th><th>$ Real</th><th>Razón</th>
+          </tr>
+        </thead>
+        <tbody id="tablaComponentes"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- ===================== ADMIN ===================== -->
+<div id="tab-admin" class="hidden">
+
+  <div id="admin-pin-gate" class="pin-gate">
+    <h3>Acceso Admin</h3>
+    <input type="password" id="pinInput" placeholder="••••" maxlength="12">
+    <div style="margin-top:12px;"><button class="btn primary" id="pinSubmit">Entrar</button></div>
+    <div id="pinStatus"></div>
+  </div>
+
+  <main id="admin-content" class="hidden">
+    <div class="admin-grid">
+      <div class="admin-nav">
+        <button class="active" data-panel="cargas">Cargar Excels del día</button>
+        <button data-panel="precios">Catálogo de Precios</button>
+        <button data-panel="fases">Centro de Trabajo → Fase</button>
+        <button data-panel="componentes">Componente → Fase</button>
+        <button data-panel="razones">Catálogo de Razones</button>
+        <button data-panel="config">Umbral / Configuración</button>
+      </div>
+
+      <div class="admin-panel">
+
+        <div id="panel-cargas">
+          <h3>Cargar Excels del día</h3>
+          <div class="field">
+            <label>Fecha del reporte</label>
+            <input type="date" id="cargaFecha">
+          </div>
+          <div class="field">
+            <label>Excel "Antes" (inicio del periodo)</label>
+            <input type="file" id="fileAntes" accept=".xlsx,.xls">
+          </div>
+          <div class="field">
+            <label>Excel "Después" (fin del periodo)</label>
+            <input type="file" id="fileDespues" accept=".xlsx,.xls">
+            <div class="field-hint">Reemplazable: si vuelves a subir el mismo día, se sustituye el anterior.</div>
+          </div>
+          <div class="field">
+            <label>Excel "Avance del Programa"</label>
+            <input type="file" id="fileAvance" accept=".xlsx,.xls">
+          </div>
+          <button class="btn primary" id="btnProcesar">Procesar y Guardar Reporte del Día</button>
+          <div id="cargaStatus"></div>
+        </div>
+
+        <div id="panel-precios" class="hidden">
+          <h3>Catálogo de Precios (SKU)</h3>
+          <div class="field">
+            <label>Subir catálogo (columnas: SKU, Descripción, Unidad, Costo Unitario)</label>
+            <input type="file" id="filePrecios" accept=".xlsx,.xls,.csv">
+            <div class="field-hint">Si un SKU se repite con precios distintos, se usa automáticamente el más alto.</div>
+          </div>
+          <button class="btn primary" id="btnCargarPrecios">Cargar Catálogo</button>
+          <div id="preciosStatus"></div>
+          <div class="field-hint" style="margin-top:10px;">Los precios ya guardados en reportes pasados NO se recalculan solos. Para recalcular un día viejo, vuelve a procesarlo en "Cargar Excels".</div>
+        </div>
+
+        <div id="panel-fases" class="hidden">
+          <h3>Centro de Trabajo → Fase</h3>
+          <div id="tablaFasesAdmin"></div>
+          <button class="btn small" id="btnAgregarCentro" style="margin-top:10px;">+ Agregar Centro de Trabajo</button>
+          <button class="btn primary" id="btnGuardarFases" style="margin-top:10px;">Guardar Cambios</button>
+          <div id="fasesStatus"></div>
+        </div>
+
+        <div id="panel-componentes" class="hidden">
+          <h3>Componente → Fase</h3>
+          <div class="field-hint" style="margin-bottom:12px;">La fase se asigna automáticamente por palabras clave en la descripción. Puedes corregir manualmente cualquier SKU aquí.</div>
+          <div class="field">
+            <label>Buscar SKU o descripción</label>
+            <input type="text" id="buscarComponente" placeholder="Ej. tornillo, 10414010...">
+          </div>
+          <div id="tablaComponentesAdmin" style="max-height:420px; overflow-y:auto;"></div>
+          <div id="componentesStatus"></div>
+        </div>
+
+        <div id="panel-razones" class="hidden">
+          <h3>Catálogo de Razones</h3>
+          <div id="listaRazones"></div>
+          <button class="btn small" id="btnAgregarRazon" style="margin-top:10px;">+ Agregar Razón</button>
+          <button class="btn primary" id="btnGuardarRazones" style="margin-top:10px;">Guardar Cambios</button>
+          <div id="razonesStatus"></div>
+        </div>
+
+        <div id="panel-config" class="hidden">
+          <h3>Umbral de Alerta</h3>
+          <div class="field">
+            <label>% de desviación a partir del cual se marca en rojo y requiere Razón</label>
+            <input type="number" id="umbralInput" step="1" min="1" max="100">
+          </div>
+          <button class="btn primary" id="btnGuardarUmbral">Guardar</button>
+          <div id="umbralStatus"></div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   FIREBASE CONFIG — reemplaza con el config real de tu proyecto
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBLm0yQmoySqqNI45fAs5mUaKsxdDZfJdw",
+  authDomain: "informes-consumos.firebaseapp.com",
+  projectId: "informes-consumos",
+  storageBucket: "informes-consumos.firebasestorage.app",
+  messagingSenderId: "53049807750",
+  appId: "1:53049807750:web:e72b96d37d88810d2f1207",
+  measurementId: "G-17P3WRFGXB"
+};
+firebase.initializeApp(firebaseConfig);
+
+/* ============================================================
+   MODO LOCAL — si aun no has conectado Firebase, todo se guarda
+   en este navegador (localStorage) en vez de en la nube.
+   En cuanto pongas tu firebaseConfig real arriba, esto se
+   desactiva solo y usa Firestore normalmente.
+   ============================================================ */
+const USE_LOCAL = firebaseConfig.projectId === "REEMPLAZA";
+
+class LocalRef{
+  constructor(coleccion, id){ this.coleccion=coleccion; this.id=id; }
+  _key(){ return `localdb:${this.coleccion}:${this.id}`; }
+  async get(){
+    const raw = localStorage.getItem(this._key());
+    return { exists: raw !== null, id: this.id, data: () => raw ? JSON.parse(raw) : undefined };
+  }
+  async set(data){ localStorage.setItem(this._key(), JSON.stringify(data)); }
+  async update(data){
+    const raw = localStorage.getItem(this._key());
+    const actual = raw ? JSON.parse(raw) : {};
+    localStorage.setItem(this._key(), JSON.stringify({...actual, ...data}));
+  }
+}
+class LocalCollection{
+  constructor(nombre, wheres=[]){ this.nombre=nombre; this._wheres=wheres; }
+  doc(id){ return new LocalRef(this.nombre, id); }
+  where(field, op, value){ return new LocalCollection(this.nombre, [...this._wheres, {field, op, value}]); }
+  async get(){
+    const prefix = `localdb:${this.nombre}:`;
+    const docs = [];
+    for(let i=0;i<localStorage.length;i++){
+      const key = localStorage.key(i);
+      if(!key || !key.startsWith(prefix)) continue;
+      const id = key.slice(prefix.length);
+      const data = JSON.parse(localStorage.getItem(key));
+      let ok = true;
+      this._wheres.forEach(w=>{
+        const val = (w.field === '__name__') ? id : data[w.field];
+        if(w.op === '>=' && !(val >= w.value)) ok = false;
+        if(w.op === '<=' && !(val <= w.value)) ok = false;
+        if(w.op === '==' && !(val === w.value)) ok = false;
+      });
+      if(ok) docs.push({id, data:()=>data});
+    }
+    return { forEach:(cb)=>docs.forEach(cb) };
+  }
+}
+class LocalBatch{
+  constructor(){ this.ops=[]; }
+  set(ref, data){ this.ops.push({ref,data}); }
+  async commit(){ for(const op of this.ops){ await op.ref.set(op.data); } }
+}
+const LocalDB = { collection:(n)=>new LocalCollection(n), batch:()=>new LocalBatch() };
+
+const db = USE_LOCAL ? LocalDB : firebase.firestore();
+function serverTimestampValue(){ return USE_LOCAL ? Date.now() : firebase.firestore.FieldValue.serverTimestamp(); }
+function documentIdField(){ return USE_LOCAL ? '__name__' : firebase.firestore.FieldPath.documentId(); }
+
+const ADMIN_PIN = "4689";
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+let CATALOGO_PRECIOS = {};      // sku -> {descripcion, unidad, costo}
+let CENTRO_A_FASE = {};         // centroTrabajo -> fase (1-4)
+let COMPONENTE_A_FASE = {};     // sku -> {fase, origen, palabraClave, descripcion}
+let RAZONES = [];               // ["Errores operativos", ...]
+let UMBRAL = 0.15;
+
+let currentPeriod = 'dia';
+let currentDate = new Date().toISOString().slice(0,10);
+let currentReports = [];        // reportes cargados para el periodo actual
+let currentFaseSeleccionada = null;
+
+const FASES_DEFAULT = {
+  "Carpintería Corte": 1, "Troqueles": 1, "Láser muebles": 1,
+  "Enchapado": 2, "Est. Muebles": 2, "Est. Sillas": 2, "Est. Mamparas": 2, "Est. Libreros": 2, "Est. Archiveros": 2,
+  "Cajas": 3, "Hab. de muebles": 3, "Pintura": 3, "Telas": 3,
+  "Ens. Muebles": 4, "Ens. Sillas": 4, "Ens. Sillones": 4, "Ens. Mamparas": 4, "Ens. Libreros": 4, "Ens. Archiveros": 4
+};
+const RAZONES_DEFAULT = [
+  "Errores operativos",
+  "Diferencias en listas de materiales",
+  "Errores de ingeniería",
+  "Material dañado de proveedor",
+  "Faltante de material en almacén"
+];
+
+// Palabras clave de clasificación automática Componente -> Fase (mismo criterio ya validado)
+const REGLAS_FASE = [
+  {fase:1, kws:['MELAMINA','MDF','LAMINA','POLICARBONATO','TUBO ','TUBULAR','TRIPLAY','PLYWOOD','DUELA','MADERA','SOLERA','PERFIL','ANGULO ','PLACA','CORTE SUPERIOR','CORTE ','CORTE LASER']},
+  {fase:2, kws:['CHAPACINTA','T MOLDING','MOLDURA','JUNQUILLO','CANTO','ESCUADRA','ESQUINERO MAMPARA','ESQUINERO DE ALUMINIO']},
+  {fase:3, kws:['CAJA ','KIT DE EMPAQUE','TARIMA','POSTER','TELA ','ESPUMA','PINTURA','LACA','SELLADOR','THINNER','ZUNCHO','CINTA','BOLSA','HULE ESPUMA','BARNIZ','BAJO ALFOMBRA','MALLA PLASTICA','CIERRE ','CREMALLERA','BANDASTIC','INSERTO']},
+  {fase:4, kws:['TORNILLO','PIJA','TUERCA','BISAGRA','JALADERA','CORREDERA','RUEDA','RODAJA','NIVELADOR','REGATON','RESBALON','TAPON','PERILLA','GANCHO','MECANISMO','PISTON','CONECTOR','IMAN','CABINEO','RESORTE','SOPORTE','BRIDA','ADHESIVO','SILICON','PEGAMENTO','ASIENTO DE PLASTICO','CONCHA SILLA','SILLON','ESTRUCTURA CROMADA','CLIP','TOPE','GROMMET','GROUMET','GROUMMET','CANALETA','ADAPTADOR','CARGADOR','CABLE','CASQUILLO','COLUMNA PORTA CABLES','MULTICONTACTO','TOMA CORRIENTE','ARNES','SISTEMA DIVARIO','SISTEMA CLAMEX','SISTEMA INTERLINK','EXTENSION','HDMI','TAPA PLASTICA','PROTECTOR','CINCHO','NODO','UNION ','RIEL','CENTRO DE ENERGIA','CENTRO ENERGIA','RONDANA','KIT ADH','HONEYCOMB','UNICEL','CARTON','ACRILICO','ACOUSTIC PANEL','PANEL ACUSTICO','CHAPA','LLAVE','ESQUINERO PROTECTOR','ESQUINERO','BUJE','CHAPETON','ESPACIADOR','ABRAZADERA']}
+];
+
+// Lista aplanada y ordenada por longitud de palabra clave (mas larga/especifica primero),
+// para que frases compuestas (ej. "ESQUINERO MAMPARA") ganen sobre palabras genericas cortas
+// (ej. "PLACA") sin importar en que Fase este cada una.
+const REGLAS_FASE_FLAT = REGLAS_FASE
+  .flatMap(regla => regla.kws.map(kw => ({fase: regla.fase, kw})))
+  .sort((a,b) => b.kw.length - a.kw.length);
+
+function quitarAcentos(s){
+  return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function clasificarComponente(descripcion){
+  const desc = quitarAcentos(String(descripcion ?? '').toUpperCase());
+  for(const {fase, kw} of REGLAS_FASE_FLAT){
+    if(desc.includes(kw)) return {fase, palabraClave:kw};
+  }
+  return {fase:null, palabraClave:null};
+}
+
+/* ============================================================
+   TABS PRINCIPALES
+   ============================================================ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-viewer').classList.toggle('hidden', btn.dataset.tab!=='viewer');
+    document.getElementById('tab-admin').classList.toggle('hidden', btn.dataset.tab!=='admin');
+  });
+});
+
+/* ============================================================
+   PIN GATE
+   ============================================================ */
+document.getElementById('pinSubmit').addEventListener('click', ()=>{
+  const val = document.getElementById('pinInput').value;
+  const statusEl = document.getElementById('pinStatus');
+  if(val === ADMIN_PIN){
+    document.getElementById('admin-pin-gate').classList.add('hidden');
+    document.getElementById('admin-content').classList.remove('hidden');
+    cargarTodoAdmin();
+  } else {
+    statusEl.innerHTML = '<div class="status-msg err">PIN incorrecto</div>';
+  }
+});
+
+document.querySelectorAll('.admin-nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.admin-nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.admin-panel > div').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('panel-'+btn.dataset.panel).classList.remove('hidden');
+  });
+});
+
+/* ============================================================
+   CARGA INICIAL DE CATALOGOS (Firestore)
+   ============================================================ */
+async function cargarTodoAdmin(){
+  await Promise.all([cargarPreciosDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarUmbralDesdeDB(), cargarComponentesDesdeDB()]);
+  renderFasesAdmin();
+  renderRazonesAdmin();
+  document.getElementById('umbralInput').value = Math.round(UMBRAL*100);
+  document.getElementById('cargaFecha').value = new Date().toISOString().slice(0,10);
+}
+
+async function cargarPreciosDesdeDB(){
+  const snap = await db.collection('catalogoPrecios').get();
+  CATALOGO_PRECIOS = {};
+  snap.forEach(doc=>{ CATALOGO_PRECIOS[doc.id] = doc.data(); });
+}
+async function cargarComponentesDesdeDB(){
+  const snap = await db.collection('componenteFase').get();
+  COMPONENTE_A_FASE = {};
+  snap.forEach(doc=>{ COMPONENTE_A_FASE[doc.id] = doc.data(); });
+}
+async function cargarFasesDesdeDB(){
+  const doc = await db.collection('config').doc('centroFase').get();
+  CENTRO_A_FASE = doc.exists ? doc.data().mapping : {...FASES_DEFAULT};
+}
+async function cargarRazonesDesdeDB(){
+  const doc = await db.collection('config').doc('razones').get();
+  RAZONES = doc.exists ? doc.data().lista : [...RAZONES_DEFAULT];
+}
+async function cargarUmbralDesdeDB(){
+  const doc = await db.collection('config').doc('umbral').get();
+  UMBRAL = doc.exists ? doc.data().valor : 0.15;
+}
+
+/* ============================================================
+   ADMIN: CENTRO DE TRABAJO -> FASE
+   ============================================================ */
+function renderFasesAdmin(){
+  const cont = document.getElementById('tablaFasesAdmin');
+  let html = '<table><thead><tr><th>Centro de Trabajo</th><th>Fase</th><th></th></tr></thead><tbody>';
+  Object.entries(CENTRO_A_FASE).forEach(([centro, fase])=>{
+    html += `<tr>
+      <td><input type="text" class="ct-nombre" data-centro="${centro}" value="${centro}" style="width:100%;background:transparent;border:none;color:var(--text);font-family:var(--sans);"></td>
+      <td><select class="ct-fase" data-centro="${centro}">
+        ${[1,2,3,4].map(f=>`<option value="${f}" ${f==fase?'selected':''}>Fase ${f}</option>`).join('')}
+      </select></td>
+      <td><button class="btn small ct-eliminar" data-centro="${centro}">Eliminar</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+  cont.querySelectorAll('.ct-eliminar').forEach(b=>b.addEventListener('click', ()=>{
+    delete CENTRO_A_FASE[b.dataset.centro];
+    renderFasesAdmin();
+  }));
+}
+document.getElementById('btnAgregarCentro').addEventListener('click', ()=>{
+  const nombre = prompt('Nombre del nuevo Centro de Trabajo:');
+  if(nombre && !CENTRO_A_FASE[nombre]){ CENTRO_A_FASE[nombre] = 1; renderFasesAdmin(); }
+});
+document.getElementById('btnGuardarFases').addEventListener('click', async ()=>{
+  const nuevoMapping = {};
+  document.querySelectorAll('#tablaFasesAdmin tbody tr').forEach(tr=>{
+    const nombreInput = tr.querySelector('.ct-nombre');
+    const faseSelect = tr.querySelector('.ct-fase');
+    nuevoMapping[nombreInput.value.trim()] = parseInt(faseSelect.value);
+  });
+  CENTRO_A_FASE = nuevoMapping;
+  await db.collection('config').doc('centroFase').set({mapping: CENTRO_A_FASE});
+  document.getElementById('fasesStatus').innerHTML = '<div class="status-msg ok">Guardado correctamente</div>';
+  renderFasesAdmin();
+});
+
+/* ============================================================
+   ADMIN: CATALOGO DE RAZONES
+   ============================================================ */
+function renderRazonesAdmin(){
+  const cont = document.getElementById('listaRazones');
+  cont.innerHTML = RAZONES.map((r,i)=>`
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <input type="text" class="razon-input" value="${r}" style="flex:1;">
+      <button class="btn small razon-eliminar" data-i="${i}">Eliminar</button>
+    </div>`).join('');
+  cont.querySelectorAll('.razon-eliminar').forEach(b=>b.addEventListener('click', ()=>{
+    RAZONES.splice(parseInt(b.dataset.i),1); renderRazonesAdmin();
+  }));
+}
+document.getElementById('btnAgregarRazon').addEventListener('click', ()=>{
+  RAZONES.push('Nueva razón'); renderRazonesAdmin();
+});
+document.getElementById('btnGuardarRazones').addEventListener('click', async ()=>{
+  RAZONES = Array.from(document.querySelectorAll('.razon-input')).map(i=>i.value.trim()).filter(Boolean);
+  await db.collection('config').doc('razones').set({lista: RAZONES});
+  document.getElementById('razonesStatus').innerHTML = '<div class="status-msg ok">Guardado correctamente</div>';
+  renderRazonesAdmin();
+});
+
+/* ============================================================
+   ADMIN: UMBRAL
+   ============================================================ */
+document.getElementById('btnGuardarUmbral').addEventListener('click', async ()=>{
+  const pct = parseFloat(document.getElementById('umbralInput').value);
+  UMBRAL = pct/100;
+  await db.collection('config').doc('umbral').set({valor: UMBRAL});
+  document.getElementById('umbralStatus').innerHTML = '<div class="status-msg ok">Guardado: ' + pct + '%</div>';
+});
+
+/* ============================================================
+   ADMIN: CATALOGO DE PRECIOS (subir Excel/CSV)
+   ============================================================ */
+async function commitEnLotes(db, operaciones){
+  // Firestore permite maximo 500 operaciones por batch
+  const CHUNK = 450;
+  for(let i=0; i<operaciones.length; i+=CHUNK){
+    const batch = db.batch();
+    operaciones.slice(i, i+CHUNK).forEach(op => batch.set(op.ref, op.data));
+    await batch.commit();
+  }
+}
+
+document.getElementById('btnCargarPrecios').addEventListener('click', async ()=>{
+  const fileInput = document.getElementById('filePrecios');
+  const statusEl = document.getElementById('preciosStatus');
+  if(!fileInput.files[0]){ statusEl.innerHTML = '<div class="status-msg err">Selecciona un archivo primero</div>'; return; }
+  statusEl.innerHTML = '<div class="status-msg info">Leyendo archivo...</div>';
+
+  const rows = await leerExcelComoJSON(fileInput.files[0]);
+  // Se espera: SKU, Descripcion, Unidad, Costo Unitario (columnas por nombre, flexible)
+  const porSku = {};
+  rows.forEach(r=>{
+    const sku = String(r['SKU'] ?? r['sku'] ?? '').trim();
+    if(!sku) return;
+    const costo = parseFloat(r['Costo Unitario'] ?? r['CostoUnitario'] ?? r['Costo'] ?? 0) || 0;
+    const descripcion = r['Descripcion'] ?? r['Descripción'] ?? r[Object.keys(r)[1]] ?? '';
+    const unidad = r['Unidad'] ?? r['UNIDAD DE MEDIDA'] ?? '';
+    if(!porSku[sku] || costo > porSku[sku].costo){
+      porSku[sku] = {descripcion, unidad, costo};
+    }
+  });
+
+  statusEl.innerHTML = `<div class="status-msg info">Guardando ${Object.keys(porSku).length} SKUs en lotes...</div>`;
+  const operaciones = Object.entries(porSku).map(([sku, data]) => ({ref: db.collection('catalogoPrecios').doc(sku), data}));
+  await commitEnLotes(db, operaciones);
+  CATALOGO_PRECIOS = porSku;
+
+  statusEl.innerHTML = `<div class="status-msg info">Clasificando componentes por fase...</div>`;
+  // Auto-clasificar fase para SKUs nuevos que aun no tengan clasificacion manual
+  await autoClasificarComponentes(porSku);
+
+  statusEl.innerHTML = `<div class="status-msg ok">Catálogo cargado: ${Object.keys(porSku).length} SKUs únicos guardados.</div>`;
+  if(!document.getElementById('panel-componentes').classList.contains('hidden')){
+    renderComponentesAdmin(document.getElementById('buscarComponente').value);
+  }
+});
+
+async function autoClasificarComponentes(porSku){
+  const operaciones = [];
+  Object.entries(porSku).forEach(([sku, data])=>{
+    if(COMPONENTE_A_FASE[sku] && COMPONENTE_A_FASE[sku].origen === 'manual') return; // no pisar ediciones manuales
+    const {fase, palabraClave} = clasificarComponente(data.descripcion);
+    const registro = {fase, palabraClave, origen:'auto', descripcion:data.descripcion};
+    COMPONENTE_A_FASE[sku] = registro;
+    operaciones.push({ref: db.collection('componenteFase').doc(sku), data: registro});
+  });
+  await commitEnLotes(db, operaciones);
+}
+
+/* ============================================================
+   ADMIN: COMPONENTE -> FASE (revisión / edición manual)
+   ============================================================ */
+function renderComponentesAdmin(filtro=''){
+  const cont = document.getElementById('tablaComponentesAdmin');
+  const filtroUpper = quitarAcentos(filtro.toUpperCase());
+  const entries = Object.entries(COMPONENTE_A_FASE).filter(([sku, data])=>{
+    if(!filtro) return true;
+    return sku.includes(filtro) || quitarAcentos(String(data.descripcion ?? '').toUpperCase()).includes(filtroUpper);
+  }).slice(0, 200);
+
+  let html = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Fase</th><th>Origen</th></tr></thead><tbody>';
+  entries.forEach(([sku, data])=>{
+    html += `<tr>
+      <td>${sku}</td>
+      <td>${data.descripcion||''}</td>
+      <td><select class="comp-fase" data-sku="${sku}">
+        <option value="">Sin clasificar</option>
+        ${[1,2,3,4].map(f=>`<option value="${f}" ${f==data.fase?'selected':''}>Fase ${f}</option>`).join('')}
+      </select></td>
+      <td><span class="tag ${data.origen}">${data.origen}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+
+  cont.querySelectorAll('.comp-fase').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      const sku = sel.dataset.sku;
+      const nuevaFase = sel.value ? parseInt(sel.value) : null;
+      COMPONENTE_A_FASE[sku] = {...COMPONENTE_A_FASE[sku], fase: nuevaFase, origen:'manual'};
+      await db.collection('componenteFase').doc(sku).set(COMPONENTE_A_FASE[sku]);
+      document.getElementById('componentesStatus').innerHTML = '<div class="status-msg ok">Guardado</div>';
+    });
+  });
+}
+document.getElementById('buscarComponente').addEventListener('input', (e)=>{
+  renderComponentesAdmin(e.target.value);
+});
+document.querySelector('[data-panel="componentes"]').addEventListener('click', ()=>renderComponentesAdmin());
+
+/* ============================================================
+   LECTURA DE EXCEL (SheetJS)
+   ============================================================ */
+function leerExcelComoJSON(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array', cellDates:true});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, {defval:null});
+        resolve(json);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ============================================================
+   PROCESAMIENTO DEL REPORTE DIARIO (Admin -> Cargar Excels)
+   ============================================================ */
+document.getElementById('btnProcesar').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('cargaStatus');
+  const fecha = document.getElementById('cargaFecha').value;
+  const fAntes = document.getElementById('fileAntes').files[0];
+  const fDespues = document.getElementById('fileDespues').files[0];
+  const fAvance = document.getElementById('fileAvance').files[0];
+
+  if(!fecha || !fAntes || !fDespues || !fAvance){
+    statusEl.innerHTML = '<div class="status-msg err">Selecciona fecha y los 3 archivos</div>';
+    return;
+  }
+  statusEl.innerHTML = '<div class="status-msg info">Procesando archivos...</div>';
+
+  try{
+    const [antesRows, despuesRows, avanceRows] = await Promise.all([
+      leerExcelComoJSON(fAntes), leerExcelComoJSON(fDespues), leerExcelComoJSON(fAvance)
+    ]);
+
+    const resultado = procesarConsumo(antesRows, despuesRows, avanceRows);
+
+    await db.collection('reportes').doc(fecha).set({
+      fecha,
+      umbralUsado: UMBRAL,
+      lineas: resultado.lineas,
+      avanceOPs: resultado.avanceOPs,
+      generadoEn: serverTimestampValue()
+    });
+
+    statusEl.innerHTML = `<div class="status-msg ok">Reporte del ${fecha} guardado: ${resultado.lineas.length} componentes con consumo detectado. Con precio encontrado: ${resultado.diagnostico.conPrecio} de ${resultado.diagnostico.total}. Con estándar &gt; 0: ${resultado.diagnostico.conEstandarPositivo} de ${resultado.diagnostico.total}.</div>`;
+  }catch(err){
+    console.error(err);
+    statusEl.innerHTML = `<div class="status-msg err">Error al procesar: ${err.message}</div>`;
+  }
+});
+
+function procesarConsumo(antesRows, despuesRows, avanceRows){
+  // Normaliza claves esperadas de los archivos de componentes
+  function keyRow(r){
+    return {
+      noOP: String(r['NoOP'] ?? '').trim(),
+      modelo: r['Modelo'] ?? '',
+      noComponente: String(r['NoComponente'] ?? '').trim(),
+      nombreComponente: r['NombreComponente'] ?? '',
+      compEsperados: parseFloat(r['CompEsperados']) || 0,
+      componentesPendientes: parseFloat(r['ComponentesPendientes']) || 0,
+      cant: parseFloat(r['Cant']) || 0,
+      cantTerminada: parseFloat(r['CantTerminada']) || 0,
+      fechaVenc: (r['FechaVenc'] instanceof Date) ? r['FechaVenc'].toISOString().slice(0,10) : (r['FechaVenc'] ?? null)
+    };
+  }
+  const antes = antesRows.map(keyRow);
+  const despues = despuesRows.map(keyRow);
+  const avance = avanceRows.map(keyRow);
+
+  // Info de avance por OP (Cant total, CantTerminada, FechaVenc) - una entrada por OP,
+  // usando el avance MAS ALTO/reciente si el archivo trae varias filas por OP (una por fecha registrada)
+  const avancePorOP = {};
+  avance.forEach(r=>{
+    if(!r.noOP) return;
+    if(!avancePorOP[r.noOP] || r.cantTerminada > avancePorOP[r.noOP].cantTerminada){
+      avancePorOP[r.noOP] = r;
+    }
+  });
+
+  // Indexar 'despues' por clave compuesta (OP + Componente + Estandar) con contador de ocurrencia
+  function agrupar(lista){
+    const grupos = {};
+    lista.forEach(r=>{
+      const key = r.noOP + '|' + r.noComponente + '|' + r.compEsperados;
+      if(!grupos[key]) grupos[key] = [];
+      grupos[key].push(r);
+    });
+    return grupos;
+  }
+  const gruposAntes = agrupar(antes);
+  const gruposDespues = agrupar(despues);
+
+  const lineas = [];
+  Object.entries(gruposAntes).forEach(([key, listaAntes])=>{
+    const listaDespues = gruposDespues[key];
+    if(!listaDespues) return;
+    const n = Math.min(listaAntes.length, listaDespues.length);
+    for(let i=0;i<n;i++){
+      const a = listaAntes[i], d = listaDespues[i];
+      if(a.componentesPendientes === d.componentesPendientes) continue; // sin cambio, sin consumo
+
+      const cantidadRealConsumida = a.componentesPendientes - d.componentesPendientes;
+      const opInfo = avancePorOP[a.noOP];
+      const cantTotalOP = opInfo ? opInfo.cant : (a.cant || 1);
+      const cantTerminadaOP = opInfo ? opInfo.cantTerminada : (a.cantTerminada || cantTotalOP);
+      const pctAvance = cantTotalOP > 0 ? (cantTerminadaOP / cantTotalOP) : 1;
+      const cantidadEstandarAjustada = a.compEsperados * pctAvance;
+
+      const diferencia = cantidadRealConsumida - cantidadEstandarAjustada;
+      const pct = cantidadEstandarAjustada !== 0 ? diferencia / cantidadEstandarAjustada : 0;
+
+      const infoComponente = COMPONENTE_A_FASE[a.noComponente] || {};
+      const infoPrecio = CATALOGO_PRECIOS[a.noComponente] || {costo:0, descripcion:a.nombreComponente};
+      const costoUnitario = infoPrecio.costo || 0;
+
+      lineas.push({
+        noOP: a.noOP,
+        modelo: a.modelo || d.modelo,
+        noComponente: a.noComponente,
+        descripcion: infoPrecio.descripcion || a.nombreComponente || '',
+        fase: infoComponente.fase ?? null,
+        cantidadEstandar: round3(cantidadEstandarAjustada),
+        cantidadReal: round3(cantidadRealConsumida),
+        diferencia: round3(diferencia),
+        pct: pct,
+        costoUnitario: costoUnitario,
+        estandarUSD: round2(cantidadEstandarAjustada * costoUnitario),
+        realUSD: round2(cantidadRealConsumida * costoUnitario),
+        razon: ""
+      });
+    }
+  });
+
+  const avanceOPs = Object.values(avancePorOP).map(r=>({
+    noOP: r.noOP, cant: r.cant, cantTerminada: r.cantTerminada, fechaVenc: r.fechaVenc
+  }));
+
+  const conPrecio = lineas.filter(l=>l.costoUnitario>0).length;
+  const conEstandarPositivo = lineas.filter(l=>l.cantidadEstandar>0).length;
+  return {lineas, avanceOPs, diagnostico:{total:lineas.length, conPrecio, conEstandarPositivo}};
+}
+function round2(n){ return Math.round(n*100)/100; }
+function round3(n){ return Math.round(n*1000)/1000; }
+
+/* ============================================================
+   VIEWER: SELECTOR DE PERIODO
+   ============================================================ */
+document.querySelectorAll('.period-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = btn.dataset.period;
+    cargarYRenderizarPeriodo();
+  });
+});
+document.getElementById('fechaSelector').addEventListener('change', (e)=>{
+  currentDate = e.target.value;
+  cargarYRenderizarPeriodo();
+});
+
+function rangoDeFechas(fechaBase, periodo){
+  const d = new Date(fechaBase + 'T00:00:00');
+  let inicio, fin;
+  if(periodo === 'dia'){ inicio = new Date(d); fin = new Date(d); }
+  else if(periodo === 'semana'){
+    const dow = d.getDay() || 7;
+    inicio = new Date(d); inicio.setDate(d.getDate() - dow + 1);
+    fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
+  } else if(periodo === 'mes'){
+    inicio = new Date(d.getFullYear(), d.getMonth(), 1);
+    fin = new Date(d.getFullYear(), d.getMonth()+1, 0);
+  } else if(periodo === 'anio'){
+    inicio = new Date(d.getFullYear(), 0, 1);
+    fin = new Date(d.getFullYear(), 11, 31);
+  }
+  return {inicio: inicio.toISOString().slice(0,10), fin: fin.toISOString().slice(0,10)};
+}
+
+async function cargarYRenderizarPeriodo(){
+  const {inicio, fin} = rangoDeFechas(currentDate, currentPeriod);
+  document.getElementById('periodoLabel').textContent = inicio === fin ? inicio : (inicio + ' → ' + fin);
+
+  const snap = await db.collection('reportes')
+    .where(documentIdField(), '>=', inicio)
+    .where(documentIdField(), '<=', fin)
+    .get();
+
+  currentReports = [];
+  snap.forEach(doc=> currentReports.push(doc.data()));
+
+  renderBigPicture();
+  goToLevel0();
+}
+
+function todasLasLineas(){
+  // La Fase se recalcula siempre con el catalogo Componente->Fase mas reciente,
+  // no se queda "congelada" al momento en que se proceso el reporte (a diferencia
+  // del precio/$ que si se congela a proposito).
+  return currentReports.flatMap(r => (r.lineas||[]).map(l => ({
+    ...l,
+    fecha:r.fecha,
+    fase: (COMPONENTE_A_FASE[l.noComponente] && COMPONENTE_A_FASE[l.noComponente].fase != null)
+      ? COMPONENTE_A_FASE[l.noComponente].fase
+      : l.fase
+  })));
+}
+
+function renderBigPicture(){
+  const lineas = todasLasLineas();
+  const totalEstandar = lineas.reduce((s,l)=>s+l.estandarUSD,0);
+  const totalReal = lineas.reduce((s,l)=>s+l.realUSD,0);
+  const desviacion = totalReal - totalEstandar;
+  const pctDesv = totalEstandar !== 0 ? desviacion/totalEstandar : 0;
+
+  document.getElementById('bigEstandar').textContent = fmtMoney(totalEstandar);
+  document.getElementById('bigReal').textContent = fmtMoney(totalReal);
+  const bigDesvEl = document.getElementById('bigDesv');
+  bigDesvEl.textContent = (desviacion>=0?'+':'') + fmtMoney(desviacion);
+  bigDesvEl.className = 'big ' + (desviacion>0?'pos':'neg');
+  document.getElementById('subDesv').textContent = (pctDesv*100).toFixed(1) + '% vs estándar';
+  document.getElementById('subEstandar').textContent = lineas.length + ' líneas de consumo';
+  document.getElementById('subReal').textContent = ' ';
+
+  // Error mas comun (solo lineas que superan umbral y tienen razon)
+  const conRazon = lineas.filter(l => Math.abs(l.pct) >= UMBRAL && l.razon);
+  const conteoRazones = {};
+  conRazon.forEach(l=> conteoRazones[l.razon] = (conteoRazones[l.razon]||0)+1);
+  const topRazon = Object.entries(conteoRazones).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('errorComun').textContent = topRazon ? topRazon[0] : 'Sin datos suficientes';
+  document.getElementById('errorComunDetail').textContent = topRazon ? `${topRazon[1]} de ${conRazon.length} casos marcados` : 'Aún no hay razones capturadas';
+
+  // Atraso: usando el avance mas reciente disponible en el periodo
+  const ultimoReporte = [...currentReports].sort((a,b)=> a.fecha < b.fecha ? 1 : -1)[0];
+  const avanceOPs = ultimoReporte ? (ultimoReporte.avanceOPs||[]) : [];
+  const hoy = new Date().toISOString().slice(0,10);
+  let opsAtrasadas = 0, unidadesPendientes = 0;
+  avanceOPs.forEach(op=>{
+    const pendientes = (op.cant||0) - (op.cantTerminada||0);
+    if(pendientes > 0){
+      unidadesPendientes += pendientes;
+      const vencida = op.fechaVenc && String(op.fechaVenc).slice(0,10) < hoy;
+      if(vencida) opsAtrasadas++;
+    }
+  });
+  document.getElementById('atrasoHeadline').textContent = `${opsAtrasadas} OPs vencidas`;
+  document.getElementById('atrasoDetail').textContent = `${unidadesPendientes} unidades pendientes en total (${avanceOPs.length} OPs activas, avance más reciente)`;
+
+  renderTablaFases(lineas);
+}
+
+function renderTablaFases(lineas){
+  const tbody = document.getElementById('tablaFases');
+  const centrosPorFase = {1:[],2:[],3:[],4:[]};
+  Object.entries(CENTRO_A_FASE).forEach(([centro,fase])=> centrosPorFase[fase]?.push(centro));
+
+  let html = '';
+  for(let fase=1; fase<=4; fase++){
+    const lineasFase = lineas.filter(l=>l.fase===fase);
+    const est = lineasFase.reduce((s,l)=>s+l.estandarUSD,0);
+    const real = lineasFase.reduce((s,l)=>s+l.realUSD,0);
+    const desv = real-est;
+    const pct = est!==0 ? desv/est : 0;
+    html += `<tr class="clickable" onclick="verFase(${fase})">
+      <td><strong>Fase ${fase}</strong></td>
+      <td>${(centrosPorFase[fase]||[]).join(', ') || '—'}</td>
+      <td class="money">${fmtMoney(est)}</td>
+      <td class="money">${fmtMoney(real)}</td>
+      <td class="money">${(desv>=0?'+':'')+fmtMoney(desv)}</td>
+      <td class="pct ${Math.abs(pct)>=UMBRAL?'alert':'ok'}">${(pct*100).toFixed(1)}%</td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+}
+
+function fmtMoney(n){
+  return '$' + n.toLocaleString('es-MX', {maximumFractionDigits:0});
+}
+
+/* ============================================================
+   NAVEGACION ENTRE NIVELES
+   ============================================================ */
+function goToLevel0(){
+  document.getElementById('viewer-level-0').classList.remove('hidden');
+  document.getElementById('viewer-level-1').classList.add('hidden');
+  currentFaseSeleccionada = null;
+}
+function verFase(fase){
+  currentFaseSeleccionada = fase;
+  document.getElementById('viewer-level-0').classList.add('hidden');
+  document.getElementById('viewer-level-1').classList.remove('hidden');
+  document.getElementById('faseBreadcrumb').textContent = 'Fase ' + fase;
+  renderTablaComponentes();
+}
+
+function renderTablaComponentes(){
+  const lineas = todasLasLineas().filter(l=>l.fase===currentFaseSeleccionada);
+  lineas.sort((a,b)=> Math.abs(b.pct) - Math.abs(a.pct));
+  const tbody = document.getElementById('tablaComponentes');
+
+  tbody.innerHTML = lineas.map((l, idx)=>{
+    const esAlerta = Math.abs(l.pct) >= UMBRAL;
+    const razonOptions = ['<option value="">—</option>'].concat(
+      RAZONES.map(r=>`<option value="${r}" ${r===l.razon?'selected':''}>${r}</option>`)
+    ).join('');
+    return `<tr style="${esAlerta?'background:rgba(229,83,75,0.08);':''}">
+      <td>${l.fecha}</td>
+      <td>${l.noOP}</td>
+      <td>${l.modelo}</td>
+      <td>${l.noComponente}</td>
+      <td style="font-family:var(--sans);">${l.descripcion}</td>
+      <td>${l.cantidadEstandar}</td>
+      <td>${l.cantidadReal}</td>
+      <td>${l.diferencia}</td>
+      <td class="pct ${esAlerta?'alert':'ok'}">${(l.pct*100).toFixed(1)}%</td>
+      <td class="money">${fmtMoney(l.estandarUSD)}</td>
+      <td class="money">${fmtMoney(l.realUSD)}</td>
+      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-fecha="${l.fecha}" data-op="${l.noOP}" data-comp="${l.noComponente}">${razonOptions}</select>` : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('select.razon').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      await guardarRazon(sel.dataset.fecha, sel.dataset.op, sel.dataset.comp, sel.value);
+      sel.classList.toggle('empty', !sel.value);
+    });
+  });
+}
+
+async function guardarRazon(fecha, noOP, noComponente, razon){
+  const ref = db.collection('reportes').doc(fecha);
+  const doc = await ref.get();
+  if(!doc.exists) return;
+  const data = doc.data();
+  const lineas = (data.lineas||[]).map(l=>{
+    if(l.noOP===noOP && l.noComponente===noComponente) return {...l, razon};
+    return l;
+  });
+  await ref.update({lineas});
+  // refrescar en memoria
+  const rep = currentReports.find(r=>r.fecha===fecha);
+  if(rep) rep.lineas = lineas;
+}
+
+/* ============================================================
+   EXPORTAR
+   ============================================================ */
+document.getElementById('btnExportExcel').addEventListener('click', ()=>{
+  const lineas = todasLasLineas().filter(l=>l.fase===currentFaseSeleccionada);
+  const data = lineas.map(l=>({
+    Fecha:l.fecha, OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+    'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
+    '%': (l.pct*100).toFixed(1)+'%', '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, Razon:l.razon
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fase '+currentFaseSeleccionada);
+  XLSX.writeFile(wb, `Reporte_Fase${currentFaseSeleccionada}_${currentDate}.xlsx`);
+});
+document.getElementById('btnExportPdf').addEventListener('click', ()=>{
+  window.print();
+});
+
+/* ============================================================
+   INICIALIZACION
+   ============================================================ */
+(async function init(){
+  if(USE_LOCAL) document.getElementById('localModeBanner').classList.remove('hidden');
+  await cargarFasesDesdeDB();
+  await cargarRazonesDesdeDB();
+  await cargarUmbralDesdeDB();
+  await cargarPreciosDesdeDB();
+  await cargarComponentesDesdeDB();
+  if(Object.keys(CENTRO_A_FASE).length===0) CENTRO_A_FASE = {...FASES_DEFAULT};
+  if(RAZONES.length===0) RAZONES = [...RAZONES_DEFAULT];
+  document.getElementById('fechaSelector').value = currentDate;
+  cargarYRenderizarPeriodo();
+})();
+</script>
+</body>
+</html>
