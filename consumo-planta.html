@@ -47,8 +47,26 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
 .tab-btn:hover{color:var(--text);}
 
 .period-bar{
-  display:flex; gap:6px; padding:12px 24px; background:var(--panel); border-bottom:1px solid var(--line);
-  align-items:center; flex-wrap:wrap;
+  display:flex; gap:6px; padding:12px 24px 4px; background:var(--panel); border-bottom:none;
+  align-items:center; flex-wrap:wrap; justify-content:center;
+}
+.date-nav{
+  display:flex; gap:14px; align-items:center; justify-content:center;
+  padding:6px 24px 16px; background:var(--panel); border-bottom:1px solid var(--line);
+}
+.date-arrow{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+  width:34px; height:34px; border-radius:8px; font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-family:var(--sans);
+}
+.date-arrow:hover{border-color:var(--accent); color:var(--accent);}
+.date-display{
+  font-family:var(--mono); font-size:22px; font-weight:600; color:var(--text);
+  min-width:220px; text-align:center;
+}
+.date-nav input[type=date]{
+  background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
+  padding:5px 8px; border-radius:6px; font-family:var(--mono); font-size:12px;
 }
 .period-btn{
   background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
@@ -61,7 +79,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
 }
 .period-label{margin-left:auto; color:var(--muted); font-size:12px; font-family:var(--mono);}
 
-main{max-width:1180px; margin:0 auto; padding:24px;}
+main{max-width:100%; margin:0 auto; padding:24px 20px;}
 .hidden{display:none !important;}
 
 /* Big picture */
@@ -89,8 +107,16 @@ td{padding:10px 12px; font-size:13px; border-bottom:1px solid var(--line); font-
 tr:last-child td{border-bottom:none;}
 tr.clickable{cursor:pointer;}
 tr.clickable:hover{background:var(--panel-2);}
+.table-scroll{height:65vh; overflow-y:auto; overflow-x:auto; border-radius:10px; border:1px solid var(--line);}
+.table-scroll table{border:none; border-radius:0; width:100%; border-collapse:separate; border-spacing:0; overflow:visible; table-layout:auto;}
+.table-scroll thead th{position:sticky; top:0; z-index:5; background:var(--panel-2); cursor:pointer; user-select:none; white-space:nowrap; box-shadow: inset 0 -1px 0 var(--line); padding:8px 8px; font-size:10.5px;}
+.table-scroll tbody td{border-bottom:1px solid var(--line); padding:7px 8px; font-size:12px;}
+.table-scroll thead th:hover{color:var(--text);}
+.table-scroll thead th .sort-arrow{margin-left:4px; opacity:0.5; font-size:10px;}
+.table-scroll thead th.sorted .sort-arrow{opacity:1; color:var(--accent);}
 .pct{font-weight:600;}
 .pct.alert{color:var(--bad);}
+.pct.ahorro{color:var(--good); font-weight:600;}
 .pct.ok{color:var(--good);}
 .money{font-family:var(--mono);}
 
@@ -160,8 +186,12 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <button class="period-btn" data-period="semana">Semanal</button>
     <button class="period-btn" data-period="mes">Mensual</button>
     <button class="period-btn" data-period="anio">Anual</button>
+  </div>
+  <div class="date-nav">
+    <button class="date-arrow" id="prevDateBtn" aria-label="Periodo anterior">‹</button>
+    <div class="date-display" id="fechaDisplay">—</div>
+    <button class="date-arrow" id="nextDateBtn" aria-label="Periodo siguiente">›</button>
     <input type="date" id="fechaSelector">
-    <span class="period-label" id="periodoLabel"></span>
   </div>
 
   <main>
@@ -197,6 +227,15 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </div>
       </div>
 
+      <div class="section-title">Tendencia — Estándar vs Real</div>
+      <div class="card" style="padding:20px;">
+        <div id="tendenciaChart"></div>
+      </div>
+
+      <div class="toolbar" style="margin-top:10px;">
+        <button class="btn" id="btnExportTodo">⬇ Exportar Excel (todas las Fases)</button>
+      </div>
+
       <div class="section-title">Fases de Producción — clic para ver detalle</div>
       <table>
         <thead><tr><th>Fase</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
@@ -205,23 +244,39 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     </div>
 
     <div id="viewer-level-1" class="hidden">
-      <div class="breadcrumb">
-        <a onclick="goToLevel0()">Big Picture</a><span class="sep">/</span><span id="faseBreadcrumb">Fase</span>
+      <div class="toolbar" style="margin-bottom:16px;">
+        <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="goToLevel0()">← Volver al Big Picture</button>
+        <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="faseBreadcrumb">Fase</span>
       </div>
       <div class="toolbar">
         <button class="btn" id="btnExportExcel">⬇ Exportar Excel</button>
         <button class="btn" id="btnExportPdf">⬇ Exportar PDF</button>
+        <input type="text" id="buscarFase" placeholder="Buscar OP, SKU, modelo, descripción..." style="margin-left:auto; min-width:280px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 12px; border-radius:6px; font-size:13px;">
       </div>
+      <div class="table-scroll">
       <table>
         <thead>
           <tr>
-            <th>Fecha</th><th>OP</th><th>Modelo</th><th>No. Componente</th><th>Descripción</th>
-            <th>Cant. Estándar</th><th>Cant. Real</th><th>Diferencia</th><th>%</th>
-            <th>$ Estándar</th><th>$ Real</th><th>Razón</th>
+            <th data-key="fecha">Fecha <span class="sort-arrow">▲▼</span></th>
+            <th data-key="noOP">OP <span class="sort-arrow">▲▼</span></th>
+            <th data-key="modelo">Modelo <span class="sort-arrow">▲▼</span></th>
+            <th data-key="noComponente">No. Componente <span class="sort-arrow">▲▼</span></th>
+            <th data-key="descripcion">Descripción <span class="sort-arrow">▲▼</span></th>
+            <th data-key="cantidadEstandar">Cant. Estándar <span class="sort-arrow">▲▼</span></th>
+            <th data-key="cantidadReal">Cant. Real <span class="sort-arrow">▲▼</span></th>
+            <th data-key="diferencia">Diferencia <span class="sort-arrow">▲▼</span></th>
+            <th data-key="pct">% <span class="sort-arrow">▲▼</span></th>
+            <th data-key="ruta">Centro de Trabajo <span class="sort-arrow">▲▼</span></th>
+            <th>Avance OP</th>
+            <th data-key="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
+            <th data-key="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
+            <th data-key="diferenciaUSD">$ Diferencia <span class="sort-arrow">▲▼</span></th>
+            <th>Razón</th>
           </tr>
         </thead>
         <tbody id="tablaComponentes"></tbody>
       </table>
+      </div>
     </div>
   </main>
 </div>
@@ -231,7 +286,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
   <div id="admin-pin-gate" class="pin-gate">
     <h3>Acceso Admin</h3>
-    <input type="password" id="pinInput" placeholder="••••" maxlength="12">
+    <input type="password" id="pinInput" placeholder="••••" maxlength="4" inputmode="numeric" autofocus>
     <div style="margin-top:12px;"><button class="btn primary" id="pinSubmit">Entrar</button></div>
     <div id="pinStatus"></div>
   </div>
@@ -239,10 +294,8 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
   <main id="admin-content" class="hidden">
     <div class="admin-grid">
       <div class="admin-nav">
-        <button class="active" data-panel="cargas">Cargar Excels del día</button>
-        <button data-panel="precios">Catálogo de Precios</button>
+        <button class="active" data-panel="cargas">Cargar Información</button>
         <button data-panel="fases">Centro de Trabajo → Fase</button>
-        <button data-panel="componentes">Componente → Fase</button>
         <button data-panel="razones">Catálogo de Razones</button>
         <button data-panel="config">Umbral / Configuración</button>
       </div>
@@ -250,57 +303,57 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       <div class="admin-panel">
 
         <div id="panel-cargas">
-          <h3>Cargar Excels del día</h3>
-          <div class="field">
-            <label>Fecha del reporte</label>
-            <input type="date" id="cargaFecha">
-          </div>
-          <div class="field">
-            <label>Excel "Antes" (inicio del periodo)</label>
-            <input type="file" id="fileAntes" accept=".xlsx,.xls">
-          </div>
-          <div class="field">
-            <label>Excel "Después" (fin del periodo)</label>
-            <input type="file" id="fileDespues" accept=".xlsx,.xls">
-            <div class="field-hint">Reemplazable: si vuelves a subir el mismo día, se sustituye el anterior.</div>
-          </div>
-          <div class="field">
-            <label>Excel "Avance del Programa"</label>
-            <input type="file" id="fileAvance" accept=".xlsx,.xls">
-          </div>
-          <button class="btn primary" id="btnProcesar">Procesar y Guardar Reporte del Día</button>
-          <div id="cargaStatus"></div>
-        </div>
+          <h3>Cargar Información del día</h3>
+          <div class="field-hint" style="margin-bottom:14px;">Sube los dos archivos juntos cada vez que tengas información nueva. El de Estándares no es un catálogo fijo — se actualiza constantemente conforme se abren/cierran OPs, así que súbelo junto con los movimientos cada vez.</div>
 
-        <div id="panel-precios" class="hidden">
-          <h3>Catálogo de Precios (SKU)</h3>
           <div class="field">
-            <label>Subir catálogo (columnas: SKU, Descripción, Unidad, Costo Unitario)</label>
-            <input type="file" id="filePrecios" accept=".xlsx,.xls,.csv">
-            <div class="field-hint">Si un SKU se repite con precios distintos, se usa automáticamente el más alto.</div>
+            <label>1. Excel de Estándares (Líneas de componentes de pedido de producción)</label>
+            <input type="file" id="fileEstandares" accept=".xlsx,.xls,.csv">
+            <div class="field-hint">Actualiza/agrega el estándar por OP+SKU. No borra lo anterior si no tocas ese OP.</div>
           </div>
-          <button class="btn primary" id="btnCargarPrecios">Cargar Catálogo</button>
+
+          <div class="field">
+            <label>2. Excel de Movimientos (Consumo)</label>
+            <input type="file" id="fileMovimientos" accept=".xlsx,.xls">
+            <div class="field-hint">La fecha de cada movimiento sale del propio archivo — puedes subir uno o varios días juntos.</div>
+          </div>
+
+          <div class="field">
+            <label>3. Excel de Avance del Programa (opcional, solo informativo)</label>
+            <input type="file" id="fileAvance" accept=".xlsx,.xls">
+            <div class="field-hint">Da el total de muebles vs. terminados por OP. No afecta ningún cálculo de $ — es solo para que veas el contexto. Si una OP no aparece en este archivo, se asume 100% completada.</div>
+          </div>
+
+          <button class="btn primary" id="btnProcesarMovimientos">Procesar Todo</button>
+          <button class="btn" id="btnEliminarCatalogo" style="color:var(--bad); border-color:var(--bad);">Eliminar todo el catálogo de estándares</button>
+          <div id="cargaStatus"></div>
           <div id="preciosStatus"></div>
-          <div class="field-hint" style="margin-top:10px;">Los precios ya guardados en reportes pasados NO se recalculan solos. Para recalcular un día viejo, vuelve a procesarlo en "Cargar Excels".</div>
+          <div id="listaSinEstandar"></div>
+
+          <div class="section-title" style="margin-top:30px;">Asignar estándar manualmente (cuando no se encuentra)</div>
+          <div class="field-hint" style="margin-bottom:10px;">Úsalo cuando una línea salga marcada "Sin estándar". En cuanto lo guardes aquí, el cálculo se corrige solo en todos los reportes (no hace falta reprocesar nada).</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="field"><label>No. OP</label><input type="text" id="manualOP" placeholder="Ej. OP09248953"></div>
+            <div class="field"><label>No. Componente (SKU)</label><input type="text" id="manualSKU" placeholder="Ej. 10508030"></div>
+            <div class="field"><label>Cantidad Esperada (estándar)</label><input type="number" id="manualCantidad" step="any"></div>
+            <div class="field"><label>Costo Unitario</label><input type="number" id="manualCosto" step="any"></div>
+            <div class="field"><label>Modelo (opcional)</label><input type="text" id="manualModelo"></div>
+            <div class="field"><label>Centro de Trabajo (opcional)</label><input type="text" id="manualRuta" placeholder="Ej. CARP"></div>
+          </div>
+          <button class="btn primary" id="btnGuardarManual">Guardar Estándar</button>
+          <div id="manualStatus"></div>
+
+          <div class="section-title" style="margin-top:30px;">Historial de reportes subidos</div>
+          <div id="historialReportes"></div>
         </div>
 
         <div id="panel-fases" class="hidden">
           <h3>Centro de Trabajo → Fase</h3>
+          <div class="field-hint" style="margin-bottom:12px;">Estos códigos vienen directo de "Cód. conexión ruta" en el catálogo de estándares. Cuando aparezca un código nuevo que no reconozca, se agrega aquí como "Sin clasificar" para que le asignes su Fase.</div>
           <div id="tablaFasesAdmin"></div>
           <button class="btn small" id="btnAgregarCentro" style="margin-top:10px;">+ Agregar Centro de Trabajo</button>
           <button class="btn primary" id="btnGuardarFases" style="margin-top:10px;">Guardar Cambios</button>
           <div id="fasesStatus"></div>
-        </div>
-
-        <div id="panel-componentes" class="hidden">
-          <h3>Componente → Fase</h3>
-          <div class="field-hint" style="margin-bottom:12px;">La fase se asigna automáticamente por palabras clave en la descripción. Puedes corregir manualmente cualquier SKU aquí.</div>
-          <div class="field">
-            <label>Buscar SKU o descripción</label>
-            <input type="text" id="buscarComponente" placeholder="Ej. tornillo, 10414010...">
-          </div>
-          <div id="tablaComponentesAdmin" style="max-height:420px; overflow-y:auto;"></div>
-          <div id="componentesStatus"></div>
         </div>
 
         <div id="panel-razones" class="hidden">
@@ -347,7 +400,8 @@ firebase.initializeApp(firebaseConfig);
    En cuanto pongas tu firebaseConfig real arriba, esto se
    desactiva solo y usa Firestore normalmente.
    ============================================================ */
-const USE_LOCAL = firebaseConfig.projectId === "REEMPLAZA";
+const FORZAR_MODO_LOCAL = false; // ponlo en true si necesitas volver a modo local para pruebas
+const USE_LOCAL = FORZAR_MODO_LOCAL || firebaseConfig.projectId === "REEMPLAZA";
 
 class LocalRef{
   constructor(coleccion, id){ this.coleccion=coleccion; this.id=id; }
@@ -357,6 +411,7 @@ class LocalRef{
     return { exists: raw !== null, id: this.id, data: () => raw ? JSON.parse(raw) : undefined };
   }
   async set(data){ localStorage.setItem(this._key(), JSON.stringify(data)); }
+  async delete(){ localStorage.removeItem(this._key()); }
   async update(data){
     const raw = localStorage.getItem(this._key());
     const actual = raw ? JSON.parse(raw) : {};
@@ -389,8 +444,14 @@ class LocalCollection{
 }
 class LocalBatch{
   constructor(){ this.ops=[]; }
-  set(ref, data){ this.ops.push({ref,data}); }
-  async commit(){ for(const op of this.ops){ await op.ref.set(op.data); } }
+  set(ref, data){ this.ops.push({ref,data,op:'set'}); }
+  delete(ref){ this.ops.push({ref,op:'delete'}); }
+  async commit(){
+    for(const op of this.ops){
+      if(op.op === 'delete') await op.ref.delete();
+      else await op.ref.set(op.data);
+    }
+  }
 }
 const LocalDB = { collection:(n)=>new LocalCollection(n), batch:()=>new LocalBatch() };
 
@@ -403,9 +464,9 @@ const ADMIN_PIN = "4689";
 /* ============================================================
    ESTADO GLOBAL
    ============================================================ */
-let CATALOGO_PRECIOS = {};      // sku -> {descripcion, unidad, costo}
-let CENTRO_A_FASE = {};         // centroTrabajo -> fase (1-4)
-let COMPONENTE_A_FASE = {};     // sku -> {fase, origen, palabraClave, descripcion}
+let ESTANDARES_OP = {};         // "OP__SKU" -> {cantidadEsperada, costoUnitario, modelo, ruta, estado, fechaVenc, cantidadPendiente}
+let AVANCE_OP = {};             // "OP" -> {cant, cantTerminada}  (solo informativo, no afecta calculos de $)
+let CENTRO_A_FASE = {};         // codigoRuta -> fase (1-4) o null si sin clasificar
 let RAZONES = [];               // ["Errores operativos", ...]
 let UMBRAL = 0.15;
 
@@ -414,11 +475,14 @@ let currentDate = new Date().toISOString().slice(0,10);
 let currentReports = [];        // reportes cargados para el periodo actual
 let currentFaseSeleccionada = null;
 
+// Estos son los codigos de "Cod. conexion ruta" que ya conocemos del sistema.
+// Si aparece un codigo nuevo al cargar el catalogo de estandares, se agrega
+// automaticamente aqui como fase:null ("Sin clasificar") para que lo asignes.
 const FASES_DEFAULT = {
-  "Carpintería Corte": 1, "Troqueles": 1, "Láser muebles": 1,
-  "Enchapado": 2, "Est. Muebles": 2, "Est. Sillas": 2, "Est. Mamparas": 2, "Est. Libreros": 2, "Est. Archiveros": 2,
-  "Cajas": 3, "Hab. de muebles": 3, "Pintura": 3, "Telas": 3,
-  "Ens. Muebles": 4, "Ens. Sillas": 4, "Ens. Sillones": 4, "Ens. Mamparas": 4, "Ens. Libreros": 4, "Ens. Archiveros": 4
+  "CARP": 1, "TROQUELES": 1, "LASER": 1,
+  "ENCHAPADO": 2, "EST MUEBLE": 2, "EST SILLAS": 2, "EST MAMPAR": 2,
+  "CAJAS": 3, "HAB MUEBLE": 3, "PINTURA": 3, "TELAS": 3,
+  "ENS MUEBLE": 4, "ENS SILLAS": 4, "ENS MAMPAR": 4, "ENS LIBRER": 4, "ENS ARCHIV": 4
 };
 const RAZONES_DEFAULT = [
   "Errores operativos",
@@ -428,30 +492,8 @@ const RAZONES_DEFAULT = [
   "Faltante de material en almacén"
 ];
 
-// Palabras clave de clasificación automática Componente -> Fase (mismo criterio ya validado)
-const REGLAS_FASE = [
-  {fase:1, kws:['MELAMINA','MDF','LAMINA','POLICARBONATO','TUBO ','TUBULAR','TRIPLAY','PLYWOOD','DUELA','MADERA','SOLERA','PERFIL','ANGULO ','PLACA','CORTE SUPERIOR','CORTE ','CORTE LASER']},
-  {fase:2, kws:['CHAPACINTA','T MOLDING','MOLDURA','JUNQUILLO','CANTO','ESCUADRA','ESQUINERO MAMPARA','ESQUINERO DE ALUMINIO']},
-  {fase:3, kws:['CAJA ','KIT DE EMPAQUE','TARIMA','POSTER','TELA ','ESPUMA','PINTURA','LACA','SELLADOR','THINNER','ZUNCHO','CINTA','BOLSA','HULE ESPUMA','BARNIZ','BAJO ALFOMBRA','MALLA PLASTICA','CIERRE ','CREMALLERA','BANDASTIC','INSERTO']},
-  {fase:4, kws:['TORNILLO','PIJA','TUERCA','BISAGRA','JALADERA','CORREDERA','RUEDA','RODAJA','NIVELADOR','REGATON','RESBALON','TAPON','PERILLA','GANCHO','MECANISMO','PISTON','CONECTOR','IMAN','CABINEO','RESORTE','SOPORTE','BRIDA','ADHESIVO','SILICON','PEGAMENTO','ASIENTO DE PLASTICO','CONCHA SILLA','SILLON','ESTRUCTURA CROMADA','CLIP','TOPE','GROMMET','GROUMET','GROUMMET','CANALETA','ADAPTADOR','CARGADOR','CABLE','CASQUILLO','COLUMNA PORTA CABLES','MULTICONTACTO','TOMA CORRIENTE','ARNES','SISTEMA DIVARIO','SISTEMA CLAMEX','SISTEMA INTERLINK','EXTENSION','HDMI','TAPA PLASTICA','PROTECTOR','CINCHO','NODO','UNION ','RIEL','CENTRO DE ENERGIA','CENTRO ENERGIA','RONDANA','KIT ADH','HONEYCOMB','UNICEL','CARTON','ACRILICO','ACOUSTIC PANEL','PANEL ACUSTICO','CHAPA','LLAVE','ESQUINERO PROTECTOR','ESQUINERO','BUJE','CHAPETON','ESPACIADOR','ABRAZADERA']}
-];
-
-// Lista aplanada y ordenada por longitud de palabra clave (mas larga/especifica primero),
-// para que frases compuestas (ej. "ESQUINERO MAMPARA") ganen sobre palabras genericas cortas
-// (ej. "PLACA") sin importar en que Fase este cada una.
-const REGLAS_FASE_FLAT = REGLAS_FASE
-  .flatMap(regla => regla.kws.map(kw => ({fase: regla.fase, kw})))
-  .sort((a,b) => b.kw.length - a.kw.length);
-
 function quitarAcentos(s){
   return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-}
-function clasificarComponente(descripcion){
-  const desc = quitarAcentos(String(descripcion ?? '').toUpperCase());
-  for(const {fase, kw} of REGLAS_FASE_FLAT){
-    if(desc.includes(kw)) return {fase, palabraClave:kw};
-  }
-  return {fase:null, palabraClave:null};
 }
 
 /* ============================================================
@@ -463,13 +505,16 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.classList.add('active');
     document.getElementById('tab-viewer').classList.toggle('hidden', btn.dataset.tab!=='viewer');
     document.getElementById('tab-admin').classList.toggle('hidden', btn.dataset.tab!=='admin');
+    if(btn.dataset.tab==='admin' && !document.getElementById('admin-pin-gate').classList.contains('hidden')){
+      setTimeout(()=> document.getElementById('pinInput').focus(), 50);
+    }
   });
 });
 
 /* ============================================================
    PIN GATE
    ============================================================ */
-document.getElementById('pinSubmit').addEventListener('click', ()=>{
+function intentarEntrarAdmin(){
   const val = document.getElementById('pinInput').value;
   const statusEl = document.getElementById('pinStatus');
   if(val === ADMIN_PIN){
@@ -479,6 +524,13 @@ document.getElementById('pinSubmit').addEventListener('click', ()=>{
   } else {
     statusEl.innerHTML = '<div class="status-msg err">PIN incorrecto</div>';
   }
+}
+document.getElementById('pinSubmit').addEventListener('click', intentarEntrarAdmin);
+document.getElementById('pinInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') intentarEntrarAdmin();
+});
+document.getElementById('pinInput').addEventListener('input', (e)=>{
+  if(e.target.value.length === 4) intentarEntrarAdmin();
 });
 
 document.querySelectorAll('.admin-nav button').forEach(btn=>{
@@ -494,22 +546,58 @@ document.querySelectorAll('.admin-nav button').forEach(btn=>{
    CARGA INICIAL DE CATALOGOS (Firestore)
    ============================================================ */
 async function cargarTodoAdmin(){
-  await Promise.all([cargarPreciosDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarUmbralDesdeDB(), cargarComponentesDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarUmbralDesdeDB()]);
   renderFasesAdmin();
   renderRazonesAdmin();
   document.getElementById('umbralInput').value = Math.round(UMBRAL*100);
-  document.getElementById('cargaFecha').value = new Date().toISOString().slice(0,10);
+  renderHistorialReportes();
 }
 
-async function cargarPreciosDesdeDB(){
-  const snap = await db.collection('catalogoPrecios').get();
-  CATALOGO_PRECIOS = {};
-  snap.forEach(doc=>{ CATALOGO_PRECIOS[doc.id] = doc.data(); });
+async function renderHistorialReportes(){
+  const cont = document.getElementById('historialReportes');
+  cont.innerHTML = '<div class="field-hint">Cargando historial...</div>';
+  const snap = await db.collection('reportes').get();
+  const docs = [];
+  snap.forEach(doc => docs.push({fecha: doc.id, ...doc.data()}));
+  docs.sort((a,b) => a.fecha < b.fecha ? 1 : -1);
+
+  if(docs.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay reportes guardados.</div>';
+    return;
+  }
+
+  let html = '<table><thead><tr><th>Fecha</th><th>Líneas de consumo</th><th>$ Real del día</th><th></th></tr></thead><tbody>';
+  docs.forEach(d=>{
+    const totalReal = (d.lineas||[]).reduce((s,l)=>s+(l.realUSD||0),0);
+    html += `<tr>
+      <td>${d.fecha}</td>
+      <td>${(d.lineas||[]).length}</td>
+      <td>${fmtMoney(totalReal)}</td>
+      <td><button class="btn small btn-eliminar-reporte" data-fecha="${d.fecha}" style="color:var(--bad); border-color:var(--bad);">Eliminar</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+
+  cont.querySelectorAll('.btn-eliminar-reporte').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const fecha = btn.dataset.fecha;
+      if(!confirm(`¿Eliminar el reporte del ${fecha}? Esta acción no se puede deshacer.`)) return;
+      await db.collection('reportes').doc(fecha).delete();
+      renderHistorialReportes();
+    });
+  });
 }
-async function cargarComponentesDesdeDB(){
-  const snap = await db.collection('componenteFase').get();
-  COMPONENTE_A_FASE = {};
-  snap.forEach(doc=>{ COMPONENTE_A_FASE[doc.id] = doc.data(); });
+
+async function cargarEstandaresDesdeDB(){
+  const snap = await db.collection('estandaresOP').get();
+  ESTANDARES_OP = {};
+  snap.forEach(doc=>{ ESTANDARES_OP[doc.id] = doc.data(); });
+}
+async function cargarAvanceDesdeDB(){
+  const snap = await db.collection('avanceOP').get();
+  AVANCE_OP = {};
+  snap.forEach(doc=>{ AVANCE_OP[doc.id] = doc.data(); });
 }
 async function cargarFasesDesdeDB(){
   const doc = await db.collection('config').doc('centroFase').get();
@@ -534,6 +622,7 @@ function renderFasesAdmin(){
     html += `<tr>
       <td><input type="text" class="ct-nombre" data-centro="${centro}" value="${centro}" style="width:100%;background:transparent;border:none;color:var(--text);font-family:var(--sans);"></td>
       <td><select class="ct-fase" data-centro="${centro}">
+        <option value="" ${fase==null?'selected':''}>Sin clasificar</option>
         ${[1,2,3,4].map(f=>`<option value="${f}" ${f==fase?'selected':''}>Fase ${f}</option>`).join('')}
       </select></td>
       <td><button class="btn small ct-eliminar" data-centro="${centro}">Eliminar</button></td>
@@ -555,7 +644,7 @@ document.getElementById('btnGuardarFases').addEventListener('click', async ()=>{
   document.querySelectorAll('#tablaFasesAdmin tbody tr').forEach(tr=>{
     const nombreInput = tr.querySelector('.ct-nombre');
     const faseSelect = tr.querySelector('.ct-fase');
-    nuevoMapping[nombreInput.value.trim()] = parseInt(faseSelect.value);
+    nuevoMapping[nombreInput.value.trim()] = faseSelect.value ? parseInt(faseSelect.value) : null;
   });
   CENTRO_A_FASE = nuevoMapping;
   await db.collection('config').doc('centroFase').set({mapping: CENTRO_A_FASE});
@@ -605,98 +694,175 @@ async function commitEnLotes(db, operaciones){
   const CHUNK = 450;
   for(let i=0; i<operaciones.length; i+=CHUNK){
     const batch = db.batch();
-    operaciones.slice(i, i+CHUNK).forEach(op => batch.set(op.ref, op.data));
+    operaciones.slice(i, i+CHUNK).forEach(op => {
+      if(op.tipo === 'delete') batch.delete(op.ref);
+      else batch.set(op.ref, op.data);
+    });
     await batch.commit();
   }
 }
 
-document.getElementById('btnCargarPrecios').addEventListener('click', async ()=>{
-  const fileInput = document.getElementById('filePrecios');
-  const statusEl = document.getElementById('preciosStatus');
-  if(!fileInput.files[0]){ statusEl.innerHTML = '<div class="status-msg err">Selecciona un archivo primero</div>'; return; }
-  statusEl.innerHTML = '<div class="status-msg info">Leyendo archivo...</div>';
+async function cargarEstandaresDesdeArchivo(file, statusEl){
+  statusEl.innerHTML = '<div class="status-msg info">Leyendo archivo de estándares...</div>';
 
-  const rows = await leerExcelComoJSON(fileInput.files[0]);
-  // Se espera: SKU, Descripcion, Unidad, Costo Unitario (columnas por nombre, flexible)
-  const porSku = {};
+  const rows = await leerExcelComoJSON(file);
+  const registros = {};
+  let rutasNuevas = 0;
+
   rows.forEach(r=>{
-    const sku = String(r['SKU'] ?? r['sku'] ?? '').trim();
-    if(!sku) return;
-    const costo = parseFloat(r['Costo Unitario'] ?? r['CostoUnitario'] ?? r['Costo'] ?? 0) || 0;
-    const descripcion = r['Descripcion'] ?? r['Descripción'] ?? r[Object.keys(r)[1]] ?? '';
-    const unidad = r['Unidad'] ?? r['UNIDAD DE MEDIDA'] ?? '';
-    if(!porSku[sku] || costo > porSku[sku].costo){
-      porSku[sku] = {descripcion, unidad, costo};
+    const op = String(r['Nº orden producción'] ?? r['No orden producción'] ?? '').trim();
+    const sku = String(r['Nº producto'] ?? '').trim();
+    if(!op || !sku) return;
+    const key = op + '__' + sku;
+    const ruta = String(r['Cód. conexión ruta'] ?? r['Cod. conexion ruta'] ?? '').trim();
+    const fechaVenc = (r['Fecha vencimiento'] instanceof Date) ? r['Fecha vencimiento'].toISOString().slice(0,10) : (r['Fecha vencimiento'] ?? null);
+
+    registros[key] = {
+      cantidadEsperada: parseFloat(r['Cantidad esperada']) || 0,
+      cantidadPendiente: parseFloat(r['Cantidad pendiente']) || 0,
+      costoUnitario: parseFloat(r['Costo unitario']) || 0,
+      modelo: r['Cód. procedencia'] ?? r['Cod. procedencia'] ?? '',
+      descripcion: r['Descripción'] ?? '',
+      ruta: ruta,
+      estado: r['Estado'] ?? '',
+      fechaVenc: fechaVenc
+    };
+
+    if(ruta && !(ruta in CENTRO_A_FASE)){
+      CENTRO_A_FASE[ruta] = null; // sin clasificar, para que el admin lo asigne
+      rutasNuevas++;
     }
   });
 
-  statusEl.innerHTML = `<div class="status-msg info">Guardando ${Object.keys(porSku).length} SKUs en lotes...</div>`;
-  const operaciones = Object.entries(porSku).map(([sku, data]) => ({ref: db.collection('catalogoPrecios').doc(sku), data}));
+  statusEl.innerHTML = `<div class="status-msg info">Guardando ${Object.keys(registros).length} líneas de estándar en lotes...</div>`;
+  const operaciones = Object.entries(registros).map(([key, data]) => ({ref: db.collection('estandaresOP').doc(safeDocId(key)), data}));
   await commitEnLotes(db, operaciones);
-  CATALOGO_PRECIOS = porSku;
+  ESTANDARES_OP = {...ESTANDARES_OP, ...registros};
 
-  statusEl.innerHTML = `<div class="status-msg info">Clasificando componentes por fase...</div>`;
-  // Auto-clasificar fase para SKUs nuevos que aun no tengan clasificacion manual
-  await autoClasificarComponentes(porSku);
-
-  statusEl.innerHTML = `<div class="status-msg ok">Catálogo cargado: ${Object.keys(porSku).length} SKUs únicos guardados.</div>`;
-  if(!document.getElementById('panel-componentes').classList.contains('hidden')){
-    renderComponentesAdmin(document.getElementById('buscarComponente').value);
+  if(rutasNuevas > 0){
+    await db.collection('config').doc('centroFase').set({mapping: CENTRO_A_FASE});
   }
-});
 
-async function autoClasificarComponentes(porSku){
-  const operaciones = [];
-  Object.entries(porSku).forEach(([sku, data])=>{
-    if(COMPONENTE_A_FASE[sku] && COMPONENTE_A_FASE[sku].origen === 'manual') return; // no pisar ediciones manuales
-    const {fase, palabraClave} = clasificarComponente(data.descripcion);
-    const registro = {fase, palabraClave, origen:'auto', descripcion:data.descripcion};
-    COMPONENTE_A_FASE[sku] = registro;
-    operaciones.push({ref: db.collection('componenteFase').doc(sku), data: registro});
-  });
-  await commitEnLotes(db, operaciones);
+  return {total: Object.keys(registros).length, rutasNuevas};
 }
 
-/* ============================================================
-   ADMIN: COMPONENTE -> FASE (revisión / edición manual)
-   ============================================================ */
-function renderComponentesAdmin(filtro=''){
-  const cont = document.getElementById('tablaComponentesAdmin');
-  const filtroUpper = quitarAcentos(filtro.toUpperCase());
-  const entries = Object.entries(COMPONENTE_A_FASE).filter(([sku, data])=>{
-    if(!filtro) return true;
-    return sku.includes(filtro) || quitarAcentos(String(data.descripcion ?? '').toUpperCase()).includes(filtroUpper);
-  }).slice(0, 200);
+async function cargarAvanceDesdeArchivo(file, statusEl){
+  statusEl.innerHTML = '<div class="status-msg info">Leyendo archivo de avance...</div>';
 
-  let html = '<table><thead><tr><th>SKU</th><th>Descripción</th><th>Fase</th><th>Origen</th></tr></thead><tbody>';
-  entries.forEach(([sku, data])=>{
+  const rows = await leerExcelComoJSON(file);
+  const registros = {};
+
+  rows.forEach(r=>{
+    const op = String(r['NoOP'] ?? '').trim();
+    if(!op) return;
+    const cant = parseFloat(r['Cant']) || 0;
+    const cantTerminada = parseFloat(r['CantTerminada']) || 0;
+    // El archivo puede traer varias filas por OP (una por fecha de salida registrada);
+    // nos quedamos con la de mayor CantTerminada, que es la mas actualizada.
+    if(!registros[op] || cantTerminada > registros[op].cantTerminada){
+      registros[op] = {cant, cantTerminada};
+    }
+  });
+
+  statusEl.innerHTML = `<div class="status-msg info">Guardando avance de ${Object.keys(registros).length} OPs...</div>`;
+  const operaciones = Object.entries(registros).map(([op, data]) => ({ref: db.collection('avanceOP').doc(safeDocId(op)), data}));
+  await commitEnLotes(db, operaciones);
+  AVANCE_OP = {...AVANCE_OP, ...registros};
+
+  return {total: Object.keys(registros).length};
+}
+
+function safeDocId(key){
+  // Firestore no permite '/' en IDs de documento
+  return key.replace(/\//g, '_');
+}
+
+function renderListaSinEstandar(lineas){
+  const cont = document.getElementById('listaSinEstandar');
+  if(!lineas || lineas.length === 0){ cont.innerHTML = ''; return; }
+
+  let html = `<div class="section-title" style="margin-top:20px;">Líneas sin estándar encontrado (${lineas.length})</div>
+    <table><thead><tr><th>Fecha</th><th>OP</th><th>SKU</th><th>Descripción</th><th>Cant. Real</th><th></th></tr></thead><tbody>`;
+  lineas.forEach((l, i)=>{
     html += `<tr>
-      <td>${sku}</td>
-      <td>${data.descripcion||''}</td>
-      <td><select class="comp-fase" data-sku="${sku}">
-        <option value="">Sin clasificar</option>
-        ${[1,2,3,4].map(f=>`<option value="${f}" ${f==data.fase?'selected':''}>Fase ${f}</option>`).join('')}
-      </select></td>
-      <td><span class="tag ${data.origen}">${data.origen}</span></td>
+      <td>${l.fecha}</td>
+      <td>${l.noOP}</td>
+      <td>${l.noComponente}</td>
+      <td style="font-family:var(--sans);">${l.descripcion}</td>
+      <td>${l.cantidadReal}</td>
+      <td><button class="btn small btn-asignar-faltante" data-i="${i}">Asignar</button></td>
     </tr>`;
   });
   html += '</tbody></table>';
   cont.innerHTML = html;
 
-  cont.querySelectorAll('.comp-fase').forEach(sel=>{
-    sel.addEventListener('change', async ()=>{
-      const sku = sel.dataset.sku;
-      const nuevaFase = sel.value ? parseInt(sel.value) : null;
-      COMPONENTE_A_FASE[sku] = {...COMPONENTE_A_FASE[sku], fase: nuevaFase, origen:'manual'};
-      await db.collection('componenteFase').doc(sku).set(COMPONENTE_A_FASE[sku]);
-      document.getElementById('componentesStatus').innerHTML = '<div class="status-msg ok">Guardado</div>';
+  cont.querySelectorAll('.btn-asignar-faltante').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const l = lineas[parseInt(btn.dataset.i)];
+      document.getElementById('manualOP').value = l.noOP;
+      document.getElementById('manualSKU').value = l.noComponente;
+      document.getElementById('manualCantidad').focus();
+      document.getElementById('manualOP').scrollIntoView({behavior:'smooth', block:'center'});
     });
   });
 }
-document.getElementById('buscarComponente').addEventListener('input', (e)=>{
-  renderComponentesAdmin(e.target.value);
+
+document.getElementById('btnGuardarManual').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('manualStatus');
+  const op = document.getElementById('manualOP').value.trim();
+  const sku = document.getElementById('manualSKU').value.trim();
+  const cantidad = parseFloat(document.getElementById('manualCantidad').value);
+  const costo = parseFloat(document.getElementById('manualCosto').value) || 0;
+  const modelo = document.getElementById('manualModelo').value.trim();
+  const ruta = document.getElementById('manualRuta').value.trim();
+
+  if(!op || !sku || isNaN(cantidad)){
+    statusEl.innerHTML = '<div class="status-msg err">Completa al menos OP, SKU y Cantidad Esperada</div>';
+    return;
+  }
+
+  const key = op + '__' + sku;
+  const registro = {
+    cantidadEsperada: cantidad,
+    cantidadPendiente: 0,
+    costoUnitario: costo,
+    modelo: modelo,
+    descripcion: '',
+    ruta: ruta,
+    estado: '',
+    fechaVenc: null
+  };
+
+  await db.collection('estandaresOP').doc(safeDocId(key)).set(registro);
+  ESTANDARES_OP[safeDocId(key)] = registro;
+
+  if(ruta && !(ruta in CENTRO_A_FASE)){
+    CENTRO_A_FASE[ruta] = null;
+    await db.collection('config').doc('centroFase').set({mapping: CENTRO_A_FASE});
+  }
+
+  statusEl.innerHTML = `<div class="status-msg ok">Guardado: ${op} / ${sku} → estándar ${cantidad}. Ya se refleja en todos los reportes.</div>`;
+  document.getElementById('manualOP').value = '';
+  document.getElementById('manualSKU').value = '';
+  document.getElementById('manualCantidad').value = '';
+  document.getElementById('manualCosto').value = '';
+  document.getElementById('manualModelo').value = '';
+  document.getElementById('manualRuta').value = '';
 });
-document.querySelector('[data-panel="componentes"]').addEventListener('click', ()=>renderComponentesAdmin());
+
+document.getElementById('btnEliminarCatalogo').addEventListener('click', async ()=>{
+  if(!confirm('¿Seguro que quieres borrar TODO el catálogo de estándares (OP+SKU)? Esta acción no se puede deshacer. Los reportes ya guardados no se ven afectados.')) return;
+  const statusEl = document.getElementById('preciosStatus');
+  statusEl.innerHTML = '<div class="status-msg info">Borrando catálogo...</div>';
+
+  const snap = await db.collection('estandaresOP').get();
+  const ops = [];
+  snap.forEach(doc => ops.push({tipo:'delete', ref: db.collection('estandaresOP').doc(doc.id)}));
+  await commitEnLotes(db, ops);
+
+  ESTANDARES_OP = {};
+  statusEl.innerHTML = `<div class="status-msg ok">Catálogo eliminado: ${ops.length} líneas borradas.</div>`;
+});
 
 /* ============================================================
    LECTURA DE EXCEL (SheetJS)
@@ -719,133 +885,134 @@ function leerExcelComoJSON(file){
 }
 
 /* ============================================================
-   PROCESAMIENTO DEL REPORTE DIARIO (Admin -> Cargar Excels)
+   PROCESAMIENTO DEL REPORTE DIARIO (Admin -> Cargar Movimientos)
    ============================================================ */
-document.getElementById('btnProcesar').addEventListener('click', async ()=>{
+document.getElementById('btnProcesarMovimientos').addEventListener('click', async ()=>{
   const statusEl = document.getElementById('cargaStatus');
-  const fecha = document.getElementById('cargaFecha').value;
-  const fAntes = document.getElementById('fileAntes').files[0];
-  const fDespues = document.getElementById('fileDespues').files[0];
+  const fEstandares = document.getElementById('fileEstandares').files[0];
+  const fMov = document.getElementById('fileMovimientos').files[0];
   const fAvance = document.getElementById('fileAvance').files[0];
 
-  if(!fecha || !fAntes || !fDespues || !fAvance){
-    statusEl.innerHTML = '<div class="status-msg err">Selecciona fecha y los 3 archivos</div>';
+  if(!fEstandares && !fMov && !fAvance){
+    statusEl.innerHTML = '<div class="status-msg err">Selecciona al menos un archivo</div>';
     return;
   }
-  statusEl.innerHTML = '<div class="status-msg info">Procesando archivos...</div>';
 
   try{
-    const [antesRows, despuesRows, avanceRows] = await Promise.all([
-      leerExcelComoJSON(fAntes), leerExcelComoJSON(fDespues), leerExcelComoJSON(fAvance)
-    ]);
+    let mensajeEstandares = '';
+    if(fEstandares){
+      const resEst = await cargarEstandaresDesdeArchivo(fEstandares, statusEl);
+      mensajeEstandares += `Estándares: ${resEst.total} líneas OP+SKU actualizadas${resEst.rutasNuevas>0 ? ' ('+resEst.rutasNuevas+' Centro(s) de Trabajo nuevos sin clasificar)' : ''}. `;
+    }
+    if(fAvance){
+      const resAvance = await cargarAvanceDesdeArchivo(fAvance, statusEl);
+      mensajeEstandares += `Avance: ${resAvance.total} OPs actualizadas. `;
+    }
 
-    const resultado = procesarConsumo(antesRows, despuesRows, avanceRows);
+    if(!fMov){
+      statusEl.innerHTML = `<div class="status-msg ok">${mensajeEstandares}(No se subió archivo de movimientos, así que no se generó reporte nuevo.)</div>`;
+      return;
+    }
 
-    await db.collection('reportes').doc(fecha).set({
-      fecha,
-      umbralUsado: UMBRAL,
-      lineas: resultado.lineas,
-      avanceOPs: resultado.avanceOPs,
-      generadoEn: serverTimestampValue()
-    });
+    statusEl.innerHTML = `<div class="status-msg info">${mensajeEstandares}Procesando movimientos...</div>`;
+    const movRows = await leerExcelComoJSON(fMov);
+    const porFecha = procesarMovimientos(movRows);
+    const fechas = Object.keys(porFecha).sort();
 
-    statusEl.innerHTML = `<div class="status-msg ok">Reporte del ${fecha} guardado: ${resultado.lineas.length} componentes con consumo detectado. Con precio encontrado: ${resultado.diagnostico.conPrecio} de ${resultado.diagnostico.total}. Con estándar &gt; 0: ${resultado.diagnostico.conEstandarPositivo} de ${resultado.diagnostico.total}.</div>`;
+    if(fechas.length === 0){
+      statusEl.innerHTML = `<div class="status-msg err">${mensajeEstandares}No se encontraron movimientos de tipo "Consumo" en este archivo.</div>`;
+      return;
+    }
+
+    for(const fecha of fechas){
+      await db.collection('reportes').doc(fecha).set({
+        fecha,
+        umbralUsado: UMBRAL,
+        lineas: porFecha[fecha],
+        generadoEn: serverTimestampValue()
+      });
+    }
+
+    const totalLineas = fechas.reduce((s,f)=>s+porFecha[f].length, 0);
+    const lineasSinEstandar = fechas.flatMap(f => porFecha[f].filter(l=>!l.tieneEstandar).map(l=>({...l, fecha:f})));
+    statusEl.innerHTML = `<div class="status-msg ok">${mensajeEstandares}Movimientos: ${fechas.length} día(s) guardado(s) (${fechas.join(', ')}), ${totalLineas} líneas en total.
+      ${lineasSinEstandar.length>0 ? `<br><strong style="color:var(--bad);">⚠ ${lineasSinEstandar.length} línea(s) sin estándar encontrado</strong> — asígnalas abajo.` : 'Todas las líneas encontraron su estándar. ✓'}
+    </div>`;
+    renderListaSinEstandar(lineasSinEstandar);
+    renderHistorialReportes();
   }catch(err){
     console.error(err);
     statusEl.innerHTML = `<div class="status-msg err">Error al procesar: ${err.message}</div>`;
   }
 });
 
-function procesarConsumo(antesRows, despuesRows, avanceRows){
-  // Normaliza claves esperadas de los archivos de componentes
-  function keyRow(r){
-    return {
-      noOP: String(r['NoOP'] ?? '').trim(),
-      modelo: r['Modelo'] ?? '',
-      noComponente: String(r['NoComponente'] ?? '').trim(),
-      nombreComponente: r['NombreComponente'] ?? '',
-      compEsperados: parseFloat(r['CompEsperados']) || 0,
-      componentesPendientes: parseFloat(r['ComponentesPendientes']) || 0,
-      cant: parseFloat(r['Cant']) || 0,
-      cantTerminada: parseFloat(r['CantTerminada']) || 0,
-      fechaVenc: (r['FechaVenc'] instanceof Date) ? r['FechaVenc'].toISOString().slice(0,10) : (r['FechaVenc'] ?? null)
+function procesarMovimientos(movRows){
+  // Paso 1: agrupar movimientos por Fecha + OP + SKU y sumar cantidades/importes
+  // (una misma OP+SKU puede tener varios movimientos de consumo el mismo dia,
+  // hay que sumarlos ANTES de comparar contra el estandar, no compararlos uno por uno)
+  const grupos = {};
+  movRows.forEach(r=>{
+    const tipoMov = String(r['Tipo mov. producto'] ?? '').trim();
+    if(tipoMov !== 'Consumo') return;
+
+    const fechaRaw = r['Fecha registro'];
+    const fecha = (fechaRaw instanceof Date) ? fechaRaw.toISOString().slice(0,10) : String(fechaRaw ?? '').slice(0,10);
+    if(!fecha) return;
+
+    const op = String(r['Nº documento'] ?? '').trim();
+    const sku = String(r['Nº producto'] ?? '').trim();
+    const descripcion = r['Descripción'] ?? '';
+    const cantidad = Math.abs(parseFloat(r['Cantidad mov. producto']) || 0);
+    const costoUnitarioReal = parseFloat(r['Costo por unidad']) || 0;
+    const importe = Math.abs(parseFloat(r['Importe costo (Real)']) || 0);
+
+    const groupKey = fecha + '||' + op + '||' + sku;
+    if(!grupos[groupKey]){
+      grupos[groupKey] = {fecha, op, sku, descripcion, cantidadReal: 0, importeReal: 0, costosVistos: []};
+    }
+    grupos[groupKey].cantidadReal += cantidad;
+    grupos[groupKey].importeReal += importe;
+    grupos[groupKey].costosVistos.push(costoUnitarioReal);
+    if(!grupos[groupKey].descripcion) grupos[groupKey].descripcion = descripcion;
+  });
+
+  // Paso 2: por cada grupo ya sumado, cruzar una sola vez contra el estandar
+  const porFecha = {};
+  Object.values(grupos).forEach(g=>{
+    const key = g.op + '__' + g.sku;
+    const std = ESTANDARES_OP[safeDocId(key)] || ESTANDARES_OP[key] || null;
+    const cantidadEstandar = std ? std.cantidadEsperada : 0;
+    const costoUnitarioEstandar = std ? std.costoUnitario : (g.costosVistos[0] || 0);
+    const modelo = std ? std.modelo : '';
+    const ruta = std ? std.ruta : '';
+
+    const diferencia = g.cantidadReal - cantidadEstandar;
+    let pct;
+    if(cantidadEstandar !== 0) pct = diferencia / cantidadEstandar;
+    else pct = g.cantidadReal !== 0 ? 1 : 0;
+
+    const linea = {
+      noOP: g.op,
+      modelo: modelo,
+      noComponente: g.sku,
+      descripcion: (std && std.descripcion) || g.descripcion || '',
+      ruta: ruta,
+      cantidadEstandar: round3(cantidadEstandar),
+      cantidadReal: round3(g.cantidadReal),
+      diferencia: round3(diferencia),
+      pct: pct,
+      costoUnitarioEstandar, costoUnitarioReal: g.costosVistos[g.costosVistos.length-1] || 0,
+      estandarUSD: round2(cantidadEstandar * costoUnitarioEstandar),
+      realUSD: round2(g.importeReal),
+      tieneEstandar: !!std,
+      razon: ""
     };
-  }
-  const antes = antesRows.map(keyRow);
-  const despues = despuesRows.map(keyRow);
-  const avance = avanceRows.map(keyRow);
 
-  // Info de avance por OP (Cant total, CantTerminada, FechaVenc) - una entrada por OP,
-  // usando el avance MAS ALTO/reciente si el archivo trae varias filas por OP (una por fecha registrada)
-  const avancePorOP = {};
-  avance.forEach(r=>{
-    if(!r.noOP) return;
-    if(!avancePorOP[r.noOP] || r.cantTerminada > avancePorOP[r.noOP].cantTerminada){
-      avancePorOP[r.noOP] = r;
-    }
+    if(!porFecha[g.fecha]) porFecha[g.fecha] = [];
+    porFecha[g.fecha].push(linea);
   });
 
-  // Indexar 'despues' por clave compuesta (OP + Componente + Estandar) con contador de ocurrencia
-  function agrupar(lista){
-    const grupos = {};
-    lista.forEach(r=>{
-      const key = r.noOP + '|' + r.noComponente + '|' + r.compEsperados;
-      if(!grupos[key]) grupos[key] = [];
-      grupos[key].push(r);
-    });
-    return grupos;
-  }
-  const gruposAntes = agrupar(antes);
-  const gruposDespues = agrupar(despues);
-
-  const lineas = [];
-  Object.entries(gruposAntes).forEach(([key, listaAntes])=>{
-    const listaDespues = gruposDespues[key];
-    if(!listaDespues) return;
-    const n = Math.min(listaAntes.length, listaDespues.length);
-    for(let i=0;i<n;i++){
-      const a = listaAntes[i], d = listaDespues[i];
-      if(a.componentesPendientes === d.componentesPendientes) continue; // sin cambio, sin consumo
-
-      const cantidadRealConsumida = a.componentesPendientes - d.componentesPendientes;
-      const opInfo = avancePorOP[a.noOP];
-      const cantTotalOP = opInfo ? opInfo.cant : (a.cant || 1);
-      const cantTerminadaOP = opInfo ? opInfo.cantTerminada : (a.cantTerminada || cantTotalOP);
-      const pctAvance = cantTotalOP > 0 ? (cantTerminadaOP / cantTotalOP) : 1;
-      const cantidadEstandarAjustada = a.compEsperados * pctAvance;
-
-      const diferencia = cantidadRealConsumida - cantidadEstandarAjustada;
-      const pct = cantidadEstandarAjustada !== 0 ? diferencia / cantidadEstandarAjustada : 0;
-
-      const infoComponente = COMPONENTE_A_FASE[a.noComponente] || {};
-      const infoPrecio = CATALOGO_PRECIOS[a.noComponente] || {costo:0, descripcion:a.nombreComponente};
-      const costoUnitario = infoPrecio.costo || 0;
-
-      lineas.push({
-        noOP: a.noOP,
-        modelo: a.modelo || d.modelo,
-        noComponente: a.noComponente,
-        descripcion: infoPrecio.descripcion || a.nombreComponente || '',
-        fase: infoComponente.fase ?? null,
-        cantidadEstandar: round3(cantidadEstandarAjustada),
-        cantidadReal: round3(cantidadRealConsumida),
-        diferencia: round3(diferencia),
-        pct: pct,
-        costoUnitario: costoUnitario,
-        estandarUSD: round2(cantidadEstandarAjustada * costoUnitario),
-        realUSD: round2(cantidadRealConsumida * costoUnitario),
-        razon: ""
-      });
-    }
-  });
-
-  const avanceOPs = Object.values(avancePorOP).map(r=>({
-    noOP: r.noOP, cant: r.cant, cantTerminada: r.cantTerminada, fechaVenc: r.fechaVenc
-  }));
-
-  const conPrecio = lineas.filter(l=>l.costoUnitario>0).length;
-  const conEstandarPositivo = lineas.filter(l=>l.cantidadEstandar>0).length;
-  return {lineas, avanceOPs, diagnostico:{total:lineas.length, conPrecio, conEstandarPositivo}};
+  return porFecha;
 }
 function round2(n){ return Math.round(n*100)/100; }
 function round3(n){ return Math.round(n*1000)/1000; }
@@ -863,6 +1030,25 @@ document.querySelectorAll('.period-btn').forEach(btn=>{
 });
 document.getElementById('fechaSelector').addEventListener('change', (e)=>{
   currentDate = e.target.value;
+  cargarYRenderizarPeriodo();
+});
+
+function shiftDate(fechaStr, periodo, direccion){
+  const d = new Date(fechaStr + 'T00:00:00');
+  if(periodo === 'dia') d.setDate(d.getDate() + direccion);
+  else if(periodo === 'semana') d.setDate(d.getDate() + direccion*7);
+  else if(periodo === 'mes') d.setMonth(d.getMonth() + direccion);
+  else if(periodo === 'anio') d.setFullYear(d.getFullYear() + direccion);
+  return d.toISOString().slice(0,10);
+}
+document.getElementById('prevDateBtn').addEventListener('click', ()=>{
+  currentDate = shiftDate(currentDate, currentPeriod, -1);
+  document.getElementById('fechaSelector').value = currentDate;
+  cargarYRenderizarPeriodo();
+});
+document.getElementById('nextDateBtn').addEventListener('click', ()=>{
+  currentDate = shiftDate(currentDate, currentPeriod, 1);
+  document.getElementById('fechaSelector').value = currentDate;
   cargarYRenderizarPeriodo();
 });
 
@@ -886,7 +1072,12 @@ function rangoDeFechas(fechaBase, periodo){
 
 async function cargarYRenderizarPeriodo(){
   const {inicio, fin} = rangoDeFechas(currentDate, currentPeriod);
-  document.getElementById('periodoLabel').textContent = inicio === fin ? inicio : (inicio + ' → ' + fin);
+  const nombresMes = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function fmtLegible(iso){
+    const [y,m,d] = iso.split('-');
+    return `${d} ${nombresMes[parseInt(m)-1]} ${y}`;
+  }
+  document.getElementById('fechaDisplay').textContent = inicio === fin ? fmtLegible(inicio) : (fmtLegible(inicio) + ' → ' + fmtLegible(fin));
 
   const snap = await db.collection('reportes')
     .where(documentIdField(), '>=', inicio)
@@ -901,16 +1092,35 @@ async function cargarYRenderizarPeriodo(){
 }
 
 function todasLasLineas(){
-  // La Fase se recalcula siempre con el catalogo Componente->Fase mas reciente,
-  // no se queda "congelada" al momento en que se proceso el reporte (a diferencia
-  // del precio/$ que si se congela a proposito).
-  return currentReports.flatMap(r => (r.lineas||[]).map(l => ({
-    ...l,
-    fecha:r.fecha,
-    fase: (COMPONENTE_A_FASE[l.noComponente] && COMPONENTE_A_FASE[l.noComponente].fase != null)
-      ? COMPONENTE_A_FASE[l.noComponente].fase
-      : l.fase
-  })));
+  // La Fase y el Estandar se calculan siempre con el catalogo mas reciente
+  // (no se quedan "congelados" al momento de procesar). Lo unico que SI se
+  // congela es el consumo real y su $ (viene del movimiento real ya ocurrido).
+  return currentReports.flatMap(r => (r.lineas||[]).map(l => {
+    const fase = (l.ruta && CENTRO_A_FASE[l.ruta] != null) ? CENTRO_A_FASE[l.ruta] : null;
+
+    const key = l.noOP + '__' + l.noComponente;
+    const std = ESTANDARES_OP[safeDocId(key)] || ESTANDARES_OP[key] || null;
+
+    let cantidadEstandar = l.cantidadEstandar, costoUnitarioEstandar = l.costoUnitarioEstandar, ruta = l.ruta, tieneEstandar = l.tieneEstandar;
+    if(std){
+      cantidadEstandar = std.cantidadEsperada;
+      costoUnitarioEstandar = std.costoUnitario;
+      ruta = std.ruta || l.ruta;
+      tieneEstandar = true;
+    }
+
+    const diferencia = round3(l.cantidadReal - cantidadEstandar);
+    const pct = cantidadEstandar !== 0 ? diferencia/cantidadEstandar : (l.cantidadReal !== 0 ? 1 : 0);
+    const estandarUSD = round2(cantidadEstandar * costoUnitarioEstandar);
+
+    return {
+      ...l,
+      fecha:r.fecha,
+      fase: (ruta && CENTRO_A_FASE[ruta] != null) ? CENTRO_A_FASE[ruta] : fase,
+      ruta, cantidadEstandar, costoUnitarioEstandar, tieneEstandar,
+      diferencia, pct, estandarUSD
+    };
+  }));
 }
 
 function renderBigPicture(){
@@ -937,23 +1147,81 @@ function renderBigPicture(){
   document.getElementById('errorComun').textContent = topRazon ? topRazon[0] : 'Sin datos suficientes';
   document.getElementById('errorComunDetail').textContent = topRazon ? `${topRazon[1]} de ${conRazon.length} casos marcados` : 'Aún no hay razones capturadas';
 
-  // Atraso: usando el avance mas reciente disponible en el periodo
-  const ultimoReporte = [...currentReports].sort((a,b)=> a.fecha < b.fecha ? 1 : -1)[0];
-  const avanceOPs = ultimoReporte ? (ultimoReporte.avanceOPs||[]) : [];
+  // Atraso: a partir del catalogo de estandares (OP+SKU), usando OPs distintas con Fecha vencimiento
   const hoy = new Date().toISOString().slice(0,10);
-  let opsAtrasadas = 0, unidadesPendientes = 0;
-  avanceOPs.forEach(op=>{
-    const pendientes = (op.cant||0) - (op.cantTerminada||0);
-    if(pendientes > 0){
-      unidadesPendientes += pendientes;
-      const vencida = op.fechaVenc && String(op.fechaVenc).slice(0,10) < hoy;
-      if(vencida) opsAtrasadas++;
+  // Reconstruir por OP a partir de las claves (formato "OP__SKU")
+  const porOP = {};
+  Object.entries(ESTANDARES_OP).forEach(([key, std])=>{
+    const op = key.split('__')[0];
+    if(!porOP[op]) porOP[op] = {fechaVenc: std.fechaVenc, pendiente: 0};
+    porOP[op].pendiente += (std.cantidadPendiente || 0);
+    if(std.fechaVenc && (!porOP[op].fechaVenc || std.fechaVenc < porOP[op].fechaVenc)) porOP[op].fechaVenc = std.fechaVenc;
+  });
+  let opsAtrasadas = 0, materialPendiente = 0;
+  Object.values(porOP).forEach(op=>{
+    if(op.pendiente > 0){
+      materialPendiente += op.pendiente;
+      if(op.fechaVenc && String(op.fechaVenc).slice(0,10) < hoy) opsAtrasadas++;
     }
   });
   document.getElementById('atrasoHeadline').textContent = `${opsAtrasadas} OPs vencidas`;
-  document.getElementById('atrasoDetail').textContent = `${unidadesPendientes} unidades pendientes en total (${avanceOPs.length} OPs activas, avance más reciente)`;
+  document.getElementById('atrasoDetail').textContent = `${Math.round(materialPendiente)} unidades de material pendientes por consumir (${Object.keys(porOP).length} OPs en catálogo)`;
 
   renderTablaFases(lineas);
+  renderTendencia();
+}
+
+async function renderTendencia(){
+  const cont = document.getElementById('tendenciaChart');
+  const snap = await db.collection('reportes').get();
+  const docs = [];
+  snap.forEach(doc => docs.push({fecha: doc.id, lineas: doc.data().lineas || []}));
+  docs.sort((a,b)=> a.fecha < b.fecha ? -1 : 1);
+
+  const relevantes = docs.filter(d => d.fecha <= currentDate).slice(-14);
+  const puntos = relevantes.map(d => ({
+    fecha: d.fecha,
+    estandar: d.lineas.reduce((s,l)=>s+(l.estandarUSD||0),0),
+    real: d.lineas.reduce((s,l)=>s+(l.realUSD||0),0)
+  }));
+
+  if(puntos.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay días con datos guardados para mostrar tendencia.</div>';
+    return;
+  }
+  if(puntos.length === 1){
+    cont.innerHTML = `<div class="field-hint">Solo hay un día con datos (${puntos[0].fecha}). La tendencia se mostrará cuando haya más días guardados.</div>`;
+    return;
+  }
+
+  const W = 900, H = 260, PAD = 44;
+  const maxVal = Math.max(1, ...puntos.flatMap(p=>[p.estandar, p.real]));
+  const stepX = (W - 2*PAD) / (puntos.length - 1);
+  const xFor = (i)=> PAD + i*stepX;
+  const yFor = (v)=> H - PAD - (v/maxVal)*(H - 2*PAD);
+  const pathFor = (key)=> puntos.map((p,i)=> `${i===0?'M':'L'} ${xFor(i).toFixed(1)} ${yFor(p[key]).toFixed(1)}`).join(' ');
+
+  const circlesEstandar = puntos.map((p,i)=>`<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(p.estandar).toFixed(1)}" r="3" fill="var(--accent-2)"></circle>`).join('');
+  const circlesReal = puntos.map((p,i)=>`<circle cx="${xFor(i).toFixed(1)}" cy="${yFor(p.real).toFixed(1)}" r="3" fill="var(--accent)"></circle>`).join('');
+  const etiquetasX = puntos.map((p,i)=>{
+    if(puntos.length>8 && i%2!==0) return '';
+    const [y,m,d] = p.fecha.split('-');
+    return `<text x="${xFor(i).toFixed(1)}" y="${H-14}" font-size="10" fill="var(--muted)" text-anchor="middle" font-family="monospace">${d}/${m}</text>`;
+  }).join('');
+
+  cont.innerHTML = `
+  <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; display:block;">
+    <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="var(--line)" stroke-width="1"/>
+    <path d="${pathFor('estandar')}" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+    <path d="${pathFor('real')}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    ${circlesEstandar}
+    ${circlesReal}
+    ${etiquetasX}
+  </svg>
+  <div style="display:flex; gap:20px; margin-top:8px; font-size:12px; color:var(--muted);">
+    <span><span style="display:inline-block; width:10px; height:10px; background:var(--accent-2); border-radius:2px; margin-right:6px;"></span>Estándar</span>
+    <span><span style="display:inline-block; width:10px; height:10px; background:var(--accent); border-radius:2px; margin-right:6px;"></span>Real</span>
+  </div>`;
 }
 
 function renderTablaFases(lineas){
@@ -974,7 +1242,7 @@ function renderTablaFases(lineas){
       <td class="money">${fmtMoney(est)}</td>
       <td class="money">${fmtMoney(real)}</td>
       <td class="money">${(desv>=0?'+':'')+fmtMoney(desv)}</td>
-      <td class="pct ${Math.abs(pct)>=UMBRAL?'alert':'ok'}">${(pct*100).toFixed(1)}%</td>
+      <td class="pct ${Math.abs(pct)>=UMBRAL?'alert':'ok'}">${(pct*100).toFixed(1)}% ${desv>0?'Gasto':(desv<0?'Ahorro':'')}</td>
     </tr>`;
   }
   tbody.innerHTML = html;
@@ -994,35 +1262,94 @@ function goToLevel0(){
 }
 function verFase(fase){
   currentFaseSeleccionada = fase;
+  busquedaFase = '';
+  document.getElementById('buscarFase').value = '';
   document.getElementById('viewer-level-0').classList.add('hidden');
   document.getElementById('viewer-level-1').classList.remove('hidden');
   document.getElementById('faseBreadcrumb').textContent = 'Fase ' + fase;
   renderTablaComponentes();
 }
 
+let sortState = {key: null, dir: 1};
+let busquedaFase = '';
+
+document.getElementById('buscarFase').addEventListener('input', (e)=>{
+  busquedaFase = e.target.value;
+  renderTablaComponentes();
+});
+
+document.querySelectorAll('.table-scroll thead th[data-key]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const key = th.dataset.key;
+    if(sortState.key === key) sortState.dir *= -1;
+    else { sortState.key = key; sortState.dir = 1; }
+    document.querySelectorAll('.table-scroll thead th').forEach(h=>h.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.sort-arrow').textContent = sortState.dir === 1 ? '▲' : '▼';
+    renderTablaComponentes();
+  });
+});
+
+function avanceOPTexto(op){
+  const info = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
+  if(!info) return '100%';
+  const pct = info.cant > 0 ? Math.round((info.cantTerminada/info.cant)*100) : 0;
+  return `${info.cantTerminada}/${info.cant} (${pct}%)`;
+}
+
 function renderTablaComponentes(){
-  const lineas = todasLasLineas().filter(l=>l.fase===currentFaseSeleccionada);
-  lineas.sort((a,b)=> Math.abs(b.pct) - Math.abs(a.pct));
+  let lineas = todasLasLineas().filter(l=>l.fase===currentFaseSeleccionada);
+
+  if(busquedaFase.trim()){
+    const q = quitarAcentos(busquedaFase.trim().toUpperCase());
+    lineas = lineas.filter(l=>{
+      const campos = [l.noOP, l.modelo, l.noComponente, l.descripcion, l.ruta, l.razon];
+      return campos.some(c => quitarAcentos(String(c ?? '').toUpperCase()).includes(q));
+    });
+  }
+
+  lineas.forEach(l=> l.diferenciaUSD = round2(l.realUSD - l.estandarUSD));
+
+  if(sortState.key){
+    lineas.sort((a,b)=>{
+      let va = a[sortState.key], vb = b[sortState.key];
+      if(typeof va === 'string') va = va.toLowerCase();
+      if(typeof vb === 'string') vb = vb.toLowerCase();
+      if(va < vb) return -1 * sortState.dir;
+      if(va > vb) return 1 * sortState.dir;
+      return 0;
+    });
+  } else {
+    lineas.sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
+  }
+
   const tbody = document.getElementById('tablaComponentes');
 
   tbody.innerHTML = lineas.map((l, idx)=>{
-    const esAlerta = Math.abs(l.pct) >= UMBRAL;
+    const esSobreconsumo = l.pct >= UMBRAL;
+    const esAhorro = l.pct <= -UMBRAL;
+    const esAlerta = esSobreconsumo || esAhorro;
+    const diferenciaUSD = l.diferenciaUSD;
+    const filaEstilo = esSobreconsumo ? 'background:rgba(209,69,59,0.08);' : (esAhorro ? 'background:rgba(30,158,106,0.08);' : '');
     const razonOptions = ['<option value="">—</option>'].concat(
       RAZONES.map(r=>`<option value="${r}" ${r===l.razon?'selected':''}>${r}</option>`)
     ).join('');
-    return `<tr style="${esAlerta?'background:rgba(229,83,75,0.08);':''}">
+    return `<tr style="${filaEstilo}">
       <td>${l.fecha}</td>
       <td>${l.noOP}</td>
       <td>${l.modelo}</td>
       <td>${l.noComponente}</td>
-      <td style="font-family:var(--sans);">${l.descripcion}</td>
+      <td style="font-family:var(--sans); max-width:200px;">${l.descripcion} ${!l.tieneEstandar ? '<span class="tag" style="background:#fbe9e8; color:var(--bad);">Sin estándar</span>' : ''}</td>
       <td>${l.cantidadEstandar}</td>
       <td>${l.cantidadReal}</td>
       <td>${l.diferencia}</td>
-      <td class="pct ${esAlerta?'alert':'ok'}">${(l.pct*100).toFixed(1)}%</td>
+      <td class="pct ${esSobreconsumo?'alert':(esAhorro?'ahorro':'ok')}">${(l.pct*100).toFixed(1)}% ${l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'')}</td>
+      <td style="color:var(--muted);">${l.ruta || '—'}</td>
+      <td style="color:var(--muted);">${avanceOPTexto(l.noOP)}</td>
       <td class="money">${fmtMoney(l.estandarUSD)}</td>
       <td class="money">${fmtMoney(l.realUSD)}</td>
-      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-fecha="${l.fecha}" data-op="${l.noOP}" data-comp="${l.noComponente}">${razonOptions}</select>` : '—'}</td>
+      <td class="money ${esSobreconsumo?'pct alert':(esAhorro?'pct ahorro':'')}">${diferenciaUSD>=0?'+':''}${fmtMoney(diferenciaUSD)}</td>
+      <td>${esSobreconsumo ? `<select class="razon ${!l.razon?'empty':''}" data-fecha="${l.fecha}" data-op="${l.noOP}" data-comp="${l.noComponente}">${razonOptions}</select>` : '—'}</td>
     </tr>`;
   }).join('');
 
@@ -1052,12 +1379,43 @@ async function guardarRazon(fecha, noOP, noComponente, razon){
 /* ============================================================
    EXPORTAR
    ============================================================ */
+document.getElementById('btnExportTodo').addEventListener('click', ()=>{
+  const todas = todasLasLineas();
+  function filaExcel(l){
+    return {
+      Fecha:l.fecha, Fase: l.fase ?? 'Sin clasificar', OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+      'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
+      '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'),
+      'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Sin Estandar': l.tieneEstandar ? '' : 'SI',
+      '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon:l.razon
+    };
+  }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(todas.map(filaExcel)), 'Todas las Fases');
+  for(let fase=1; fase<=4; fase++){
+    const lineasFase = todas.filter(l=>l.fase===fase);
+    if(lineasFase.length>0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lineasFase.map(filaExcel)), 'Fase '+fase);
+  }
+  const sinClasificar = todas.filter(l=>l.fase==null);
+  if(sinClasificar.length>0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sinClasificar.map(filaExcel)), 'Sin clasificar');
+  XLSX.writeFile(wb, `Reporte_Completo_${currentDate}.xlsx`);
+});
+
 document.getElementById('btnExportExcel').addEventListener('click', ()=>{
-  const lineas = todasLasLineas().filter(l=>l.fase===currentFaseSeleccionada);
+  let lineas = todasLasLineas().filter(l=>l.fase===currentFaseSeleccionada);
+  if(busquedaFase.trim()){
+    const q = quitarAcentos(busquedaFase.trim().toUpperCase());
+    lineas = lineas.filter(l=>{
+      const campos = [l.noOP, l.modelo, l.noComponente, l.descripcion, l.ruta, l.razon];
+      return campos.some(c => quitarAcentos(String(c ?? '').toUpperCase()).includes(q));
+    });
+  }
   const data = lineas.map(l=>({
     Fecha:l.fecha, OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
     'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
-    '%': (l.pct*100).toFixed(1)+'%', '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, Razon:l.razon
+    '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'),
+    'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Sin Estandar': l.tieneEstandar ? '' : 'SI',
+    '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon:l.razon
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -1076,8 +1434,8 @@ document.getElementById('btnExportPdf').addEventListener('click', ()=>{
   await cargarFasesDesdeDB();
   await cargarRazonesDesdeDB();
   await cargarUmbralDesdeDB();
-  await cargarPreciosDesdeDB();
-  await cargarComponentesDesdeDB();
+  await cargarEstandaresDesdeDB();
+  await cargarAvanceDesdeDB();
   if(Object.keys(CENTRO_A_FASE).length===0) CENTRO_A_FASE = {...FASES_DEFAULT};
   if(RAZONES.length===0) RAZONES = [...RAZONES_DEFAULT];
   document.getElementById('fechaSelector').value = currentDate;
