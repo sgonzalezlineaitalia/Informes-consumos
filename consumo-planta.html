@@ -1673,7 +1673,7 @@ function renderTablaComponentes(){
       <td class="money">${fmtMoney(l.estandarUSD)}</td>
       <td class="money">${fmtMoney(l.realUSD)}</td>
       <td class="money ${esSobreconsumo?'pct alert':(esAhorro?'pct ahorro':'')}">${diferenciaUSD>=0?'+':''}${fmtMoney(diferenciaUSD)}</td>
-      <td>${esSobreconsumo ? `<select class="razon ${!l.razon?'empty':''}" data-fecha="${l.fecha}" data-op="${l.noOP}" data-comp="${l.noComponente}">${razonOptions}</select>` : '—'}</td>
+      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-fecha="${l.fecha}" data-op="${l.noOP}" data-comp="${l.noComponente}">${razonOptions}</select>` : '—'}</td>
     </tr>`;
   }).join('');
 
