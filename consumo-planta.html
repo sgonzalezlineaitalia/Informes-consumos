@@ -284,6 +284,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <th data-key="pct">% <span class="sort-arrow">▲▼</span></th>
             <th data-key="ruta">Centro de Trabajo <span class="sort-arrow">▲▼</span></th>
             <th>Avance OP</th>
+            <th>Modo de Cálculo</th>
             <th data-key="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
             <th data-key="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
             <th data-key="diferenciaUSD">$ Diferencia <span class="sort-arrow">▲▼</span></th>
@@ -605,6 +606,7 @@ let currentDate = new Date().toISOString().slice(0,10);
 let currentReports = [];        // reportes cargados para el periodo actual
 let currentFaseSeleccionada = null;
 let modoCalculoPorFase = {1:'completo', 2:'completo', 3:'completo', 4:'ajustado'}; // por fase: 'completo' o 'ajustado' (x Avance de OP)
+let MODO_POR_LINEA = {};        // "fecha||OP||SKU" -> 'completo'|'ajustado' -- override individual de ESA linea exacta, gana sobre el default de la Fase
 
 // Estos son los codigos de "Cod. conexion ruta" que ya conocemos del sistema.
 // Si aparece un codigo nuevo al cargar el catalogo de estandares, se agrega
@@ -677,7 +679,7 @@ document.querySelectorAll('.admin-nav button').forEach(btn=>{
    CARGA INICIAL DE CATALOGOS (Firestore)
    ============================================================ */
 async function cargarTodoAdmin(){
-  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarUmbralDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarUmbralDesdeDB()]);
   renderFasesAdmin();
   renderRazonesAdmin();
   renderExcepcionesAdmin();
@@ -743,6 +745,10 @@ async function cargarRazonesDesdeDB(){
 async function cargarExcepcionesDesdeDB(){
   const doc = await db.collection('config').doc('excepcionesFase').get();
   EXCEPCIONES_FASE = doc.exists ? doc.data().lista : [];
+}
+async function cargarModoPorLineaDesdeDB(){
+  const doc = await db.collection('config').doc('modoPorLinea').get();
+  MODO_POR_LINEA = doc.exists ? doc.data().mapa : {};
 }
 async function cargarUmbralDesdeDB(){
   const doc = await db.collection('config').doc('umbral').get();
@@ -1364,7 +1370,11 @@ function construirLineasDesdeReportes(reportes){
     // Para lineas "MULTIPLE" (varias fases), solo se ajusta si TODAS las fases
     // involucradas tienen el modo ajustado activado.
     let modoAplica;
-    if(fasesMultiplesFinal && fasesMultiplesFinal.length>0){
+    const lineaKey = r.fecha + '||' + l.noOP + '||' + l.noComponente;
+    if(MODO_POR_LINEA[lineaKey]){
+      // Override individual de ESTA linea exacta, gana sobre el default de la Fase
+      modoAplica = MODO_POR_LINEA[lineaKey] === 'ajustado';
+    } else if(fasesMultiplesFinal && fasesMultiplesFinal.length>0){
       modoAplica = fasesMultiplesFinal.every(f => modoCalculoPorFase[f] === 'ajustado');
     } else {
       modoAplica = faseFinal != null && modoCalculoPorFase[faseFinal] === 'ajustado';
@@ -1387,6 +1397,9 @@ function construirLineasDesdeReportes(reportes){
       fecha:r.fecha,
       fase: faseFinal,
       fasesMultiples: fasesMultiplesFinal,
+      modoUsado: modoAplica ? 'ajustado' : 'completo',
+      tieneOverrideLinea: !!MODO_POR_LINEA[lineaKey],
+      lineaKey,
       ruta, cantidadEstandar, costoUnitarioEstandar, tieneEstandar,
       diferencia, pct, estandarUSD
     };
@@ -1807,6 +1820,13 @@ function renderTablaComponentes(){
       <td class="pct ${esSobreconsumo?'alert':(esAhorro?'ahorro':'ok')}">${(l.pct*100).toFixed(1)}% ${l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'')}</td>
       <td style="color:var(--muted);">${l.ruta || '—'}${(l.fasesMultiples && l.fasesMultiples.length>1) ? ` <span class="tag" style="background:#fbf0dd; color:var(--warn);" title="Este monto aparece completo también en la Fase ${l.fasesMultiples.filter(f=>f!==currentFaseSeleccionada).join(', ')} — no lo sumes dos veces">⚠ también en Fase ${l.fasesMultiples.filter(f=>f!==currentFaseSeleccionada).join(', ')}</span>` : ''}</td>
       <td style="color:var(--muted);">${avanceOPTexto(l.noOP)}</td>
+      <td>
+        <button class="btn small btn-modo-sku" data-linea="${l.lineaKey}" data-modo="${l.modoUsado}"
+          style="${l.modoUsado==='ajustado' ? 'background:var(--accent); color:#1a1006; border-color:var(--accent);' : ''} ${l.tieneOverrideLinea ? 'box-shadow:0 0 0 2px var(--accent-2);' : ''}"
+          title="${l.tieneOverrideLinea ? 'Esta línea tiene un override manual (solo afecta esta OP+SKU+fecha)' : 'Usando el default de su Fase'}. Clic para cambiar solo esta línea.">
+          ${l.modoUsado==='ajustado' ? 'Ajustado' : 'Completo'}
+        </button>
+      </td>
       <td class="money">${fmtMoney(l.estandarUSD)}</td>
       <td class="money">${fmtMoney(l.realUSD)}</td>
       <td class="money ${esSobreconsumo?'pct alert':(esAhorro?'pct ahorro':'')}">${diferenciaUSD>=0?'+':''}${fmtMoney(diferenciaUSD)}</td>
@@ -1818,6 +1838,18 @@ function renderTablaComponentes(){
     sel.addEventListener('change', async ()=>{
       await guardarRazon(sel.dataset.fecha, sel.dataset.op, sel.dataset.comp, sel.value);
       sel.classList.toggle('empty', !sel.value);
+    });
+  });
+
+  tbody.querySelectorAll('.btn-modo-sku').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const linea = btn.dataset.linea;
+      const modoActual = btn.dataset.modo;
+      const nuevoModo = modoActual === 'ajustado' ? 'completo' : 'ajustado';
+      MODO_POR_LINEA[linea] = nuevoModo;
+      await db.collection('config').doc('modoPorLinea').set({mapa: MODO_POR_LINEA});
+      renderTablaComponentes();
+      renderBigPicture();
     });
   });
 }
@@ -1896,6 +1928,7 @@ document.getElementById('btnExportPdf').addEventListener('click', ()=>{
   await cargarFasesDesdeDB();
   await cargarRazonesDesdeDB();
   await cargarExcepcionesDesdeDB();
+  await cargarModoPorLineaDesdeDB();
   await cargarUmbralDesdeDB();
   await cargarEstandaresDesdeDB();
   await cargarAvanceDesdeDB();
