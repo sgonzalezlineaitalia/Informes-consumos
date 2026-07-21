@@ -1382,7 +1382,10 @@ function construirLineasDesdeReportes(reportes){
 
     if(modoAplica){
       const avance = AVANCE_OP[safeDocId(l.noOP)] || AVANCE_OP[l.noOP] || null;
-      if(avance && avance.cant > 0){
+      if(avance && avance.cant > 0 && avance.cantTerminada > 0){
+        // Si el avance es 0%, NO se ajusta (se deja el estandar completo, como si
+        // fuera 100%) -- multiplicar por 0 daria un estandar de 0 y cualquier
+        // consumo real se veria como una desviacion enorme, lo cual no es justo.
         const pctAvance = avance.cantTerminada / avance.cant;
         cantidadEstandar = cantidadEstandar * pctAvance;
       }
