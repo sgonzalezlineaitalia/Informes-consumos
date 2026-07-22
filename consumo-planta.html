@@ -187,9 +187,9 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 <!-- ===================== VIEWER ===================== -->
 <div id="tab-viewer">
   <div class="period-bar">
-    <button class="period-btn active" data-period="dia">Diario</button>
+    <button class="period-btn" data-period="dia">Diario</button>
     <button class="period-btn" data-period="semana">Semanal</button>
-    <button class="period-btn" data-period="mes">Mensual</button>
+    <button class="period-btn active" data-period="mes">Mensual</button>
     <button class="period-btn" data-period="anio">Anual</button>
   </div>
   <div class="date-nav">
@@ -249,7 +249,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       <div class="section-title">Fases de Producción — clic para ver detalle</div>
       <div id="avisoMultiplesFases"></div>
       <table>
-        <thead><tr><th>Fase</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
+        <thead id="theadFases"><tr><th>Fase</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
         <tbody id="tablaFases"></tbody>
       </table>
 
@@ -271,26 +271,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       </div>
       <div class="table-scroll">
       <table>
-        <thead>
-          <tr>
-            <th data-key="fecha">Fecha <span class="sort-arrow">▲▼</span></th>
-            <th data-key="noOP">OP <span class="sort-arrow">▲▼</span></th>
-            <th data-key="modelo">Modelo <span class="sort-arrow">▲▼</span></th>
-            <th data-key="noComponente">No. Componente <span class="sort-arrow">▲▼</span></th>
-            <th data-key="descripcion">Descripción <span class="sort-arrow">▲▼</span></th>
-            <th data-key="cantidadEstandar">Cant. Estándar <span class="sort-arrow">▲▼</span></th>
-            <th data-key="cantidadReal">Cant. Real <span class="sort-arrow">▲▼</span></th>
-            <th data-key="diferencia">Diferencia <span class="sort-arrow">▲▼</span></th>
-            <th data-key="pct">% <span class="sort-arrow">▲▼</span></th>
-            <th data-key="ruta">Centro de Trabajo <span class="sort-arrow">▲▼</span></th>
-            <th>Avance OP</th>
-            <th>Modo de Cálculo</th>
-            <th data-key="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
-            <th data-key="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
-            <th data-key="diferenciaUSD">$ Diferencia <span class="sort-arrow">▲▼</span></th>
-            <th>Razón</th>
-          </tr>
-        </thead>
+        <thead id="theadComponentes"></thead>
         <tbody id="tablaComponentes"></tbody>
       </table>
       </div>
@@ -601,12 +582,13 @@ let RAZONES = [];               // ["Errores operativos", ...]
 let EXCEPCIONES_FASE = [];      // [{palabraClave, fase}] - corrige la fase por descripcion cuando el origen viene mal (ej. melamina mal cargada a Hab. Muebles)
 let UMBRAL = 0.15;
 
-let currentPeriod = 'dia';
+let currentPeriod = 'mes';
 let currentDate = new Date().toISOString().slice(0,10);
 let currentReports = [];        // reportes cargados para el periodo actual
 let currentFaseSeleccionada = null;
 let modoCalculoPorFase = {1:'completo', 2:'completo', 3:'completo', 4:'ajustado'}; // por fase: 'completo' o 'ajustado' (x Avance de OP)
-let MODO_POR_LINEA = {};        // "fecha||OP||SKU" -> 'completo'|'ajustado' -- override individual de ESA linea exacta, gana sobre el default de la Fase
+let MODO_POR_LINEA = {};        // "periodoKey||OP||SKU" -> 'completo'|'ajustado' -- override individual de esa linea agregada
+let RAZONES_POR_LINEA = {};     // "periodoKey||OP||SKU" -> "texto de la razon" (ya no se guarda dentro del reporte diario)
 
 // Estos son los codigos de "Cod. conexion ruta" que ya conocemos del sistema.
 // Si aparece un codigo nuevo al cargar el catalogo de estandares, se agrega
@@ -679,7 +661,7 @@ document.querySelectorAll('.admin-nav button').forEach(btn=>{
    CARGA INICIAL DE CATALOGOS (Firestore)
    ============================================================ */
 async function cargarTodoAdmin(){
-  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarUmbralDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarUmbralDesdeDB()]);
   renderFasesAdmin();
   renderRazonesAdmin();
   renderExcepcionesAdmin();
@@ -749,6 +731,10 @@ async function cargarExcepcionesDesdeDB(){
 async function cargarModoPorLineaDesdeDB(){
   const doc = await db.collection('config').doc('modoPorLinea').get();
   MODO_POR_LINEA = doc.exists ? doc.data().mapa : {};
+}
+async function cargarRazonesPorLineaDesdeDB(){
+  const doc = await db.collection('config').doc('razonesPorLinea').get();
+  RAZONES_POR_LINEA = doc.exists ? doc.data().mapa : {};
 }
 async function cargarUmbralDesdeDB(){
   const doc = await db.collection('config').doc('umbral').get();
@@ -1290,8 +1276,10 @@ function rangoDeFechas(fechaBase, periodo){
   let inicio, fin;
   if(periodo === 'dia'){ inicio = new Date(d); fin = new Date(d); }
   else if(periodo === 'semana'){
-    const dow = d.getDay() || 7;
-    inicio = new Date(d); inicio.setDate(d.getDate() - dow + 1);
+    // Semana laboral: Martes a Lunes
+    const dow = d.getDay(); // 0=Dom,1=Lun,2=Mar,...6=Sab
+    const diasDesdeMartes = (dow - 2 + 7) % 7;
+    inicio = new Date(d); inicio.setDate(d.getDate() - diasDesdeMartes);
     fin = new Date(inicio); fin.setDate(inicio.getDate() + 6);
   } else if(periodo === 'mes'){
     inicio = new Date(d.getFullYear(), d.getMonth(), 1);
@@ -1324,118 +1312,154 @@ async function cargarYRenderizarPeriodo(){
   goToLevel0();
 }
 
-function construirLineasDesdeReportes(reportes){
-  // La Fase y el Estandar se calculan siempre con el catalogo mas reciente
-  // (no se quedan "congelados" al momento de procesar). Lo unico que SI se
-  // congela es el consumo real y su $ (viene del movimiento real ya ocurrido).
-  return reportes.flatMap(r => (r.lineas||[]).map(l => {
-    const fase = (l.ruta && CENTRO_A_FASE[l.ruta] != null) ? CENTRO_A_FASE[l.ruta] : null;
+function resolverLineaCruda(l, fecha){
+  // Resuelve Fase, Estandar y Costo con el catalogo mas reciente (no se congelan).
+  // NO calcula diferencia/pct aqui todavia -- eso se hace despues de agregar,
+  // para no comparar cada dia por separado contra el mismo estandar completo
+  // (eso duplicaba el estandar cuando una OP+SKU se consumia en varios dias).
+  const fase = (l.ruta && CENTRO_A_FASE[l.ruta] != null) ? CENTRO_A_FASE[l.ruta] : null;
 
-    const key = l.noOP + '__' + l.noComponente;
-    const std = ESTANDARES_OP[safeDocId(key)] || ESTANDARES_OP[key] || null;
+  const key = l.noOP + '__' + l.noComponente;
+  const std = ESTANDARES_OP[safeDocId(key)] || ESTANDARES_OP[key] || null;
 
-    let cantidadEstandar = l.cantidadEstandar, costoUnitarioEstandar = l.costoUnitarioEstandar, ruta = l.ruta, tieneEstandar = l.tieneEstandar;
-    let fasesMultiples = null;
-    if(std){
-      cantidadEstandar = std.cantidadEsperada;
-      costoUnitarioEstandar = std.costoUnitario;
-      ruta = std.ruta || l.ruta;
-      tieneEstandar = true;
-      if(std.ruta === 'MULTIPLE' && Array.isArray(std.rutasOriginales)){
-        // Este SKU pertenece a varios centros de trabajo (posiblemente varias fases).
-        // Se muestra completo en CADA fase involucrada para que no se pierda de vista
-        // al navegar cualquiera de ellas, pero el Big Picture general (que usa cada
-        // linea una sola vez, sin filtrar por fase) NO duplica el total.
-        fasesMultiples = [...new Set(std.rutasOriginales.map(rt => CENTRO_A_FASE[rt]).filter(f => f != null))];
-      }
+  let cantidadEstandar = l.cantidadEstandar, costoUnitarioEstandar = l.costoUnitarioEstandar, ruta = l.ruta, tieneEstandar = l.tieneEstandar;
+  let fasesMultiples = null;
+  if(std){
+    cantidadEstandar = std.cantidadEsperada;
+    costoUnitarioEstandar = std.costoUnitario;
+    ruta = std.ruta || l.ruta;
+    tieneEstandar = true;
+    if(std.ruta === 'MULTIPLE' && Array.isArray(std.rutasOriginales)){
+      fasesMultiples = [...new Set(std.rutasOriginales.map(rt => CENTRO_A_FASE[rt]).filter(f => f != null))];
     }
+  }
 
-    let faseFinal = (ruta && CENTRO_A_FASE[ruta] != null) ? CENTRO_A_FASE[ruta] : fase;
+  let faseFinal = (ruta && CENTRO_A_FASE[ruta] != null) ? CENTRO_A_FASE[ruta] : fase;
 
-    // Excepciones manuales por palabra clave en la descripcion (para corregir
-    // materiales mal cargados en el sistema origen, ej. melamina en Hab. Muebles).
-    // Esto GANA sobre la fase calculada por ruta, y tambien cancela cualquier
-    // ambiguedad de "multiples fases" para esta linea especifica.
-    const descripcionBusqueda = quitarAcentos(String(l.descripcion ?? '').toUpperCase());
-    const excepcion = EXCEPCIONES_FASE.find(ex => descripcionBusqueda.includes(quitarAcentos(ex.palabraClave.toUpperCase())));
-    let fasesMultiplesFinal = fasesMultiples;
-    if(excepcion){
-      faseFinal = excepcion.fase;
-      fasesMultiplesFinal = null;
+  // Excepciones manuales por palabra clave en la descripcion (para corregir
+  // materiales mal cargados en el sistema origen, ej. melamina en Hab. Muebles).
+  const descripcionBusqueda = quitarAcentos(String(l.descripcion ?? '').toUpperCase());
+  const excepcion = EXCEPCIONES_FASE.find(ex => descripcionBusqueda.includes(quitarAcentos(ex.palabraClave.toUpperCase())));
+  let fasesMultiplesFinal = fasesMultiples;
+  if(excepcion){
+    faseFinal = excepcion.fase;
+    fasesMultiplesFinal = null;
+  }
+
+  return {
+    ...l,
+    fecha,
+    fase: faseFinal,
+    fasesMultiples: fasesMultiplesFinal,
+    ruta, cantidadEstandar, costoUnitarioEstandar, tieneEstandar
+  };
+}
+
+function construirLineasCrudas(reportes){
+  return reportes.flatMap(r => (r.lineas||[]).map(l => resolverLineaCruda(l, r.fecha)));
+}
+
+function agregarYCompararLineas(crudas, periodoKey){
+  // Agrupa por OP+SKU (sumando el consumo real de TODOS los dias del periodo)
+  // y compara UNA SOLA VEZ contra el estandar -- evita duplicar el estandar
+  // cuando una misma OP+SKU tuvo movimientos en varios dias distintos.
+  const grupos = {};
+  crudas.forEach(l=>{
+    const gkey = l.noOP + '__' + l.noComponente;
+    if(!grupos[gkey]){
+      grupos[gkey] = {...l, cantidadReal:0, realUSD:0, fechas: []};
     }
+    grupos[gkey].cantidadReal += l.cantidadReal;
+    grupos[gkey].realUSD += l.realUSD;
+    grupos[gkey].fechas.push(l.fecha);
+  });
 
-    // Se decide si aplica el ajuste por avance segun la Fase de ESTA linea especifica
-    // (ej. tipicamente si en Carpinteria/Corte se corta todo de una vez, no debe
-    // ajustarse por avance de ensamble; en cambio en Ensamble si suele ir de la mano).
-    // Para lineas "MULTIPLE" (varias fases), solo se ajusta si TODAS las fases
-    // involucradas tienen el modo ajustado activado.
+  return Object.values(grupos).map(g=>{
+    const lineaKey = periodoKey + '||' + g.noOP + '||' + g.noComponente;
+
     let modoAplica;
-    const lineaKey = r.fecha + '||' + l.noOP + '||' + l.noComponente;
     if(MODO_POR_LINEA[lineaKey]){
-      // Override individual de ESTA linea exacta, gana sobre el default de la Fase
       modoAplica = MODO_POR_LINEA[lineaKey] === 'ajustado';
-    } else if(fasesMultiplesFinal && fasesMultiplesFinal.length>0){
-      modoAplica = fasesMultiplesFinal.every(f => modoCalculoPorFase[f] === 'ajustado');
+    } else if(g.fasesMultiples && g.fasesMultiples.length>0){
+      modoAplica = g.fasesMultiples.every(f => modoCalculoPorFase[f] === 'ajustado');
     } else {
-      modoAplica = faseFinal != null && modoCalculoPorFase[faseFinal] === 'ajustado';
+      modoAplica = g.fase != null && modoCalculoPorFase[g.fase] === 'ajustado';
     }
 
+    let cantidadEstandar = g.cantidadEstandar;
     if(modoAplica){
-      const avance = AVANCE_OP[safeDocId(l.noOP)] || AVANCE_OP[l.noOP] || null;
+      const avance = AVANCE_OP[safeDocId(g.noOP)] || AVANCE_OP[g.noOP] || null;
       if(avance && avance.cant > 0 && avance.cantTerminada > 0){
-        // Si el avance es 0%, NO se ajusta (se deja el estandar completo, como si
-        // fuera 100%) -- multiplicar por 0 daria un estandar de 0 y cualquier
-        // consumo real se veria como una desviacion enorme, lo cual no es justo.
-        const pctAvance = avance.cantTerminada / avance.cant;
-        cantidadEstandar = cantidadEstandar * pctAvance;
+        cantidadEstandar = cantidadEstandar * (avance.cantTerminada / avance.cant);
       }
     }
 
-    const diferencia = round3(l.cantidadReal - cantidadEstandar);
-    const pct = cantidadEstandar !== 0 ? diferencia/cantidadEstandar : (l.cantidadReal !== 0 ? 1 : 0);
-    const estandarUSD = round2(cantidadEstandar * costoUnitarioEstandar);
+    const diferencia = round3(g.cantidadReal - cantidadEstandar);
+    const pct = cantidadEstandar !== 0 ? diferencia/cantidadEstandar : (g.cantidadReal !== 0 ? 1 : 0);
+    const estandarUSD = round2(cantidadEstandar * g.costoUnitarioEstandar);
 
     return {
-      ...l,
-      fecha:r.fecha,
-      fase: faseFinal,
-      fasesMultiples: fasesMultiplesFinal,
+      ...g,
+      cantidadEstandar, diferencia, pct, estandarUSD,
+      fechasTexto: [...new Set(g.fechas)].sort().join(', '),
       modoUsado: modoAplica ? 'ajustado' : 'completo',
       tieneOverrideLinea: !!MODO_POR_LINEA[lineaKey],
       lineaKey,
-      ruta, cantidadEstandar, costoUnitarioEstandar, tieneEstandar,
-      diferencia, pct, estandarUSD
+      razon: RAZONES_POR_LINEA[lineaKey] || ''
     };
-  }));
+  });
 }
 
 function todasLasLineas(){
-  return construirLineasDesdeReportes(currentReports);
+  const crudas = construirLineasCrudas(currentReports);
+  if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+    // Vista diaria/semanal: solo el dato real, SIN comparacion contra estandar.
+    return crudas;
+  }
+  const {inicio} = rangoDeFechas(currentDate, currentPeriod);
+  return agregarYCompararLineas(crudas, inicio);
 }
 
 function renderBigPicture(){
   const lineas = todasLasLineas();
-  const totalEstandar = lineas.reduce((s,l)=>s+l.estandarUSD,0);
-  const totalReal = lineas.reduce((s,l)=>s+l.realUSD,0);
-  const desviacion = totalReal - totalEstandar;
-  const pctDesv = totalEstandar !== 0 ? desviacion/totalEstandar : 0;
 
-  document.getElementById('bigEstandar').textContent = fmtMoney(totalEstandar);
-  document.getElementById('bigReal').textContent = fmtMoney(totalReal);
-  const bigDesvEl = document.getElementById('bigDesv');
-  bigDesvEl.textContent = (desviacion>=0?'+':'') + fmtMoney(desviacion);
-  bigDesvEl.className = 'big ' + (desviacion>0?'pos':'neg');
-  document.getElementById('subDesv').textContent = (pctDesv*100).toFixed(1) + '% vs estándar';
-  document.getElementById('subEstandar').textContent = lineas.length + ' líneas de consumo';
-  document.getElementById('subReal').textContent = ' ';
+  if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+    // Vista diaria/semanal: solo el consumo real, SIN comparacion contra estandar
+    const totalReal = lineas.reduce((s,l)=>s+l.realUSD,0);
+    document.getElementById('bigEstandar').textContent = '—';
+    document.getElementById('subEstandar').textContent = 'No aplica aquí (cambia a Mensual o Anual)';
+    document.getElementById('bigReal').textContent = fmtMoney(totalReal);
+    document.getElementById('subReal').textContent = lineas.length + ' líneas de consumo';
+    const bigDesvEl = document.getElementById('bigDesv');
+    bigDesvEl.textContent = '—';
+    bigDesvEl.className = 'big';
+    document.getElementById('subDesv').textContent = 'La comparación contra estándar se ve en Mensual/Anual';
 
-  // Error mas comun (solo lineas que superan umbral y tienen razon)
-  const conRazon = lineas.filter(l => Math.abs(l.pct) >= UMBRAL && l.razon);
-  const conteoRazones = {};
-  conRazon.forEach(l=> conteoRazones[l.razon] = (conteoRazones[l.razon]||0)+1);
-  const topRazon = Object.entries(conteoRazones).sort((a,b)=>b[1]-a[1])[0];
-  document.getElementById('errorComun').textContent = topRazon ? topRazon[0] : 'Sin datos suficientes';
-  document.getElementById('errorComunDetail').textContent = topRazon ? `${topRazon[1]} de ${conRazon.length} casos marcados` : 'Aún no hay razones capturadas';
+    document.getElementById('errorComun').textContent = 'No aplica aquí';
+    document.getElementById('errorComunDetail').textContent = 'Las razones se capturan en el reporte Mensual/Anual';
+  } else {
+    const totalEstandar = lineas.reduce((s,l)=>s+l.estandarUSD,0);
+    const totalReal = lineas.reduce((s,l)=>s+l.realUSD,0);
+    const desviacion = totalReal - totalEstandar;
+    const pctDesv = totalEstandar !== 0 ? desviacion/totalEstandar : 0;
+
+    document.getElementById('bigEstandar').textContent = fmtMoney(totalEstandar);
+    document.getElementById('bigReal').textContent = fmtMoney(totalReal);
+    const bigDesvEl = document.getElementById('bigDesv');
+    bigDesvEl.textContent = (desviacion>=0?'+':'') + fmtMoney(desviacion);
+    bigDesvEl.className = 'big ' + (desviacion>0?'pos':'neg');
+    document.getElementById('subDesv').textContent = (pctDesv*100).toFixed(1) + '% vs estándar';
+    document.getElementById('subEstandar').textContent = lineas.length + ' líneas de consumo';
+    document.getElementById('subReal').textContent = ' ';
+
+    // Error mas comun (solo lineas que superan umbral y tienen razon)
+    const conRazon = lineas.filter(l => Math.abs(l.pct) >= UMBRAL && l.razon);
+    const conteoRazones = {};
+    conRazon.forEach(l=> conteoRazones[l.razon] = (conteoRazones[l.razon]||0)+1);
+    const topRazon = Object.entries(conteoRazones).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('errorComun').textContent = topRazon ? topRazon[0] : 'Sin datos suficientes';
+    document.getElementById('errorComunDetail').textContent = topRazon ? `${topRazon[1]} de ${conRazon.length} casos marcados` : 'Aún no hay razones capturadas';
+  }
 
   // Atraso: a partir del catalogo de estandares (OP+SKU), usando OPs distintas con Fecha vencimiento
   const hoy = new Date().toISOString().slice(0,10);
@@ -1469,11 +1493,15 @@ async function renderTendencia(){
   docs.sort((a,b)=> a.fecha < b.fecha ? -1 : 1);
 
   const relevantes = docs.filter(d => d.fecha <= currentDate).slice(-14);
-  const puntos = relevantes.map(d => ({
-    fecha: d.fecha,
-    estandar: d.lineas.reduce((s,l)=>s+(l.estandarUSD||0),0),
-    real: d.lineas.reduce((s,l)=>s+(l.realUSD||0),0)
-  }));
+  const puntos = relevantes.map(d => {
+    const crudo = d.lineas.map(l => resolverLineaCruda(l, d.fecha));
+    const comparado = agregarYCompararLineas(crudo, d.fecha);
+    return {
+      fecha: d.fecha,
+      estandar: comparado.reduce((s,l)=>s+(l.estandarUSD||0),0),
+      real: comparado.reduce((s,l)=>s+(l.realUSD||0),0)
+    };
+  });
 
   if(puntos.length === 0){
     cont.innerHTML = '<div class="field-hint">Aún no hay días con datos guardados para mostrar tendencia.</div>';
@@ -1534,9 +1562,37 @@ function fmtMoneyCorto(n){
 
 function renderTablaFases(lineas){
   const tbody = document.getElementById('tablaFases');
+  const thead = document.getElementById('theadFases');
   const centrosPorFase = {1:[],2:[],3:[],4:[]};
   Object.entries(CENTRO_A_FASE).forEach(([centro,fase])=> centrosPorFase[fase]?.push(centro));
 
+  if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+    thead.innerHTML = '<tr><th>Fase</th><th>Centros de Trabajo</th><th>$ Real</th></tr>';
+    let htmlDia = '';
+    for(let fase=1; fase<=4; fase++){
+      const lineasFase = lineas.filter(l=> l.fase===fase);
+      const real = lineasFase.reduce((s,l)=>s+l.realUSD,0);
+      htmlDia += `<tr class="clickable" onclick="verFase(${fase})">
+        <td><strong>Fase ${fase}</strong></td>
+        <td>${(centrosPorFase[fase]||[]).join(', ') || '—'}</td>
+        <td class="money">${fmtMoney(real)}</td>
+      </tr>`;
+    }
+    const lineasSinClasificarDia = lineas.filter(l=> l.fase==null);
+    if(lineasSinClasificarDia.length > 0){
+      const real = lineasSinClasificarDia.reduce((s,l)=>s+l.realUSD,0);
+      htmlDia += `<tr class="clickable" onclick="verFase(null)" style="background:var(--panel-2);">
+        <td><strong>Sin clasificar</strong></td>
+        <td style="color:var(--muted);">Centros de trabajo nuevos aún sin asignar a una fase</td>
+        <td class="money">${fmtMoney(real)}</td>
+      </tr>`;
+    }
+    tbody.innerHTML = htmlDia;
+    document.getElementById('avisoMultiplesFases').innerHTML = '';
+    return;
+  }
+
+  thead.innerHTML = '<tr><th>Fase</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr>';
   let html = '';
   for(let fase=1; fase<=4; fase++){
     const lineasFase = lineas.filter(l=> l.fase===fase || (l.fasesMultiples && l.fasesMultiples.includes(fase)));
@@ -1655,7 +1711,7 @@ async function obtenerLineasSegunModo(){
     const snap = await db.collection('reportes').get();
     const docs = [];
     snap.forEach(doc => docs.push(doc.data()));
-    lineasHistoricoCache = construirLineasDesdeReportes(docs);
+    lineasHistoricoCache = agregarYCompararLineas(construirLineasCrudas(docs), 'historico');
   }
   return lineasHistoricoCache;
 }
@@ -1672,9 +1728,9 @@ async function agregarPorSKU(){
     }
     const g = grupos[l.noComponente];
     g.apariciones += 1;
-    g.estandarUSD += l.estandarUSD;
+    g.estandarUSD += (l.estandarUSD || 0);
     g.realUSD += l.realUSD;
-    g.sumaPct += l.pct;
+    g.sumaPct += (l.pct || 0);
     if(!g.descripcion && l.descripcion) g.descripcion = l.descripcion;
   });
   return Object.values(grupos).map(g=>({
@@ -1755,17 +1811,44 @@ document.getElementById('buscarFase').addEventListener('input', (e)=>{
   renderTablaComponentes();
 });
 
-document.querySelectorAll('.table-scroll thead th[data-key]').forEach(th=>{
-  th.addEventListener('click', ()=>{
-    const key = th.dataset.key;
-    if(sortState.key === key) sortState.dir *= -1;
-    else { sortState.key = key; sortState.dir = 1; }
-    document.querySelectorAll('.table-scroll thead th').forEach(h=>h.classList.remove('sorted'));
-    th.classList.add('sorted');
-    th.querySelector('.sort-arrow').textContent = sortState.dir === 1 ? '▲' : '▼';
-    renderTablaComponentes();
+function renderTheadComponentes(){
+  const thead = document.getElementById('theadComponentes');
+  let columnas;
+  if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+    columnas = [
+      {key:'fecha', label:'Fecha'}, {key:'noOP', label:'OP'}, {key:'modelo', label:'Modelo'},
+      {key:'noComponente', label:'No. Componente'}, {key:'descripcion', label:'Descripción'},
+      {key:'ruta', label:'Centro de Trabajo'},
+      {key:'cantidadReal', label:'Cant. Real'}, {key:'realUSD', label:'$ Real'}
+    ];
+  } else {
+    columnas = [
+      {key:'fechasTexto', label:'Días incluidos'}, {key:'noOP', label:'OP'}, {key:'modelo', label:'Modelo'},
+      {key:'noComponente', label:'No. Componente'}, {key:'descripcion', label:'Descripción'},
+      {key:'cantidadEstandar', label:'Cant. Estándar'}, {key:'cantidadReal', label:'Cant. Real'},
+      {key:'diferencia', label:'Diferencia'}, {key:'pct', label:'%'},
+      {key:'ruta', label:'Centro de Trabajo'}, {key:null, label:'Avance OP'}, {key:null, label:'Modo de Cálculo'},
+      {key:'estandarUSD', label:'$ Estándar'}, {key:'realUSD', label:'$ Real'}, {key:'diferenciaUSD', label:'$ Diferencia'},
+      {key:null, label:'Razón'}
+    ];
+  }
+  thead.innerHTML = '<tr>' + columnas.map(c => c.key
+    ? `<th data-key="${c.key}">${c.label} <span class="sort-arrow">▲▼</span></th>`
+    : `<th>${c.label}</th>`
+  ).join('') + '</tr>';
+
+  thead.querySelectorAll('th[data-key]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key;
+      if(sortState.key === key) sortState.dir *= -1;
+      else { sortState.key = key; sortState.dir = 1; }
+      thead.querySelectorAll('th').forEach(h=>h.classList.remove('sorted'));
+      th.classList.add('sorted');
+      th.querySelector('.sort-arrow').textContent = sortState.dir === 1 ? '▲' : '▼';
+      renderTablaComponentes();
+    });
   });
-});
+}
 
 function avanceOPTexto(op){
   const info = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
@@ -1775,6 +1858,8 @@ function avanceOPTexto(op){
 }
 
 function renderTablaComponentes(){
+  renderTheadComponentes();
+
   let lineas = todasLasLineas().filter(l=> l.fase===currentFaseSeleccionada || (l.fasesMultiples && l.fasesMultiples.includes(currentFaseSeleccionada)));
 
   if(busquedaFase.trim()){
@@ -1785,6 +1870,37 @@ function renderTablaComponentes(){
     });
   }
 
+  const tbody = document.getElementById('tablaComponentes');
+
+  if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+    // Vista diaria/semanal: solo el dato crudo, sin comparacion contra estandar
+    if(sortState.key){
+      lineas.sort((a,b)=>{
+        let va = a[sortState.key], vb = b[sortState.key];
+        if(typeof va === 'string') va = va.toLowerCase();
+        if(typeof vb === 'string') vb = vb.toLowerCase();
+        if(va < vb) return -1 * sortState.dir;
+        if(va > vb) return 1 * sortState.dir;
+        return 0;
+      });
+    } else {
+      lineas.sort((a,b) => b.realUSD - a.realUSD);
+    }
+
+    tbody.innerHTML = lineas.map(l=>`<tr>
+      <td>${l.fecha}</td>
+      <td>${l.noOP}</td>
+      <td>${l.modelo}</td>
+      <td>${l.noComponente}</td>
+      <td style="font-family:var(--sans); max-width:200px;">${l.descripcion}</td>
+      <td style="color:var(--muted);">${l.ruta || '—'}</td>
+      <td>${l.cantidadReal}</td>
+      <td class="money">${fmtMoney(l.realUSD)}</td>
+    </tr>`).join('');
+    return;
+  }
+
+  // Vista agregada (Semanal/Mensual/Anual): comparacion completa contra estandar
   lineas.forEach(l=> l.diferenciaUSD = round2(l.realUSD - l.estandarUSD));
 
   if(sortState.key){
@@ -1800,8 +1916,6 @@ function renderTablaComponentes(){
     lineas.sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
   }
 
-  const tbody = document.getElementById('tablaComponentes');
-
   tbody.innerHTML = lineas.map((l, idx)=>{
     const esSobreconsumo = l.pct >= UMBRAL;
     const esAhorro = l.pct <= -UMBRAL;
@@ -1812,7 +1926,7 @@ function renderTablaComponentes(){
       RAZONES.map(r=>`<option value="${r}" ${r===l.razon?'selected':''}>${r}</option>`)
     ).join('');
     return `<tr style="${filaEstilo}">
-      <td>${l.fecha}</td>
+      <td>${l.fechasTexto}</td>
       <td>${l.noOP}</td>
       <td>${l.modelo}</td>
       <td>${l.noComponente}</td>
@@ -1826,20 +1940,20 @@ function renderTablaComponentes(){
       <td>
         <button class="btn small btn-modo-sku" data-linea="${l.lineaKey}" data-modo="${l.modoUsado}"
           style="${l.modoUsado==='ajustado' ? 'background:var(--accent); color:#1a1006; border-color:var(--accent);' : ''} ${l.tieneOverrideLinea ? 'box-shadow:0 0 0 2px var(--accent-2);' : ''}"
-          title="${l.tieneOverrideLinea ? 'Esta línea tiene un override manual (solo afecta esta OP+SKU+fecha)' : 'Usando el default de su Fase'}. Clic para cambiar solo esta línea.">
+          title="${l.tieneOverrideLinea ? 'Esta línea (OP+SKU en este periodo) tiene un override manual' : 'Usando el default de su Fase'}. Clic para cambiar solo esta línea.">
           ${l.modoUsado==='ajustado' ? 'Ajustado' : 'Completo'}
         </button>
       </td>
       <td class="money">${fmtMoney(l.estandarUSD)}</td>
       <td class="money">${fmtMoney(l.realUSD)}</td>
       <td class="money ${esSobreconsumo?'pct alert':(esAhorro?'pct ahorro':'')}">${diferenciaUSD>=0?'+':''}${fmtMoney(diferenciaUSD)}</td>
-      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-fecha="${l.fecha}" data-op="${l.noOP}" data-comp="${l.noComponente}">${razonOptions}</select>` : '—'}</td>
+      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-linea="${l.lineaKey}">${razonOptions}</select>` : '—'}</td>
     </tr>`;
   }).join('');
 
   tbody.querySelectorAll('select.razon').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
-      await guardarRazon(sel.dataset.fecha, sel.dataset.op, sel.dataset.comp, sel.value);
+      await guardarRazon(sel.dataset.linea, sel.value);
       sel.classList.toggle('empty', !sel.value);
     });
   });
@@ -1857,20 +1971,10 @@ function renderTablaComponentes(){
   });
 }
 
-async function guardarRazon(fecha, noOP, noComponente, razon){
-  const ref = db.collection('reportes').doc(fecha);
-  const doc = await ref.get();
-  if(!doc.exists) return;
-  const data = doc.data();
-  const lineas = (data.lineas||[]).map(l=>{
-    if(l.noOP===noOP && l.noComponente===noComponente) return {...l, razon};
-    return l;
-  });
-  await ref.update({lineas});
+async function guardarRazon(lineaKey, razon){
+  RAZONES_POR_LINEA[lineaKey] = razon;
+  await db.collection('config').doc('razonesPorLinea').set({mapa: RAZONES_POR_LINEA});
   lineasHistoricoCache = null;
-  // refrescar en memoria
-  const rep = currentReports.find(r=>r.fecha===fecha);
-  if(rep) rep.lineas = lineas;
 }
 
 /* ============================================================
@@ -1879,8 +1983,14 @@ async function guardarRazon(fecha, noOP, noComponente, razon){
 document.getElementById('btnExportTodo').addEventListener('click', ()=>{
   const todas = todasLasLineas();
   function filaExcel(l){
+    if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+      return {
+        Fecha:l.fecha, Fase: l.fase ?? 'Sin clasificar', OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente,
+        Descripcion:l.descripcion, 'Centro de Trabajo':l.ruta, 'Cant. Real':l.cantidadReal, '$ Real':l.realUSD
+      };
+    }
     return {
-      Fecha:l.fecha, Fase: l.fase ?? 'Sin clasificar', OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+      'Días incluidos':l.fechasTexto, Fase: l.fase ?? 'Sin clasificar', OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
       'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
       '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'),
       'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Sin Estandar': l.tieneEstandar ? '' : 'SI',
@@ -1907,13 +2017,21 @@ document.getElementById('btnExportExcel').addEventListener('click', ()=>{
       return campos.some(c => quitarAcentos(String(c ?? '').toUpperCase()).includes(q));
     });
   }
-  const data = lineas.map(l=>({
-    Fecha:l.fecha, OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
-    'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
-    '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'),
-    'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Sin Estandar': l.tieneEstandar ? '' : 'SI',
-    '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon:l.razon
-  }));
+  const data = lineas.map(l=>{
+    if(currentPeriod === 'dia' || currentPeriod === 'semana'){
+      return {
+        Fecha:l.fecha, OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+        'Centro de Trabajo':l.ruta, 'Cant. Real':l.cantidadReal, '$ Real':l.realUSD
+      };
+    }
+    return {
+      'Días incluidos':l.fechasTexto, OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+      'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
+      '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'),
+      'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Sin Estandar': l.tieneEstandar ? '' : 'SI',
+      '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon:l.razon
+    };
+  });
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Fase '+currentFaseSeleccionada);
@@ -1932,6 +2050,7 @@ document.getElementById('btnExportPdf').addEventListener('click', ()=>{
   await cargarRazonesDesdeDB();
   await cargarExcepcionesDesdeDB();
   await cargarModoPorLineaDesdeDB();
+  await cargarRazonesPorLineaDesdeDB();
   await cargarUmbralDesdeDB();
   await cargarEstandaresDesdeDB();
   await cargarAvanceDesdeDB();
