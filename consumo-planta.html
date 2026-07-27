@@ -95,6 +95,23 @@ main{max-width:100%; margin:0 auto; padding:24px 20px;}
 .card .label{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:8px; font-weight:600;}
 .card .big{font-family:var(--mono); font-size:28px; font-weight:600; line-height:1.1;}
 .card .sub{font-size:12px; color:var(--muted); margin-top:6px;}
+.card .label{display:flex; align-items:center; gap:5px;}
+.help-icon{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:15px; height:15px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+  color:var(--muted); font-size:10px; font-weight:700; cursor:help; position:relative; flex-shrink:0;
+}
+.help-icon:hover .help-tooltip{display:block;}
+.help-tooltip{
+  display:none; position:absolute; bottom:135%; left:50%; transform:translateX(-50%);
+  width:220px; background:#1c2733; color:#e8edf1; font-size:11.5px; font-weight:400;
+  line-height:1.4; padding:10px 12px; border-radius:8px; z-index:50;
+  box-shadow:0 4px 14px rgba(0,0,0,0.25); text-transform:none; letter-spacing:normal;
+}
+.help-tooltip::after{
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:6px solid transparent; border-top-color:#1c2733;
+}
 .card.deviation .big.pos{color:var(--bad);}
 .card.deviation .big.neg{color:var(--good);}
 
@@ -361,19 +378,26 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div id="gridDiasPrograma" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:24px;"></div>
 
         <div class="section-title">Resumen de la semana</div>
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+          <div class="alertcard">
+            <div class="label">📌 Razón más común de la semana</div>
+            <div class="headline" id="semErrorComun">—</div>
+            <div class="detail" id="semErrorComunDetail">&nbsp;</div>
+          </div>
+        </div>
         <div class="bigrow">
           <div class="card">
-            <div class="label">Ahorro Legítimo</div>
+            <div class="label">Ahorro Legítimo <span class="help-icon">?<span class="help-tooltip">Materiales donde consumir menos de lo esperado es normal (ej. melamina, tubular, chapacinta) — por un corte o nesting más eficiente de lo calculado.</span></span></div>
             <div class="big" id="semBigAhorro" style="color:var(--good);">$0</div>
             <div class="sub">Materiales donde el ahorro es normal</div>
           </div>
           <div class="card">
-            <div class="label">Ya Justificado</div>
+            <div class="label">Ya Justificado <span class="help-icon">?<span class="help-tooltip">Casos donde hubo una diferencia rara, pero ya se revisó y se le puso una Razón (ej. error de captura, material dañado). Ya no cuenta como pendiente.</span></span></div>
             <div class="big" id="semBigJustificado" style="color:var(--accent-2);">$0</div>
             <div class="sub">Ya revisado, con Razón capturada</div>
           </div>
           <div class="card">
-            <div class="label">Sobreconsumo</div>
+            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué.</span></span></div>
             <div class="big" id="semBigSobreconsumo" style="color:var(--bad);">$0</div>
             <div class="sub">Se gastó más de lo esperado</div>
           </div>
@@ -394,19 +418,27 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div id="avisoProgramaVencido"></div>
 
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+          <div class="alertcard">
+            <div class="label">📌 Razón más común</div>
+            <div class="headline" id="progErrorComun">—</div>
+            <div class="detail" id="progErrorComunDetail">&nbsp;</div>
+          </div>
+        </div>
+
         <div class="bigrow">
           <div class="card">
-            <div class="label">$ Estándar del Programa</div>
+            <div class="label">$ Estándar del Programa <span class="help-icon">?<span class="help-tooltip">Lo que se esperaba consumir de material, según la lista de materiales (BOM) de este programa.</span></span></div>
             <div class="big" id="progBigEstandar">$0</div>
             <div class="sub" id="progSubEstandar">&nbsp;</div>
           </div>
           <div class="card">
-            <div class="label">$ Real Consumido</div>
+            <div class="label">$ Real Consumido <span class="help-icon">?<span class="help-tooltip">Lo que realmente se ha consumido hasta hoy, según los movimientos de inventario registrados.</span></span></div>
             <div class="big" id="progBigReal">$0</div>
             <div class="sub">&nbsp;</div>
           </div>
           <div class="card deviation">
-            <div class="label">$ Desviación</div>
+            <div class="label">$ Desviación <span class="help-icon">?<span class="help-tooltip">Lo que falta por consumir SIN explicación todavía. Ya no incluye ahorros normales (ej. melamina) ni casos que ya justificaste con una Razón.</span></span></div>
             <div class="big" id="progBigDesv">$0</div>
             <div class="sub" id="progSubDesv">&nbsp;</div>
           </div>
@@ -414,23 +446,26 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="bigrow">
           <div class="card">
-            <div class="label">Ahorro Legítimo</div>
+            <div class="label">Ahorro Legítimo <span class="help-icon">?<span class="help-tooltip">Materiales donde consumir menos de lo esperado es normal (ej. melamina, tubular, chapacinta) — por un corte o nesting más eficiente de lo calculado.</span></span></div>
             <div class="big" id="progBigAhorro" style="color:var(--good);">$0</div>
             <div class="sub">Materiales donde el ahorro es normal</div>
           </div>
           <div class="card">
-            <div class="label">Ya Justificado</div>
+            <div class="label">Ya Justificado <span class="help-icon">?<span class="help-tooltip">Casos donde hubo una diferencia rara, pero ya se revisó y se le puso una Razón (ej. error de captura, material dañado). Ya no cuenta como pendiente.</span></span></div>
             <div class="big" id="progBigJustificado" style="color:var(--accent-2);">$0</div>
             <div class="sub">Ya revisado, con Razón capturada</div>
           </div>
           <div class="card">
-            <div class="label">Sobreconsumo</div>
+            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué.</span></span></div>
             <div class="big" id="progBigSobreconsumo" style="color:var(--bad);">$0</div>
             <div class="sub">Se gastó más de lo esperado</div>
           </div>
         </div>
 
         <div class="section-title">Fases del Programa (con su fecha esperada de consumo) — clic para ver detalle</div>
+        <div class="toolbar" style="margin-bottom:10px;">
+          <button class="btn primary" onclick="verProgramaFase('todas')">📋 Ver todas las Fases juntas (una sola lista)</button>
+        </div>
         <table>
           <thead><tr><th>Fase</th><th>Fecha esperada</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
           <tbody id="tablaFasesPrograma"></tbody>
@@ -443,6 +478,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
               <tr>
                 <th data-key-resumenop="noOP">OP <span class="sort-arrow">▲▼</span></th>
                 <th data-key-resumenop="modelo">Modelo <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="estado">Estado <span class="sort-arrow">▲▼</span></th>
                 <th data-key-resumenop="cumplimiento">% Cumplimiento <span class="sort-arrow">▲▼</span></th>
                 <th data-key-resumenop="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
                 <th data-key-resumenop="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
@@ -465,6 +501,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div class="toolbar">
           <button class="btn" id="btnExportProgramaFase">⬇ Exportar Excel</button>
           <button class="btn" id="btnFiltroSinAhorro" style="color:var(--bad); border-color:var(--bad);">⚠ Solo materiales sin ahorro permitido</button>
+          <button class="btn" id="btnFiltroConsumoCero" style="color:var(--bad); border-color:var(--bad);">⚠ Solo Consumo Real en 0</button>
           <input type="text" id="buscarProgramaFase" placeholder="Buscar OP, SKU, modelo, descripción..." style="margin-left:auto; min-width:280px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 12px; border-radius:6px; font-size:13px;">
         </div>
         <div class="table-scroll">
@@ -2451,6 +2488,7 @@ let currentProgramaFaseSeleccionada = null;
 let sortStateProgramaFase = {key:null, dir:1};
 let busquedaProgramaFase = '';
 let filtroSinAhorroActivo = false;
+let filtroConsumoCeroActivo = false;
 
 function ocultarTodasLasVistas(){
   document.getElementById('btnVistaPrograma').classList.remove('active');
@@ -2618,6 +2656,7 @@ async function construirProgramaDia(fechaD){
 
     lineas.push({
       noOP, noComponente, modelo: std.modelo, descripcion: std.descripcion, ruta, fase, fasesMultiples,
+      estado: std.estado || '',
       fechaEsperada, cantidadEstandar, cantidadReal: round3(cantidadRealConsumida), diferencia, pct,
       estandarUSD, realUSD: round2(cantidadRealConsumida * std.costoUnitario), costoUnitarioEstandar: std.costoUnitario,
       lineaKey, tieneEstandar: true,
@@ -2648,6 +2687,8 @@ async function renderSemanaPrograma(){
 
   const tarjetas = [];
   let semAhorro = 0, semJustificado = 0, semSobreconsumo = 0;
+  const conteoRazonesSemana = {};
+  let totalConRazonSemana = 0;
   for(let i=0;i<5;i++){
     const fecha = dias[i];
     const lineas = await construirProgramaDia(fecha);
@@ -2664,6 +2705,10 @@ async function renderSemanaPrograma(){
     semAhorro += m.ahorroLegitimo;
     semJustificado += m.pendienteJustificado;
     semSobreconsumo += m.sobreconsumo;
+    lineas.filter(l=>l.razon).forEach(l=>{
+      conteoRazonesSemana[l.razon] = (conteoRazonesSemana[l.razon]||0)+1;
+      totalConRazonSemana++;
+    });
     const cumplimiento = calcularCumplimientoPrograma(lineas, fecha);
     const vencido = fecha < hoy && m.pendienteReal > 0.5;
     const esHoy = fecha === hoy;
@@ -2680,6 +2725,9 @@ async function renderSemanaPrograma(){
   document.getElementById('semBigAhorro').textContent = fmtMoney(semAhorro);
   document.getElementById('semBigJustificado').textContent = fmtMoney(semJustificado);
   document.getElementById('semBigSobreconsumo').textContent = fmtMoney(semSobreconsumo);
+  const topRazonSemana = Object.entries(conteoRazonesSemana).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('semErrorComun').textContent = topRazonSemana ? topRazonSemana[0] : 'Sin datos suficientes';
+  document.getElementById('semErrorComunDetail').textContent = topRazonSemana ? `${topRazonSemana[1]} de ${totalConRazonSemana} líneas justificadas esta semana` : 'Aún no hay razones capturadas esta semana';
 
   renderAlertasProgramasVencidos();
 }
@@ -2690,7 +2738,7 @@ function renderResumenPorOP(){
   const grupos = {};
   currentProgramaLineas.forEach(l=>{
     if(!grupos[l.noOP]){
-      grupos[l.noOP] = {noOP:l.noOP, modelo:l.modelo, estandarUSD:0, realUSD:0, pendienteReal:0, ahorroLegitimo:0, pendienteJustificado:0};
+      grupos[l.noOP] = {noOP:l.noOP, modelo:l.modelo, estado:l.estado, estandarUSD:0, realUSD:0, pendienteReal:0, ahorroLegitimo:0, pendienteJustificado:0};
     }
     const g = grupos[l.noOP];
     g.estandarUSD += l.estandarUSD;
@@ -2720,12 +2768,13 @@ function renderResumenPorOP(){
 
   const tbody = document.getElementById('tablaResumenPorOP');
   if(filas.length === 0){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs en este Programa.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs en este Programa.</td></tr>';
     return;
   }
   tbody.innerHTML = filas.map(g=>`<tr>
     <td>${g.noOP}</td>
     <td>${g.modelo}</td>
+    <td style="color:var(--muted); font-size:12px;">${g.estado||'—'}</td>
     <td>${g.cumplimiento.toFixed(0)}%</td>
     <td class="money">${fmtMoney(g.estandarUSD)}</td>
     <td class="money">${fmtMoney(g.realUSD)}</td>
@@ -2964,6 +3013,13 @@ function renderProgramaDiaDetalle(){
   }
   avisoCont.innerHTML = avisos;
 
+  const conRazon = lineas.filter(l=>l.razon);
+  const conteoRazones = {};
+  conRazon.forEach(l=> conteoRazones[l.razon] = (conteoRazones[l.razon]||0)+1);
+  const topRazon = Object.entries(conteoRazones).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('progErrorComun').textContent = topRazon ? topRazon[0] : 'Sin datos suficientes';
+  document.getElementById('progErrorComunDetail').textContent = topRazon ? `${topRazon[1]} de ${conRazon.length} líneas justificadas` : 'Aún no hay razones capturadas en este programa';
+
   const centrosPorFase = {1:[],2:[],3:[],4:[]};
   Object.entries(CENTRO_A_FASE).forEach(([centro,fase])=> centrosPorFase[fase]?.push(centro));
   const diasPrograma = calcularDiasPrograma();
@@ -3015,9 +3071,13 @@ function verProgramaFase(fase){
   const btnFiltro = document.getElementById('btnFiltroSinAhorro');
   btnFiltro.style.background = '';
   btnFiltro.style.color = '';
+  filtroConsumoCeroActivo = false;
+  const btnFiltroCero = document.getElementById('btnFiltroConsumoCero');
+  btnFiltroCero.style.background = '';
+  btnFiltroCero.style.color = '';
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.remove('hidden');
-  document.getElementById('programaFaseTitulo').textContent = fase==null ? 'Sin clasificar' : ('Fase '+fase);
+  document.getElementById('programaFaseTitulo').textContent = fase === 'todas' ? 'Todas las Fases (lista completa)' : (fase==null ? 'Sin clasificar' : ('Fase '+fase));
   renderTablaProgramaFase();
 }
 document.getElementById('buscarProgramaFase').addEventListener('input', (e)=>{
@@ -3030,11 +3090,17 @@ document.getElementById('btnFiltroSinAhorro').addEventListener('click', (e)=>{
   e.target.style.color = filtroSinAhorroActivo ? '#fff' : '';
   renderTablaProgramaFase();
 });
+document.getElementById('btnFiltroConsumoCero').addEventListener('click', (e)=>{
+  filtroConsumoCeroActivo = !filtroConsumoCeroActivo;
+  e.target.style.background = filtroConsumoCeroActivo ? 'var(--bad)' : '';
+  e.target.style.color = filtroConsumoCeroActivo ? '#fff' : '';
+  renderTablaProgramaFase();
+});
 
 function renderTheadProgramaFase(){
   const thead = document.getElementById('theadProgramaFase');
   const columnas = [
-    {key:'fechaEsperada', label:'Fecha Esperada'}, {key:'noOP', label:'OP'}, {key:'modelo', label:'Modelo'},
+    {key:'fase', label:'Fase'}, {key:'fechaEsperada', label:'Fecha Esperada'}, {key:'noOP', label:'OP'}, {key:'estado', label:'Estado'}, {key:'modelo', label:'Modelo'},
     {key:'noComponente', label:'No. Componente'}, {key:'descripcion', label:'Descripción'},
     {key:'cantidadEstandar', label:'Cant. Estándar'}, {key:'cantidadReal', label:'Cant. Real'},
     {key:'diferencia', label:'Diferencia'}, {key:'pct', label:'%'}, {key:null, label:'Tipo'},
@@ -3056,18 +3122,31 @@ function renderTheadProgramaFase(){
   });
 }
 
+function estadoAbrev(estado){
+  const e = quitarAcentos(String(estado ?? '').toUpperCase());
+  if(e.includes('TERMIN')) return 'T';
+  if(e.includes('LANZ')) return 'L';
+  if(e.includes('CERRAD')) return 'T';
+  return '';
+}
+
 function renderTablaProgramaFase(){
   renderTheadProgramaFase();
-  let lineas = currentProgramaLineas.filter(l=> l.fase===currentProgramaFaseSeleccionada || (l.fasesMultiples && l.fasesMultiples.includes(currentProgramaFaseSeleccionada)));
+  let lineas = currentProgramaFaseSeleccionada === 'todas'
+    ? [...currentProgramaLineas]
+    : currentProgramaLineas.filter(l=> l.fase===currentProgramaFaseSeleccionada || (l.fasesMultiples && l.fasesMultiples.includes(currentProgramaFaseSeleccionada)));
 
   if(filtroSinAhorroActivo){
     lineas = lineas.filter(l=> !l.permiteAhorro);
+  }
+  if(filtroConsumoCeroActivo){
+    lineas = lineas.filter(l=> l.consumoCero);
   }
 
   if(busquedaProgramaFase.trim()){
     const q = quitarAcentos(busquedaProgramaFase.trim().toUpperCase());
     lineas = lineas.filter(l=>{
-      const campos = [l.noOP, l.modelo, l.noComponente, l.descripcion, l.ruta, l.razon];
+      const campos = [l.noOP, l.modelo, l.noComponente, l.descripcion, l.ruta, l.razon, l.estado];
       return campos.some(c=>quitarAcentos(String(c??'').toUpperCase()).includes(q));
     });
   }
@@ -3098,8 +3177,9 @@ function renderTablaProgramaFase(){
     const tipoTexto = esConsumoCero ? '⚠ Consumo real en 0 (imposible)' : (esSospechoso ? '⚠ Revisar (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—')));
     const tipoColor = (esSospechoso || esConsumoCero) ? 'var(--bad)' : (l.diferencia>0?'var(--bad)':(l.diferencia<0?'var(--good)':'var(--text)'));
     return `<tr style="${filaEstilo}">
+      <td><strong>${l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar'}</strong>${l.fasesMultiples && l.fasesMultiples.length>1 ? ` <span style="color:var(--muted); font-size:10px;">(+${l.fasesMultiples.filter(f=>f!==l.fase).join(',')})</span>` : ''}</td>
       <td style="font-family:var(--mono);">${l.fechaEsperada}</td>
-      <td>${l.noOP}</td><td>${l.modelo}</td><td>${l.noComponente}</td>
+      <td>${l.noOP}</td><td style="color:var(--muted);" title="${l.estado}">${estadoAbrev(l.estado) || l.estado || '—'}</td><td>${l.modelo}</td><td>${l.noComponente}</td>
       <td style="font-family:var(--sans); max-width:200px;">${l.descripcion}</td>
       <td>${l.cantidadEstandar}</td><td>${l.cantidadReal}</td><td>${l.diferencia}</td>
       <td class="pct ${esSobreconsumo?'alert':(esAhorroFuerte?'ahorro':'ok')}">${(l.pct*100).toFixed(1)}%</td>
@@ -3138,11 +3218,13 @@ function renderTablaProgramaFase(){
 }
 
 document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
-  let lineas = currentProgramaLineas.filter(l=> l.fase===currentProgramaFaseSeleccionada || (l.fasesMultiples && l.fasesMultiples.includes(currentProgramaFaseSeleccionada)));
+  let lineas = currentProgramaFaseSeleccionada === 'todas'
+    ? [...currentProgramaLineas]
+    : currentProgramaLineas.filter(l=> l.fase===currentProgramaFaseSeleccionada || (l.fasesMultiples && l.fasesMultiples.includes(currentProgramaFaseSeleccionada)));
   const data = lineas.map(l=>({
-    'Fecha Esperada':l.fechaEsperada, OP:l.noOP, Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+    Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar', 'Fecha Esperada':l.fechaEsperada, OP:l.noOP, Modelo:l.modelo, Estado:l.estado, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
     'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
-    '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.ahorroSospechoso ? 'REVISAR (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—')),
+    '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.consumoCero ? 'CONSUMO EN 0' : (l.ahorroSospechoso ? 'REVISAR (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'))),
     'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Modo de Cálculo': l.modoUsado,
     '$ Estandar':l.estandarUSD, '$ Real':l.realUSD, '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon:l.razon
   }));
