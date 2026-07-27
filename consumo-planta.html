@@ -1451,6 +1451,14 @@ document.getElementById('btnProcesarMovimientos').addEventListener('click', asyn
     return;
   }
 
+  function limpiarInputsArchivos(){
+    // Se limpian despues de procesar para que un archivo viejo ya seleccionado
+    // no se vuelva a subir por accidente la proxima vez que le des "Procesar Todo".
+    document.getElementById('fileEstandares').value = '';
+    document.getElementById('fileMovimientos').value = '';
+    document.getElementById('fileAvance').value = '';
+  }
+
   try{
     let mensajeEstandares = '';
     if(fEstandares){
@@ -1467,6 +1475,7 @@ document.getElementById('btnProcesarMovimientos').addEventListener('click', asyn
     if(!fMov){
       statusEl.innerHTML = `<div class="status-msg ok">${mensajeEstandares}(No se subió archivo de movimientos, así que no se generó reporte nuevo.)</div>`;
       renderHistorialCargas();
+      limpiarInputsArchivos();
       return;
     }
 
@@ -1478,6 +1487,7 @@ document.getElementById('btnProcesarMovimientos').addEventListener('click', asyn
     if(fechas.length === 0){
       statusEl.innerHTML = `<div class="status-msg err">${mensajeEstandares}No se encontraron movimientos de tipo "Consumo" en este archivo.</div>`;
       renderHistorialCargas();
+      limpiarInputsArchivos();
       return;
     }
 
@@ -1500,6 +1510,7 @@ document.getElementById('btnProcesarMovimientos').addEventListener('click', asyn
     renderHistorialCargas();
     lineasHistoricoCache = null; consumoAcumuladoCache = null;
     renderHistorialReportes();
+    limpiarInputsArchivos();
   }catch(err){
     console.error(err);
     statusEl.innerHTML = `<div class="status-msg err">Error al procesar: ${err.message}</div>`;
@@ -2613,7 +2624,7 @@ async function renderSemanaPrograma(){
     tarjetas.push(`<div class="dia-programa-card ${vencido?'vencido':''} ${esHoy?'hoy':''}" onclick="verProgramaDia('${fecha}')">
       <div class="dia-nombre">${nombresDia[i]}${esHoy?' • HOY':''}</div>
       <div class="dia-fecha">${fmtLegible(fecha)}</div>
-      <div class="dia-stat"><strong>${ops.size}</strong> OPs · <strong>${cumplimiento.toFixed(0)}%</strong> cumplimiento</div>
+      <div class="dia-stat"><strong>${ops.size}</strong> OPs · <strong>${cumplimiento.porcentaje.toFixed(0)}%</strong> cumplimiento (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%)</div>
       <div class="dia-stat">$ Estándar: <strong>${fmtMoney(m.estandarTotal)}</strong></div>
       <div class="dia-stat">$ Real: <strong>${fmtMoney(m.realTotal)}</strong></div>
       ${vencido ? `<div class="dia-alerta">⚠ Vencido, falta ${fmtMoney(m.pendienteReal)}</div>` : ''}
@@ -2644,7 +2655,7 @@ function renderResumenPorOP(){
 
   let filas = Object.values(grupos).map(g=>({
     ...g,
-    cumplimiento: calcularCumplimientoPrograma(currentProgramaLineas.filter(l=>l.noOP===g.noOP))
+    cumplimiento: calcularCumplimientoPrograma(currentProgramaLineas.filter(l=>l.noOP===g.noOP)).porcentaje
   }));
 
   filas.sort((a,b)=>{
@@ -2699,8 +2710,8 @@ async function renderAlertasProgramasVencidos(){
     if(m.pendienteReal <= 0.5) continue;
     const opsAfectadas = new Set(lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro).map(l=>l.noOP));
     const diasVencidoNum = Math.round((new Date(hoy) - new Date(fecha)) / 86400000);
-    const cumplimiento = calcularCumplimientoPrograma(lineas);
-    resultados.push({fecha, pendiente: m.pendienteReal, opsAfectadas: opsAfectadas.size, diasVencidoNum, lineas, cumplimiento});
+    const cumplimientoObj = calcularCumplimientoPrograma(lineas);
+    resultados.push({fecha, pendiente: m.pendienteReal, opsAfectadas: opsAfectadas.size, diasVencidoNum, lineas, cumplimiento: cumplimientoObj.porcentaje, cumplimientoDetalle: `${cumplimientoObj.opsCompletas}/${cumplimientoObj.opsTotal}`});
   }
 
   if(resultados.length === 0){
@@ -2769,7 +2780,7 @@ function renderTablaAlertasVencidas(){
       <td>${r.fecha}</td>
       <td>${r.diasVencidoNum} día(s)</td>
       <td>${r.opsAfectadas}</td>
-      <td>${r.cumplimiento.toFixed(0)}%</td>
+      <td>${r.cumplimiento.toFixed(0)}% <span style="color:var(--muted); font-size:11px;">(${r.cumplimientoDetalle} OPs)</span></td>
       <td class="money" style="color:var(--bad); font-weight:600;">${fmtMoney(r.pendiente)}</td>
       <td><span style="color:var(--accent-2); font-size:12px;">Ver detalle →</span></td>
     </tr>`;
@@ -2814,19 +2825,22 @@ function volverADiaPrograma(){
 
 function calcularCumplimientoPrograma(lineas){
   const ops = [...new Set(lineas.map(l=>l.noOP))];
-  let sumaCant = 0, sumaTerminada = 0;
+  let sumaCant = 0, sumaTerminada = 0, opsCompletas = 0;
   ops.forEach(op=>{
     const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
     if(avance && avance.cant > 0){
       sumaCant += avance.cant;
       sumaTerminada += avance.cantTerminada;
+      if(avance.cantTerminada >= avance.cant) opsCompletas++;
     } else {
       // Si la OP no aparece en el Avance, se asume 100% completada
       sumaCant += 1;
       sumaTerminada += 1;
+      opsCompletas++;
     }
   });
-  return sumaCant > 0 ? (sumaTerminada / sumaCant) * 100 : 100;
+  const porcentaje = sumaCant > 0 ? (sumaTerminada / sumaCant) * 100 : 100;
+  return {porcentaje, opsCompletas, opsTotal: ops.length};
 }
 
 function calcularMetricasPrograma(lineas){
@@ -2858,7 +2872,7 @@ function renderProgramaDiaDetalle(){
   desvEl.textContent = fmtMoney(m.pendienteReal);
   desvEl.className = 'big ' + (m.pendienteReal>0.5?'pos':'neg');
   document.getElementById('progSubDesv').textContent = `Pendiente real por consumir (excluye ahorro legítimo)`;
-  document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.toFixed(0)}% de cumplimiento de producción · Ahorro legítimo: ${fmtMoney(m.ahorroLegitimo)} · Sobreconsumo: ${fmtMoney(m.sobreconsumo)}`;
+  document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.porcentaje.toFixed(0)}% de cumplimiento de producción (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%) · Ahorro legítimo: ${fmtMoney(m.ahorroLegitimo)} · Sobreconsumo: ${fmtMoney(m.sobreconsumo)}`;
 
   const hoy = new Date().toISOString().slice(0,10);
   const avisoCont = document.getElementById('avisoProgramaVencido');
