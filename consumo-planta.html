@@ -360,6 +360,25 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div class="section-title">Programas de la semana — clic en un día para analizarlo</div>
         <div id="gridDiasPrograma" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:24px;"></div>
 
+        <div class="section-title">Resumen de la semana</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Ahorro Legítimo</div>
+            <div class="big" id="semBigAhorro" style="color:var(--good);">$0</div>
+            <div class="sub">Materiales donde el ahorro es normal</div>
+          </div>
+          <div class="card">
+            <div class="label">Ya Justificado</div>
+            <div class="big" id="semBigJustificado" style="color:var(--accent-2);">$0</div>
+            <div class="sub">Ya revisado, con Razón capturada</div>
+          </div>
+          <div class="card">
+            <div class="label">Sobreconsumo</div>
+            <div class="big" id="semBigSobreconsumo" style="color:var(--bad);">$0</div>
+            <div class="sub">Se gastó más de lo esperado</div>
+          </div>
+        </div>
+
         <div class="section-title">⚠ Programas vencidos con material pendiente</div>
         <div class="field-hint" style="margin-bottom:10px;">Programas cuya fecha ya pasó y todavía les falta consumir material según su estándar.</div>
         <div id="alertasProgramasVencidos"></div>
@@ -393,6 +412,24 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           </div>
         </div>
 
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Ahorro Legítimo</div>
+            <div class="big" id="progBigAhorro" style="color:var(--good);">$0</div>
+            <div class="sub">Materiales donde el ahorro es normal</div>
+          </div>
+          <div class="card">
+            <div class="label">Ya Justificado</div>
+            <div class="big" id="progBigJustificado" style="color:var(--accent-2);">$0</div>
+            <div class="sub">Ya revisado, con Razón capturada</div>
+          </div>
+          <div class="card">
+            <div class="label">Sobreconsumo</div>
+            <div class="big" id="progBigSobreconsumo" style="color:var(--bad);">$0</div>
+            <div class="sub">Se gastó más de lo esperado</div>
+          </div>
+        </div>
+
         <div class="section-title">Fases del Programa (con su fecha esperada de consumo) — clic para ver detalle</div>
         <table>
           <thead><tr><th>Fase</th><th>Fecha esperada</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
@@ -410,6 +447,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
                 <th data-key-resumenop="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
                 <th data-key-resumenop="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
                 <th data-key-resumenop="pendienteReal">$ Pendiente <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="pendienteJustificado">$ Ya Justificado <span class="sort-arrow">▲▼</span></th>
               </tr>
             </thead>
             <tbody id="tablaResumenPorOP"></tbody>
@@ -2573,6 +2611,10 @@ async function construirProgramaDia(fechaD){
     const estandarUSD = round2(cantidadEstandar * std.costoUnitario);
     const seAhorroPermitido = permiteAhorro(std.descripcion);
     const ahorroSospechoso = diferencia < -0.0001 && !seAhorroPermitido;
+    // Un consumo real de 0 en un material que si tiene estandar esperado NUNCA
+    // es normal (imposible producir algo sin usar nada del material) -- se marca
+    // siempre, sin excepcion, sin importar el material ni el avance de la OP.
+    const consumoCero = cantidadEstandar > 0 && cantidadRealConsumida === 0;
 
     lineas.push({
       noOP, noComponente, modelo: std.modelo, descripcion: std.descripcion, ruta, fase, fasesMultiples,
@@ -2582,7 +2624,7 @@ async function construirProgramaDia(fechaD){
       modoUsado: modoAplica ? 'ajustado' : 'completo',
       tieneOverrideLinea: !!MODO_POR_LINEA[lineaKey],
       permiteAhorro: seAhorroPermitido,
-      ahorroSospechoso,
+      ahorroSospechoso, consumoCero,
       razon: RAZONES_POR_LINEA[lineaKey] || ''
     });
   });
@@ -2605,6 +2647,7 @@ async function renderSemanaPrograma(){
   cont.innerHTML = '<div class="field-hint">Cargando programas de la semana...</div>';
 
   const tarjetas = [];
+  let semAhorro = 0, semJustificado = 0, semSobreconsumo = 0;
   for(let i=0;i<5;i++){
     const fecha = dias[i];
     const lineas = await construirProgramaDia(fecha);
@@ -2618,6 +2661,9 @@ async function renderSemanaPrograma(){
     }
     const ops = new Set(lineas.map(l=>l.noOP));
     const m = calcularMetricasPrograma(lineas);
+    semAhorro += m.ahorroLegitimo;
+    semJustificado += m.pendienteJustificado;
+    semSobreconsumo += m.sobreconsumo;
     const cumplimiento = calcularCumplimientoPrograma(lineas, fecha);
     const vencido = fecha < hoy && m.pendienteReal > 0.5;
     const esHoy = fecha === hoy;
@@ -2631,6 +2677,9 @@ async function renderSemanaPrograma(){
     </div>`);
   }
   cont.innerHTML = tarjetas.join('');
+  document.getElementById('semBigAhorro').textContent = fmtMoney(semAhorro);
+  document.getElementById('semBigJustificado').textContent = fmtMoney(semJustificado);
+  document.getElementById('semBigSobreconsumo').textContent = fmtMoney(semSobreconsumo);
 
   renderAlertasProgramasVencidos();
 }
@@ -2641,14 +2690,16 @@ function renderResumenPorOP(){
   const grupos = {};
   currentProgramaLineas.forEach(l=>{
     if(!grupos[l.noOP]){
-      grupos[l.noOP] = {noOP:l.noOP, modelo:l.modelo, estandarUSD:0, realUSD:0, pendienteReal:0, ahorroLegitimo:0};
+      grupos[l.noOP] = {noOP:l.noOP, modelo:l.modelo, estandarUSD:0, realUSD:0, pendienteReal:0, ahorroLegitimo:0, pendienteJustificado:0};
     }
     const g = grupos[l.noOP];
     g.estandarUSD += l.estandarUSD;
     g.realUSD += l.realUSD;
     const diffUSD = l.realUSD - l.estandarUSD;
     if(diffUSD < 0){
-      if(l.permiteAhorro) g.ahorroLegitimo += -diffUSD;
+      if(l.razon) g.pendienteJustificado += -diffUSD;
+      else if(l.consumoCero) g.pendienteReal += -diffUSD;
+      else if(l.permiteAhorro) g.ahorroLegitimo += -diffUSD;
       else g.pendienteReal += -diffUSD;
     }
   });
@@ -2669,7 +2720,7 @@ function renderResumenPorOP(){
 
   const tbody = document.getElementById('tablaResumenPorOP');
   if(filas.length === 0){
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs en este Programa.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs en este Programa.</td></tr>';
     return;
   }
   tbody.innerHTML = filas.map(g=>`<tr>
@@ -2679,6 +2730,7 @@ function renderResumenPorOP(){
     <td class="money">${fmtMoney(g.estandarUSD)}</td>
     <td class="money">${fmtMoney(g.realUSD)}</td>
     <td class="money" style="${g.pendienteReal>0.5?'color:var(--bad); font-weight:600;':''}">${fmtMoney(g.pendienteReal)}</td>
+    <td class="money" style="color:var(--muted);">${fmtMoney(g.pendienteJustificado)}</td>
   </tr>`).join('');
 }
 
@@ -2708,7 +2760,7 @@ async function renderAlertasProgramasVencidos(){
     if(lineas.length === 0) continue;
     const m = calcularMetricasPrograma(lineas);
     if(m.pendienteReal <= 0.5) continue;
-    const opsAfectadas = new Set(lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro).map(l=>l.noOP));
+    const opsAfectadas = new Set(lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro && !l.razon).map(l=>l.noOP));
     const diasVencidoNum = Math.round((new Date(hoy) - new Date(fecha)) / 86400000);
     const cumplimientoObj = calcularCumplimientoPrograma(lineas, fecha);
     resultados.push({fecha, pendiente: m.pendienteReal, opsAfectadas: opsAfectadas.size, diasVencidoNum, lineas, cumplimiento: cumplimientoObj.porcentaje, cumplimientoDetalle: `${cumplimientoObj.opsCompletas}/${cumplimientoObj.opsTotal}`});
@@ -2728,7 +2780,7 @@ async function renderAlertasProgramasVencidos(){
 
   const conteoMateriales = {};
   resultados.forEach(r=>{
-    r.lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro).forEach(l=>{
+    r.lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro && !l.razon).forEach(l=>{
       const k = l.descripcion || l.noComponente;
       conteoMateriales[k] = (conteoMateriales[k]||0) + 1;
     });
@@ -2854,17 +2906,28 @@ function calcularCumplimientoPrograma(lineas, fechaPrograma){
 function calcularMetricasPrograma(lineas){
   const estandarTotal = lineas.reduce((s,l)=>s+l.estandarUSD,0);
   const realTotal = lineas.reduce((s,l)=>s+l.realUSD,0);
-  let pendienteReal = 0, ahorroLegitimo = 0, sobreconsumo = 0;
+  let pendienteReal = 0, pendienteJustificado = 0, ahorroLegitimo = 0, sobreconsumo = 0;
   lineas.forEach(l=>{
     const diffUSD = l.realUSD - l.estandarUSD;
     if(diffUSD < 0){
-      if(l.permiteAhorro) ahorroLegitimo += -diffUSD;
-      else pendienteReal += -diffUSD; // faltante real: o no se ha consumido, o es error de captura
+      if(l.razon){
+        // Ya se reviso y se le puso una Razon que lo explica -- ya no cuenta
+        // como faltante real, se muestra aparte como "ya justificado".
+        pendienteJustificado += -diffUSD;
+      } else if(l.consumoCero){
+        // Consumo real = 0 SIEMPRE es sospechoso, sin importar si el material
+        // normalmente permite ahorro (ej. melamina) -- nunca se descarta solo.
+        pendienteReal += -diffUSD;
+      } else if(l.permiteAhorro){
+        ahorroLegitimo += -diffUSD;
+      } else {
+        pendienteReal += -diffUSD; // faltante real sin explicar: o no se ha consumido, o es error de captura
+      }
     } else if(diffUSD > 0){
       sobreconsumo += diffUSD;
     }
   });
-  return {estandarTotal, realTotal, pendienteReal, ahorroLegitimo, sobreconsumo};
+  return {estandarTotal, realTotal, pendienteReal, pendienteJustificado, ahorroLegitimo, sobreconsumo};
 }
 
 function renderProgramaDiaDetalle(){
@@ -2879,15 +2942,22 @@ function renderProgramaDiaDetalle(){
   const desvEl = document.getElementById('progBigDesv');
   desvEl.textContent = fmtMoney(m.pendienteReal);
   desvEl.className = 'big ' + (m.pendienteReal>0.5?'pos':'neg');
-  document.getElementById('progSubDesv').textContent = `Pendiente real por consumir (excluye ahorro legítimo)`;
-  document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.porcentaje.toFixed(0)}% de cumplimiento de producción (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%) · Ahorro legítimo: ${fmtMoney(m.ahorroLegitimo)} · Sobreconsumo: ${fmtMoney(m.sobreconsumo)}`;
+  document.getElementById('progSubDesv').textContent = `Pendiente real por consumir (excluye ahorro legítimo y lo justificado)`;
+  document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.porcentaje.toFixed(0)}% de cumplimiento (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%)`;
+  document.getElementById('progBigAhorro').textContent = fmtMoney(m.ahorroLegitimo);
+  document.getElementById('progBigJustificado').textContent = fmtMoney(m.pendienteJustificado);
+  document.getElementById('progBigSobreconsumo').textContent = fmtMoney(m.sobreconsumo);
 
   const hoy = new Date().toISOString().slice(0,10);
   const avisoCont = document.getElementById('avisoProgramaVencido');
   const sospechosos = lineas.filter(l=>l.ahorroSospechoso);
+  const consumoCeroLineas = lineas.filter(l=>l.consumoCero);
   let avisos = '';
   if(currentProgramaDia < hoy && m.pendienteReal > 0.5){
     avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ Este Programa ya venció (${currentProgramaDia}) y todavía falta ${fmtMoney(m.pendienteReal)} por consumir según el estándar (esto ya excluye ahorros legítimos de materiales como melamina/tubular/chapacinta/cartón).</div>`;
+  }
+  if(consumoCeroLineas.length > 0){
+    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${consumoCeroLineas.length} línea(s)</strong> tienen Consumo Real en 0 — esto nunca es normal, revísalas dentro de cada Fase y márcalas con su Razón.</div>`;
   }
   if(sospechosos.length > 0){
     avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${sospechosos.length} línea(s)</strong> muestran ahorro en materiales donde normalmente NO debería haberlo (ej. tornillos, herrajes) — revisa si falta capturar consumo o hay un error, y márcalas con su Razón dentro de cada Fase.</div>`;
@@ -3021,11 +3091,12 @@ function renderTablaProgramaFase(){
     const esSobreconsumo = l.pct >= UMBRAL;
     const esAhorroFuerte = l.pct <= -UMBRAL;
     const esSospechoso = l.ahorroSospechoso; // cualquier ahorro (por chico que sea) en un material que NO deberia tener ahorro
-    const esAlerta = esSobreconsumo || esAhorroFuerte || esSospechoso;
-    const filaEstilo = (esSobreconsumo || esSospechoso) ? 'background:rgba(209,69,59,0.08);' : (esAhorroFuerte?'background:rgba(30,158,106,0.08);':'');
+    const esConsumoCero = l.consumoCero; // consumo real = 0 -- SIEMPRE sospechoso, sin excepcion
+    const esAlerta = esSobreconsumo || esAhorroFuerte || esSospechoso || esConsumoCero;
+    const filaEstilo = (esSobreconsumo || esSospechoso || esConsumoCero) ? 'background:rgba(209,69,59,0.08);' : (esAhorroFuerte?'background:rgba(30,158,106,0.08);':'');
     const razonOptions = ['<option value="">—</option>'].concat(RAZONES.map(r=>`<option value="${r}" ${r===l.razon?'selected':''}>${r}</option>`)).join('');
-    const tipoTexto = esSospechoso ? '⚠ Revisar (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'));
-    const tipoColor = esSospechoso ? 'var(--bad)' : (l.diferencia>0?'var(--bad)':(l.diferencia<0?'var(--good)':'var(--text)'));
+    const tipoTexto = esConsumoCero ? '⚠ Consumo real en 0 (imposible)' : (esSospechoso ? '⚠ Revisar (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—')));
+    const tipoColor = (esSospechoso || esConsumoCero) ? 'var(--bad)' : (l.diferencia>0?'var(--bad)':(l.diferencia<0?'var(--good)':'var(--text)'));
     return `<tr style="${filaEstilo}">
       <td style="font-family:var(--mono);">${l.fechaEsperada}</td>
       <td>${l.noOP}</td><td>${l.modelo}</td><td>${l.noComponente}</td>
