@@ -2618,7 +2618,7 @@ async function renderSemanaPrograma(){
     }
     const ops = new Set(lineas.map(l=>l.noOP));
     const m = calcularMetricasPrograma(lineas);
-    const cumplimiento = calcularCumplimientoPrograma(lineas);
+    const cumplimiento = calcularCumplimientoPrograma(lineas, fecha);
     const vencido = fecha < hoy && m.pendienteReal > 0.5;
     const esHoy = fecha === hoy;
     tarjetas.push(`<div class="dia-programa-card ${vencido?'vencido':''} ${esHoy?'hoy':''}" onclick="verProgramaDia('${fecha}')">
@@ -2655,7 +2655,7 @@ function renderResumenPorOP(){
 
   let filas = Object.values(grupos).map(g=>({
     ...g,
-    cumplimiento: calcularCumplimientoPrograma(currentProgramaLineas.filter(l=>l.noOP===g.noOP)).porcentaje
+    cumplimiento: calcularCumplimientoPrograma(currentProgramaLineas.filter(l=>l.noOP===g.noOP), currentProgramaDia).porcentaje
   }));
 
   filas.sort((a,b)=>{
@@ -2710,7 +2710,7 @@ async function renderAlertasProgramasVencidos(){
     if(m.pendienteReal <= 0.5) continue;
     const opsAfectadas = new Set(lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro).map(l=>l.noOP));
     const diasVencidoNum = Math.round((new Date(hoy) - new Date(fecha)) / 86400000);
-    const cumplimientoObj = calcularCumplimientoPrograma(lineas);
+    const cumplimientoObj = calcularCumplimientoPrograma(lineas, fecha);
     resultados.push({fecha, pendiente: m.pendienteReal, opsAfectadas: opsAfectadas.size, diasVencidoNum, lineas, cumplimiento: cumplimientoObj.porcentaje, cumplimientoDetalle: `${cumplimientoObj.opsCompletas}/${cumplimientoObj.opsTotal}`});
   }
 
@@ -2823,8 +2823,10 @@ function volverADiaPrograma(){
   document.getElementById('programa-nivel-fase').classList.add('hidden');
 }
 
-function calcularCumplimientoPrograma(lineas){
+function calcularCumplimientoPrograma(lineas, fechaPrograma){
   const ops = [...new Set(lineas.map(l=>l.noOP))];
+  const hoy = new Date().toISOString().slice(0,10);
+  const esFuturo = fechaPrograma && fechaPrograma > hoy;
   let sumaCant = 0, sumaTerminada = 0, opsCompletas = 0;
   ops.forEach(op=>{
     const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
@@ -2832,8 +2834,14 @@ function calcularCumplimientoPrograma(lineas){
       sumaCant += avance.cant;
       sumaTerminada += avance.cantTerminada;
       if(avance.cantTerminada >= avance.cant) opsCompletas++;
+    } else if(esFuturo){
+      // Programa de un dia futuro que aun no ha arrancado: no se asume 100%
+      // (no es que ya termino, es que no ha tenido oportunidad de avanzar).
+      sumaCant += 1;
+      sumaTerminada += 0;
     } else {
-      // Si la OP no aparece en el Avance, se asume 100% completada
+      // Dia de hoy o pasado y la OP no aparece en el Avance: se asume 100%
+      // completada (ya salio del filtro de pendientes).
       sumaCant += 1;
       sumaTerminada += 1;
       opsCompletas++;
@@ -2864,7 +2872,7 @@ function renderProgramaDiaDetalle(){
   document.getElementById('programaDiaTitulo').textContent = 'Programa del ' + currentProgramaDia;
 
   const m = calcularMetricasPrograma(lineas);
-  const cumplimiento = calcularCumplimientoPrograma(lineas);
+  const cumplimiento = calcularCumplimientoPrograma(lineas, currentProgramaDia);
 
   document.getElementById('progBigEstandar').textContent = fmtMoney(m.estandarTotal);
   document.getElementById('progBigReal').textContent = fmtMoney(m.realTotal);
