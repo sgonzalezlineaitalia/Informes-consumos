@@ -414,6 +414,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div class="toolbar" style="margin-bottom:16px;">
           <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
           <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="programaDiaTitulo">Programa</span>
+          <button class="btn" id="btnExportLanzadasConsumoCero" style="margin-left:auto; color:var(--bad); border-color:var(--bad);">⬇ Excel: OPs Lanzadas con Consumo Real 0</button>
         </div>
 
         <div id="avisoProgramaVencido"></div>
@@ -3216,6 +3217,24 @@ function renderTablaProgramaFase(){
     });
   });
 }
+
+document.getElementById('btnExportLanzadasConsumoCero').addEventListener('click', ()=>{
+  const lineas = currentProgramaLineas.filter(l=> estadoAbrev(l.estado) === 'L' && l.consumoCero);
+  if(lineas.length === 0){
+    alert('No hay líneas de OPs Lanzadas con Consumo Real en 0 para este Programa.');
+    return;
+  }
+  const data = lineas.map(l=>({
+    Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar', 'Fecha Esperada':l.fechaEsperada, OP:l.noOP, Estado:l.estado,
+    Modelo:l.modelo, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+    'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
+    'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), '$ Estandar':l.estandarUSD
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Lanzadas Consumo 0');
+  XLSX.writeFile(wb, `Lanzadas_ConsumoCero_${currentProgramaDia}.xlsx`);
+});
 
 document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
   let lineas = currentProgramaFaseSeleccionada === 'todas'
