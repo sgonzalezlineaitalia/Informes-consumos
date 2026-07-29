@@ -3011,17 +3011,17 @@ function renderProgramaDiaDetalle(){
 
   const hoy = new Date().toISOString().slice(0,10);
   const avisoCont = document.getElementById('avisoProgramaVencido');
-  const sospechosos = lineas.filter(l=>l.ahorroSospechoso);
-  const consumoCeroLineas = lineas.filter(l=>l.consumoCero);
+  const sospechosos = lineas.filter(l=>l.ahorroSospechoso && !l.razon);
+  const consumoCeroLineas = lineas.filter(l=>l.consumoCero && !l.razon);
   let avisos = '';
   if(currentProgramaDia < hoy && m.pendienteReal > 0.5){
     avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ Este Programa ya venció (${currentProgramaDia}) y todavía falta ${fmtMoney(m.pendienteReal)} por consumir según el estándar (esto ya excluye ahorros legítimos de materiales como melamina/tubular/chapacinta/cartón).</div>`;
   }
   if(consumoCeroLineas.length > 0){
-    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${consumoCeroLineas.length} línea(s)</strong> tienen Consumo Real en 0 — esto nunca es normal, revísalas dentro de cada Fase y márcalas con su Razón.</div>`;
+    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${consumoCeroLineas.length} línea(s) sin justificar</strong> tienen Consumo Real en 0 — esto nunca es normal, revísalas dentro de cada Fase y márcalas con su Razón.</div>`;
   }
   if(sospechosos.length > 0){
-    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${sospechosos.length} línea(s)</strong> muestran ahorro en materiales donde normalmente NO debería haberlo (ej. tornillos, herrajes) — revisa si falta capturar consumo o hay un error, y márcalas con su Razón dentro de cada Fase.</div>`;
+    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${sospechosos.length} línea(s) sin justificar</strong> muestran ahorro en materiales donde normalmente NO debería haberlo (ej. tornillos, herrajes) — revisa si falta capturar consumo o hay un error, y márcalas con su Razón dentro de cada Fase.</div>`;
   }
   avisoCont.innerHTML = avisos;
 
