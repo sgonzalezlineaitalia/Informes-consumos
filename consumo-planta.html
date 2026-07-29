@@ -397,9 +397,9 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub">Ya revisado, con Razón capturada</div>
           </div>
           <div class="card">
-            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué.</span></span></div>
+            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué. El % te dice cuánto de eso ya tiene una Razón capturada.</span></span></div>
             <div class="big" id="semBigSobreconsumo" style="color:var(--bad);">$0</div>
-            <div class="sub">Se gastó más de lo esperado</div>
+            <div class="sub" id="semSubSobreconsumo">Se gastó más de lo esperado</div>
           </div>
         </div>
 
@@ -439,7 +439,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub">&nbsp;</div>
           </div>
           <div class="card deviation">
-            <div class="label">$ Desviación <span class="help-icon">?<span class="help-tooltip">Lo que falta por consumir SIN explicación todavía. Ya no incluye ahorros normales (ej. melamina) ni casos que ya justificaste con una Razón.</span></span></div>
+            <div class="label">$ Faltante sin Justificar <span class="help-icon">?<span class="help-tooltip">Lo que falta por consumir SIN explicación todavía. Ya no incluye ahorros normales (ej. melamina) ni casos que ya justificaste con una Razón.</span></span></div>
             <div class="big" id="progBigDesv">$0</div>
             <div class="sub" id="progSubDesv">&nbsp;</div>
           </div>
@@ -457,9 +457,9 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub">Ya revisado, con Razón capturada</div>
           </div>
           <div class="card">
-            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué.</span></span></div>
+            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué. El % te dice cuánto de eso ya tiene una Razón capturada.</span></span></div>
             <div class="big" id="progBigSobreconsumo" style="color:var(--bad);">$0</div>
-            <div class="sub">Se gastó más de lo esperado</div>
+            <div class="sub" id="progSubSobreconsumo">Se gastó más de lo esperado</div>
           </div>
         </div>
 
@@ -1844,7 +1844,7 @@ function agregarYCompararLineas(crudas, periodoKey){
       modoUsado: modoAplica ? 'ajustado' : 'completo',
       tieneOverrideLinea: !!MODO_POR_LINEA[lineaKey],
       lineaKey,
-      razon: RAZONES_POR_LINEA[lineaKey] || ''
+      razon: (RAZONES_POR_LINEA[lineaKey] && RAZONES_POR_LINEA[lineaKey].tipo === tipoDeDesviacion(diferencia)) ? RAZONES_POR_LINEA[lineaKey].razon : ''
     };
   });
 }
@@ -2382,13 +2382,13 @@ function renderTablaComponentes(){
       <td class="money">${fmtMoney(l.estandarUSD)}</td>
       <td class="money">${fmtMoney(l.realUSD)}</td>
       <td class="money ${esSobreconsumo?'pct alert':(esAhorro?'pct ahorro':'')}">${diferenciaUSD>=0?'+':''}${fmtMoney(diferenciaUSD)}</td>
-      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-linea="${l.lineaKey}">${razonOptions}</select>` : '—'}</td>
+      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-linea="${l.lineaKey}" data-diferencia="${l.diferencia}">${razonOptions}</select>` : '—'}</td>
     </tr>`;
   }).join('');
 
   tbody.querySelectorAll('select.razon').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
-      await guardarRazon(sel.dataset.linea, sel.value);
+      await guardarRazon(sel.dataset.linea, sel.value, tipoDeDesviacion(parseFloat(sel.dataset.diferencia)));
       sel.classList.toggle('empty', !sel.value);
     });
   });
@@ -2406,10 +2406,15 @@ function renderTablaComponentes(){
   });
 }
 
-async function guardarRazon(lineaKey, razon){
-  RAZONES_POR_LINEA[lineaKey] = razon;
+async function guardarRazon(lineaKey, razon, tipoActual){
+  RAZONES_POR_LINEA[lineaKey] = {razon, tipo: tipoActual};
   await db.collection('config').doc('razonesPorLinea').set({mapa: RAZONES_POR_LINEA});
   lineasHistoricoCache = null; consumoAcumuladoCache = null;
+}
+function tipoDeDesviacion(diferencia){
+  if(diferencia > 0.0001) return 'gasto';
+  if(diferencia < -0.0001) return 'faltante';
+  return 'neutro';
 }
 
 /* ============================================================
@@ -2665,7 +2670,7 @@ async function construirProgramaDia(fechaD){
       tieneOverrideLinea: !!MODO_POR_LINEA[lineaKey],
       permiteAhorro: seAhorroPermitido,
       ahorroSospechoso, consumoCero,
-      razon: RAZONES_POR_LINEA[lineaKey] || ''
+      razon: (RAZONES_POR_LINEA[lineaKey] && RAZONES_POR_LINEA[lineaKey].tipo === tipoDeDesviacion(diferencia)) ? RAZONES_POR_LINEA[lineaKey].razon : ''
     });
   });
   return lineas;
@@ -2687,7 +2692,7 @@ async function renderSemanaPrograma(){
   cont.innerHTML = '<div class="field-hint">Cargando programas de la semana...</div>';
 
   const tarjetas = [];
-  let semAhorro = 0, semJustificado = 0, semSobreconsumo = 0;
+  let semAhorro = 0, semJustificado = 0, semSobreconsumo = 0, semSobreconsumoJustificado = 0;
   const conteoRazonesSemana = {};
   let totalConRazonSemana = 0;
   for(let i=0;i<5;i++){
@@ -2706,6 +2711,7 @@ async function renderSemanaPrograma(){
     semAhorro += m.ahorroLegitimo;
     semJustificado += m.pendienteJustificado;
     semSobreconsumo += m.sobreconsumo;
+    semSobreconsumoJustificado += m.sobreconsumoJustificado;
     lineas.filter(l=>l.razon).forEach(l=>{
       conteoRazonesSemana[l.razon] = (conteoRazonesSemana[l.razon]||0)+1;
       totalConRazonSemana++;
@@ -2726,6 +2732,8 @@ async function renderSemanaPrograma(){
   document.getElementById('semBigAhorro').textContent = fmtMoney(semAhorro);
   document.getElementById('semBigJustificado').textContent = fmtMoney(semJustificado);
   document.getElementById('semBigSobreconsumo').textContent = fmtMoney(semSobreconsumo);
+  const pctSemSobreconsumoJustificado = semSobreconsumo > 0 ? (semSobreconsumoJustificado / semSobreconsumo) * 100 : 0;
+  document.getElementById('semSubSobreconsumo').textContent = semSobreconsumo > 0 ? `${pctSemSobreconsumoJustificado.toFixed(0)}% de esto ya está justificado` : 'Se gastó más de lo esperado';
   const topRazonSemana = Object.entries(conteoRazonesSemana).sort((a,b)=>b[1]-a[1])[0];
   document.getElementById('semErrorComun').textContent = topRazonSemana ? topRazonSemana[0] : 'Sin datos suficientes';
   document.getElementById('semErrorComunDetail').textContent = topRazonSemana ? `${topRazonSemana[1]} de ${totalConRazonSemana} líneas justificadas esta semana` : 'Aún no hay razones capturadas esta semana';
@@ -2956,7 +2964,7 @@ function calcularCumplimientoPrograma(lineas, fechaPrograma){
 function calcularMetricasPrograma(lineas){
   const estandarTotal = lineas.reduce((s,l)=>s+l.estandarUSD,0);
   const realTotal = lineas.reduce((s,l)=>s+l.realUSD,0);
-  let pendienteReal = 0, pendienteJustificado = 0, ahorroLegitimo = 0, sobreconsumo = 0;
+  let pendienteReal = 0, pendienteJustificado = 0, ahorroLegitimo = 0, sobreconsumo = 0, sobreconsumoJustificado = 0;
   lineas.forEach(l=>{
     const diffUSD = l.realUSD - l.estandarUSD;
     if(diffUSD < 0){
@@ -2975,9 +2983,10 @@ function calcularMetricasPrograma(lineas){
       }
     } else if(diffUSD > 0){
       sobreconsumo += diffUSD;
+      if(l.razon) sobreconsumoJustificado += diffUSD;
     }
   });
-  return {estandarTotal, realTotal, pendienteReal, pendienteJustificado, ahorroLegitimo, sobreconsumo};
+  return {estandarTotal, realTotal, pendienteReal, pendienteJustificado, ahorroLegitimo, sobreconsumo, sobreconsumoJustificado};
 }
 
 function renderProgramaDiaDetalle(){
@@ -2997,6 +3006,8 @@ function renderProgramaDiaDetalle(){
   document.getElementById('progBigAhorro').textContent = fmtMoney(m.ahorroLegitimo);
   document.getElementById('progBigJustificado').textContent = fmtMoney(m.pendienteJustificado);
   document.getElementById('progBigSobreconsumo').textContent = fmtMoney(m.sobreconsumo);
+  const pctSobreconsumoJustificado = m.sobreconsumo > 0 ? (m.sobreconsumoJustificado / m.sobreconsumo) * 100 : 0;
+  document.getElementById('progSubSobreconsumo').textContent = m.sobreconsumo > 0 ? `${pctSobreconsumoJustificado.toFixed(0)}% de esto ya está justificado` : 'Se gastó más de lo esperado';
 
   const hoy = new Date().toISOString().slice(0,10);
   const avisoCont = document.getElementById('avisoProgramaVencido');
@@ -3194,13 +3205,13 @@ function renderTablaProgramaFase(){
       </td>
       <td class="money">${fmtMoney(l.estandarUSD)}</td><td class="money">${fmtMoney(l.realUSD)}</td>
       <td class="money">${l.diferenciaUSD>=0?'+':''}${fmtMoney(l.diferenciaUSD)}</td>
-      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-linea="${l.lineaKey}">${razonOptions}</select>` : '—'}</td>
+      <td>${esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-linea="${l.lineaKey}" data-diferencia="${l.diferencia}">${razonOptions}</select>` : '—'}</td>
     </tr>`;
   }).join('');
 
   tbody.querySelectorAll('select.razon').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
-      await guardarRazon(sel.dataset.linea, sel.value);
+      await guardarRazon(sel.dataset.linea, sel.value, tipoDeDesviacion(parseFloat(sel.dataset.diferencia)));
       sel.classList.toggle('empty', !sel.value);
     });
   });
