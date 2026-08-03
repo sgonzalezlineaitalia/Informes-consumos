@@ -503,6 +503,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn" id="btnExportProgramaFase">⬇ Exportar Excel</button>
           <button class="btn" id="btnFiltroSinAhorro" style="color:var(--bad); border-color:var(--bad);">⚠ Solo materiales sin ahorro permitido</button>
           <button class="btn" id="btnFiltroConsumoCero" style="color:var(--bad); border-color:var(--bad);">⚠ Solo Consumo Real en 0</button>
+          <button class="btn" id="btnFiltroAlCien" style="color:var(--good); border-color:var(--good);">✅ Solo OPs al 100% de producción</button>
           <input type="text" id="buscarProgramaFase" placeholder="Buscar OP, SKU, modelo, descripción..." style="margin-left:auto; min-width:280px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 12px; border-radius:6px; font-size:13px;">
         </div>
         <div class="table-scroll">
@@ -2495,6 +2496,12 @@ let sortStateProgramaFase = {key:null, dir:1};
 let busquedaProgramaFase = '';
 let filtroSinAhorroActivo = false;
 let filtroConsumoCeroActivo = false;
+let filtroAlCienActivo = false;
+function opAlCien(op){
+  const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
+  if(!avance) return true; // no aparece en Avance = se asume 100% completada
+  return avance.cant > 0 && avance.cantTerminada >= avance.cant;
+}
 
 function ocultarTodasLasVistas(){
   document.getElementById('btnVistaPrograma').classList.remove('active');
@@ -3087,6 +3094,10 @@ function verProgramaFase(fase){
   const btnFiltroCero = document.getElementById('btnFiltroConsumoCero');
   btnFiltroCero.style.background = '';
   btnFiltroCero.style.color = '';
+  filtroAlCienActivo = false;
+  const btnFiltroCien = document.getElementById('btnFiltroAlCien');
+  btnFiltroCien.style.background = '';
+  btnFiltroCien.style.color = '';
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.remove('hidden');
   document.getElementById('programaFaseTitulo').textContent = fase === 'todas' ? 'Todas las Fases (lista completa)' : (fase==null ? 'Sin clasificar' : ('Fase '+fase));
@@ -3106,6 +3117,12 @@ document.getElementById('btnFiltroConsumoCero').addEventListener('click', (e)=>{
   filtroConsumoCeroActivo = !filtroConsumoCeroActivo;
   e.target.style.background = filtroConsumoCeroActivo ? 'var(--bad)' : '';
   e.target.style.color = filtroConsumoCeroActivo ? '#fff' : '';
+  renderTablaProgramaFase();
+});
+document.getElementById('btnFiltroAlCien').addEventListener('click', (e)=>{
+  filtroAlCienActivo = !filtroAlCienActivo;
+  e.target.style.background = filtroAlCienActivo ? 'var(--good)' : '';
+  e.target.style.color = filtroAlCienActivo ? '#fff' : '';
   renderTablaProgramaFase();
 });
 
@@ -3153,6 +3170,9 @@ function renderTablaProgramaFase(){
   }
   if(filtroConsumoCeroActivo){
     lineas = lineas.filter(l=> l.consumoCero);
+  }
+  if(filtroAlCienActivo){
+    lineas = lineas.filter(l=> opAlCien(l.noOP));
   }
 
   if(busquedaProgramaFase.trim()){
