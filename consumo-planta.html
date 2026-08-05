@@ -514,40 +514,97 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <div class="card">
             <div class="label">$ Real Consumido <span class="help-icon">?<span class="help-tooltip">Lo que realmente se ha consumido hasta hoy, según los movimientos de inventario registrados.</span></span></div>
             <div class="big" id="progBigReal">$0</div>
-            <div class="sub">&nbsp;</div>
+            <div class="sub" id="progSubReal">&nbsp;</div>
           </div>
           <div class="card deviation">
-            <div class="label">$ Faltante sin Justificar <span class="help-icon">?<span class="help-tooltip">Lo que falta por consumir SIN explicación todavía. Ya no incluye ahorros normales (ej. melamina) ni casos que ya justificaste con una Razón.</span></span></div>
-            <div class="big" id="progBigDesv">$0</div>
-            <div class="sub" id="progSubDesv">&nbsp;</div>
+            <div class="label">Balance (Real − Estándar) <span class="help-icon">?<span class="help-tooltip">Positivo = se gastó más de lo esperado en total. Negativo = se ahorró más de lo esperado en total. Es la suma neta de todo, gastos y ahorros juntos.</span></span></div>
+            <div class="big" id="progBigBalance">$0</div>
+            <div class="sub" id="progSubBalance">&nbsp;</div>
           </div>
         </div>
 
+        <div class="section-title" style="font-size:13px; margin-top:20px;">$ Faltante sin Justificar — por qué falta</div>
         <div class="bigrow">
           <div class="card">
-            <div class="label">Ahorro Legítimo <span class="help-icon">?<span class="help-tooltip">Materiales donde consumir menos de lo esperado es normal (ej. melamina, tubular, chapacinta) — por un corte o nesting más eficiente de lo calculado.</span></span></div>
-            <div class="big" id="progBigAhorro" style="color:var(--good);">$0</div>
-            <div class="sub">Material donde está permitido ahorrar</div>
+            <div class="label">Aún No Sale de Producción <span class="help-icon">?<span class="help-tooltip">La OP sigue activa en el Avance del Programa y no ha llegado al 100%. Es normal que aún falte por consumir — se espera que se resuelva solo conforme avance.</span></span></div>
+            <div class="big" id="progBigPendienteProduccion" style="color:var(--warn);">$0</div>
+            <div class="sub" id="progSubPendienteProduccion">La OP sigue en proceso</div>
           </div>
           <div class="card">
-            <div class="label">Diferencias Justificadas <span class="help-icon">?<span class="help-tooltip">Casos donde hubo una diferencia rara, pero ya se revisó y se le puso una Razón (ej. error de captura, material dañado). Ya no cuenta como pendiente.</span></span></div>
-            <div class="big" id="progBigJustificado" style="color:var(--accent-2);">$0</div>
-            <div class="sub">Ya revisado, con Razón capturada</div>
+            <div class="label">No Hay Material en WIP de Producción <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
+            <div class="big" id="progBigPendienteSinWIP" style="color:var(--bad);">$0</div>
+            <div class="sub" id="progSubPendienteSinWIP">No aparece como activa, pero falta consumo</div>
           </div>
           <div class="card">
-            <div class="label">Sobreconsumo <span class="help-icon">?<span class="help-tooltip">Se consumió más material del que estaba planeado. Puede pasar, pero vale la pena revisar por qué. El % te dice cuánto de eso ya tiene una Razón capturada.</span></span></div>
-            <div class="big" id="progBigSobreconsumo" style="color:var(--bad);">$0</div>
-            <div class="sub" id="progSubSobreconsumo">Se gastó más de lo esperado</div>
+            <div class="label">Consumo en 0 sin Justificar <span class="help-icon">?<span class="help-tooltip">El Avance confirma que la OP ya está al 100%, y aun así falta material por consumir (total o parcial). Esta es la señal más fuerte de un error real.</span></span></div>
+            <div class="big" id="progBigPendienteSinExplicacion" style="color:var(--bad);">$0</div>
+            <div class="sub" id="progSubPendienteSinExplicacion">El Avance confirma 100%, pero falta material</div>
           </div>
         </div>
 
-        <div class="section-title">Fases del Programa (con su fecha esperada de consumo) — clic para ver detalle</div>
+        <div class="section-title" style="font-size:13px; margin-top:20px;">Ahorro (materiales donde SÍ es normal ahorrar)</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Ahorro Justificado</div>
+            <div class="big" id="progBigAhorroJust" style="color:var(--good);">$0</div>
+            <div class="sub" id="progSubAhorroJust">Con Razón capturada</div>
+          </div>
+          <div class="card">
+            <div class="label">Ahorro No Justificado</div>
+            <div class="big" id="progBigAhorroNoJust" style="color:var(--good);">$0</div>
+            <div class="sub" id="progSubAhorroNoJust">Sin Razón, pero es material que sí puede ahorrar</div>
+          </div>
+          <div class="card">
+            <div class="label">Total Ahorro</div>
+            <div class="big" id="progBigAhorroTotal" style="color:var(--good);">$0</div>
+            <div class="sub" id="progSubAhorroTotal">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">Gasto (sobreconsumo)</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Gasto Justificado</div>
+            <div class="big" id="progBigGastoJust" style="color:var(--bad);">$0</div>
+            <div class="sub" id="progSubGastoJust">Con Razón capturada</div>
+          </div>
+          <div class="card">
+            <div class="label">Gasto No Justificado</div>
+            <div class="big" id="progBigGastoNoJust" style="color:var(--bad);">$0</div>
+            <div class="sub" id="progSubGastoNoJust">Sin explicar todavía</div>
+          </div>
+          <div class="card">
+            <div class="label">Total Gasto</div>
+            <div class="big" id="progBigGastoTotal" style="color:var(--bad);">$0</div>
+            <div class="sub" id="progSubGastoTotal">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:24px;">Fases del Programa (con su fecha esperada de consumo) — clic para ver detalle</div>
         <div class="toolbar" style="margin-bottom:10px;">
           <button class="btn primary" onclick="verProgramaFase('todas')">📋 Ver todas las Fases juntas (una sola lista)</button>
         </div>
         <table>
           <thead><tr><th>Fase</th><th>Fecha esperada</th><th>Centros de Trabajo</th><th>$ Estándar</th><th>$ Real</th><th>$ Desviación</th><th>%</th></tr></thead>
           <tbody id="tablaFasesPrograma"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <table>
+          <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
+          <tbody id="tablaTopOPsDia"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Razones más utilizadas (por dinero)</div>
+        <table>
+          <thead><tr><th>Razón</th><th># Líneas</th><th>$ Total asociado</th><th>% del total</th></tr></thead>
+          <tbody id="tablaTopRazonesDia"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
+        <table>
+          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+          <tbody id="tablaGrupoMaterialDia"></tbody>
         </table>
 
         <div class="section-title" style="margin-top:26px;">Resumen por OP (suma de todos sus materiales)</div>
@@ -3642,29 +3699,69 @@ function renderProgramaDiaDetalle(){
   const lineas = currentProgramaLineas;
   document.getElementById('programaDiaTitulo').textContent = 'Programa del ' + currentProgramaDia;
 
-  const m = calcularMetricasPrograma(lineas);
+  const md = calcularMetricasDetalladas(lineas);
   const cumplimiento = calcularCumplimientoPrograma(lineas, currentProgramaDia);
+  const pctVsEstandarDia = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
 
-  document.getElementById('progBigEstandar').textContent = fmtMoney(m.estandarTotal);
-  document.getElementById('progBigReal').textContent = fmtMoney(m.realTotal);
-  const desvEl = document.getElementById('progBigDesv');
-  desvEl.textContent = fmtMoney(m.pendienteReal);
-  desvEl.className = 'big ' + (m.pendienteReal>0.5?'pos':'neg');
-  document.getElementById('progSubDesv').textContent = `Pendiente real por consumir (excluye ahorro legítimo y lo justificado)`;
+  document.getElementById('progBigEstandar').textContent = fmtMoney(md.estandarTotal);
   document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.porcentaje.toFixed(0)}% de cumplimiento (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%)`;
-  document.getElementById('progBigAhorro').textContent = fmtMoney(m.ahorroLegitimo);
-  document.getElementById('progBigJustificado').textContent = fmtMoney(m.pendienteJustificado);
-  document.getElementById('progBigSobreconsumo').textContent = fmtMoney(m.sobreconsumo);
-  const pctSobreconsumoJustificado = m.sobreconsumo > 0 ? (m.sobreconsumoJustificado / m.sobreconsumo) * 100 : 0;
-  document.getElementById('progSubSobreconsumo').textContent = m.sobreconsumo > 0 ? `${pctSobreconsumoJustificado.toFixed(0)}% de esto ya está justificado` : 'Se gastó más de lo esperado';
+  document.getElementById('progBigReal').textContent = fmtMoney(md.realTotal);
+  document.getElementById('progSubReal').textContent = `${pctVsEstandarDia(md.realTotal)}% del estándar`;
+  const balanceEl = document.getElementById('progBigBalance');
+  balanceEl.textContent = (md.balance>=0?'+':'') + fmtMoney(md.balance);
+  balanceEl.className = 'big ' + (md.balance>0?'pos':'neg');
+  document.getElementById('progSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandarDia(md.balance)}% vs estándar`;
+
+  document.getElementById('progBigPendienteProduccion').textContent = fmtMoney(md.pendienteEnProduccion);
+  document.getElementById('progSubPendienteProduccion').textContent = `${pctVsEstandarDia(md.pendienteEnProduccion)}% del estándar · La OP sigue en proceso`;
+  document.getElementById('progBigPendienteSinWIP').textContent = fmtMoney(md.pendienteSinWIP);
+  document.getElementById('progSubPendienteSinWIP').textContent = `${pctVsEstandarDia(md.pendienteSinWIP)}% del estándar`;
+  document.getElementById('progBigPendienteSinExplicacion').textContent = fmtMoney(md.pendienteSinExplicacion);
+  document.getElementById('progSubPendienteSinExplicacion').textContent = `${pctVsEstandarDia(md.pendienteSinExplicacion)}% del estándar · Avance confirma 100%`;
+
+  document.getElementById('progBigAhorroJust').textContent = fmtMoney(md.ahorroJustificado);
+  document.getElementById('progSubAhorroJust').textContent = `${pctVsEstandarDia(md.ahorroJustificado)}% del estándar · Con Razón capturada`;
+  document.getElementById('progBigAhorroNoJust').textContent = fmtMoney(md.ahorroNoJustificado);
+  document.getElementById('progSubAhorroNoJust').textContent = `${pctVsEstandarDia(md.ahorroNoJustificado)}% del estándar · Sin Razón, pero es normal`;
+  document.getElementById('progBigAhorroTotal').textContent = fmtMoney(md.ahorroTotal);
+  document.getElementById('progSubAhorroTotal').textContent = `${pctVsEstandarDia(md.ahorroTotal)}% del estándar`;
+
+  document.getElementById('progBigGastoJust').textContent = fmtMoney(md.gastoJustificado);
+  document.getElementById('progSubGastoJust').textContent = `${pctVsEstandarDia(md.gastoJustificado)}% del estándar · Con Razón capturada`;
+  document.getElementById('progBigGastoNoJust').textContent = fmtMoney(md.gastoNoJustificado);
+  document.getElementById('progSubGastoNoJust').textContent = `${pctVsEstandarDia(md.gastoNoJustificado)}% del estándar · Sin explicar todavía`;
+  document.getElementById('progBigGastoTotal').textContent = fmtMoney(md.gastoTotal);
+  document.getElementById('progSubGastoTotal').textContent = `${pctVsEstandarDia(md.gastoTotal)}% del estándar`;
+
+  const topOPsDia = calcularTopOPsPorDesviacion(lineas, 10);
+  document.getElementById('tablaTopOPsDia').innerHTML = topOPsDia.length > 0 ? topOPsDia.map(o=>`<tr>
+    <td>${o.noOP}</td><td>${o.modelo}</td>
+    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
+    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
+    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este día.</td></tr>';
+
+  const topRazonesDia = calcularTopRazonesPorDinero(lineas, 5);
+  document.getElementById('tablaTopRazonesDia').innerHTML = topRazonesDia.length > 0 ? topRazonesDia.map(r=>`<tr>
+    <td>${r.razon}</td><td>${r.count}</td><td class="money">${fmtMoney(r.monto)}</td><td>${r.pct.toFixed(1)}%</td>
+  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas este día.</td></tr>';
+
+  const grupoMaterialDia = calcularDesviacionPorGrupoMaterial(lineas);
+  document.getElementById('tablaGrupoMaterialDia').innerHTML = grupoMaterialDia.length > 0 ? grupoMaterialDia.map(g=>`<tr>
+    <td>${g.nombre}</td><td>${g.count}</td>
+    <td class="money" style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'+':''}${fmtMoney(g.totalUSD)}</td>
+    <td class="money">${g.promedioUSD>=0?'+':''}${fmtMoney(g.promedioUSD)}</td>
+    <td style="color:${g.pct>=0?'var(--bad)':'var(--good)'};">${g.pct>=0?'+':''}${g.pct.toFixed(1)}%</td>
+    <td style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'Gasto':'Ahorro'}</td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este día.</td></tr>';
 
   const hoy = new Date().toISOString().slice(0,10);
   const avisoCont = document.getElementById('avisoProgramaVencido');
   const sospechosos = lineas.filter(l=>l.ahorroSospechoso && !l.razon);
   const consumoCeroLineas = lineas.filter(l=>l.consumoCero && !l.razon);
   let avisos = '';
-  if(currentProgramaDia < hoy && m.pendienteReal > 0.5){
-    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ Este Programa ya venció (${currentProgramaDia}) y todavía falta ${fmtMoney(m.pendienteReal)} por consumir según el estándar (esto ya excluye ahorros legítimos de materiales como melamina/tubular/chapacinta/cartón).</div>`;
+  if(currentProgramaDia < hoy && md.pendienteRealTotal > 0.5){
+    avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ Este Programa ya venció (${currentProgramaDia}) y todavía falta ${fmtMoney(md.pendienteRealTotal)} por consumir según el estándar (esto ya excluye ahorros legítimos de materiales como melamina/tubular/chapacinta/cartón).</div>`;
   }
   if(consumoCeroLineas.length > 0){
     avisos += `<div class="status-msg err" style="margin-bottom:10px;">⚠ <strong>${consumoCeroLineas.length} línea(s) sin justificar</strong> tienen Consumo Real en 0 — esto nunca es normal, revísalas dentro de cada Fase y márcalas con su Razón.</div>`;
