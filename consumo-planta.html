@@ -413,7 +413,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="semSubPendienteProduccion">La OP sigue en proceso</div>
           </div>
           <div class="card">
-            <div class="label">No Hay Material en WIP de Producción <span class="help-icon">?<span class="help-tooltip">La OP no aparece en el archivo de Avance del Programa — según la regla, se asume que ya terminó. Aun así, no se ha consumido el material. Vale la pena revisar.</span></span></div>
+            <div class="label">No Hay Material en WIP de Producción <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
             <div class="big" id="semBigPendienteSinWIP" style="color:var(--bad);">$0</div>
             <div class="sub" id="semSubPendienteSinWIP">No aparece como activa, pero falta consumo</div>
           </div>
@@ -3513,16 +3513,23 @@ function calcularMetricasDetalladas(lineas){
     if(diffUSD < 0){
       const esCandidatoPendiente = l.consumoCero || !l.permiteAhorro;
       if(esCandidatoPendiente){
-        // Las 3 cajas SIEMPRE reflejan la categoria real segun el Avance,
-        // sin importar si la linea ya tiene Razon o no, y sin excepciones:
-        // TODO lo que sea candidato a pendiente cae en una de las 3, sin dejar nada fuera.
-        const avance = AVANCE_OP[safeDocId(l.noOP)] || AVANCE_OP[l.noOP] || null;
-        if(avance && avance.cant > 0 && avance.cantTerminada < avance.cant){
-          pendienteEnProduccion += -diffUSD; // sigue en proceso, aun no sale de produccion
-        } else if(!avance){
-          pendienteSinWIP += -diffUSD; // no aparece en el WIP de produccion
+        // Caja 2 ("No Hay Material en WIP") se revisa PRIMERO, guiada por la
+        // Razon que la gente ya escribe (no por el archivo de Avance): si el
+        // consumo esta en 0 y la Razon menciona "WIP", cae aqui sin importar
+        // que diga el Avance. Las Cajas 1 y 3 se siguen calculando con el
+        // Avance, para todo lo que no caiga en la Caja 2.
+        const razonMencionaWIP = l.consumoCero && l.razon && quitarAcentos(String(l.razon).toUpperCase()).includes('WIP');
+        if(razonMencionaWIP){
+          pendienteSinWIP += -diffUSD;
         } else {
-          pendienteSinExplicacion += -diffUSD; // el Avance confirma 100% y aun asi falta consumo (total o parcial)
+          const avance = AVANCE_OP[safeDocId(l.noOP)] || AVANCE_OP[l.noOP] || null;
+          if(avance && avance.cant > 0 && avance.cantTerminada < avance.cant){
+            pendienteEnProduccion += -diffUSD; // sigue en proceso, aun no sale de produccion
+          } else if(!avance){
+            pendienteSinWIP += -diffUSD; // no aparece en el WIP de produccion (segun el Avance)
+          } else {
+            pendienteSinExplicacion += -diffUSD; // el Avance confirma 100% y aun asi falta consumo (total o parcial)
+          }
         }
         // Informativo aparte: cuanto de este total ya tiene una Razon capturada
         // (manual o automatica) -- no se resta de las 3 cajas de arriba.
