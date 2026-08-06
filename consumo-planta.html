@@ -734,6 +734,17 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn" id="btnRepararFechas" style="color:var(--bad); border-color:var(--bad);">Reparar Fechas con este Archivo</button>
           <div id="repararFechasStatus"></div>
 
+          <div class="section-title" style="margin-top:24px; font-size:13px;">🔍 Diagnóstico: Ver/Buscar en el mapa de Fecha Original</div>
+          <div class="field-hint" style="margin-bottom:10px;">Para confirmar qué hay guardado realmente en la base de datos, sin adivinar.</div>
+          <div id="diagnosticoFechaOriginalResumen" style="font-size:13px; margin-bottom:10px; color:var(--text); font-weight:600;">Cargando...</div>
+          <div style="display:flex; gap:8px; margin-bottom:10px;">
+            <input type="text" id="buscarOPDiagnostico" placeholder="Buscar OP específica, ej. OP09249565" style="flex:1;">
+            <button class="btn" id="btnBuscarOPDiagnostico">Buscar</button>
+            <button class="btn" id="btnRefrescarDiagnostico">🔄 Refrescar desde Firebase</button>
+          </div>
+          <div id="resultadoBusquedaDiagnostico" style="font-family:var(--mono); font-size:13px; padding:10px; background:var(--panel-2); border-radius:6px;"></div>
+          <button class="btn" id="btnVaciarSoloFechaOriginal" style="color:var(--bad); border-color:var(--bad); margin-top:10px;">Vaciar SOLO el mapa de Fecha Original (sin tocar el catálogo)</button>
+
           <div class="section-title" style="margin-top:30px;">Asignar estándar manualmente (cuando no se encuentra)</div>
           <div class="field-hint" style="margin-bottom:10px;">Úsalo cuando una línea salga marcada "Sin estándar". En cuanto lo guardes aquí, el cálculo se corrige solo en todos los reportes (no hace falta reprocesar nada).</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -1062,6 +1073,7 @@ async function cargarTodoAdmin(){
   document.getElementById('umbralInput').value = Math.round(UMBRAL*100);
   renderHistorialReportes();
   renderHistorialCargas();
+  renderDiagnosticoFechaOriginal();
 }
 
 async function registrarCarga(tipo, nombreArchivo, resumen){
@@ -1676,6 +1688,7 @@ document.getElementById('btnEliminarCatalogo').addEventListener('click', async (
   FECHA_ORIGINAL_OP = {};
   await db.collection('config').doc('fechaOriginalOP').set({mapa: {}});
   statusEl.innerHTML = `<div class="status-msg ok">Catálogo eliminado: ${ops.length} líneas borradas. También se limpió el mapa de Fecha Original de OPs, así que el próximo archivo que subas queda como el punto de partida nuevo.</div>`;
+  renderDiagnosticoFechaOriginal();
 });
 
 document.getElementById('btnLimpiarEstandaresViejos').addEventListener('click', async ()=>{
@@ -1755,10 +1768,44 @@ document.getElementById('btnRepararFechas').addEventListener('click', async ()=>
 
     statusEl.innerHTML = `<div class="status-msg ok">✓ Fecha original corregida para ${opsEncontradas} OPs. ${lineasACorregir.length} línea(s) de Estándares ya guardadas se actualizaron con la fecha correcta.</div>`;
     document.getElementById('fileRepararFechas').value = '';
+    renderDiagnosticoFechaOriginal();
   }catch(err){
     console.error(err);
     statusEl.innerHTML = `<div class="status-msg err">Error al reparar: ${err.message}</div>`;
   }
+});
+
+function renderDiagnosticoFechaOriginal(){
+  const n = Object.keys(FECHA_ORIGINAL_OP).length;
+  document.getElementById('diagnosticoFechaOriginalResumen').innerHTML = n === 0
+    ? '<span style="color:var(--good);">✓ El mapa está vacío (0 OPs registradas) — listo para empezar desde cero.</span>'
+    : `<span style="color:var(--bad);">⚠ El mapa tiene <strong>${n} OPs</strong> guardadas con una fecha original ya fijada.</span>`;
+}
+
+document.getElementById('btnRefrescarDiagnostico').addEventListener('click', async ()=>{
+  document.getElementById('diagnosticoFechaOriginalResumen').textContent = 'Consultando Firebase directamente...';
+  await cargarFechaOriginalOPDesdeDB();
+  renderDiagnosticoFechaOriginal();
+  document.getElementById('resultadoBusquedaDiagnostico').innerHTML = '';
+});
+
+document.getElementById('btnBuscarOPDiagnostico').addEventListener('click', ()=>{
+  const op = document.getElementById('buscarOPDiagnostico').value.trim().toUpperCase();
+  const cont = document.getElementById('resultadoBusquedaDiagnostico');
+  if(!op){ cont.innerHTML = ''; return; }
+  if(FECHA_ORIGINAL_OP[op]){
+    cont.innerHTML = `<strong>${op}</strong> → fecha original guardada: <strong style="color:var(--bad);">${FECHA_ORIGINAL_OP[op]}</strong>`;
+  } else {
+    cont.innerHTML = `<strong>${op}</strong> → <span style="color:var(--good);">no tiene ninguna fecha guardada todavía (limpia, lista para tomar la del próximo archivo que subas)</span>`;
+  }
+});
+
+document.getElementById('btnVaciarSoloFechaOriginal').addEventListener('click', async ()=>{
+  if(!confirm('¿Vaciar SOLO el mapa de Fecha Original de OPs? Esto no borra tu catálogo de Estándares, solo la protección de fechas.')) return;
+  FECHA_ORIGINAL_OP = {};
+  await db.collection('config').doc('fechaOriginalOP').set({mapa: {}});
+  renderDiagnosticoFechaOriginal();
+  document.getElementById('resultadoBusquedaDiagnostico').innerHTML = '<span style="color:var(--good);">✓ Vaciado y confirmado guardado en Firebase.</span>';
 });
 
 /* ============================================================
