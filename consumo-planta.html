@@ -726,6 +726,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           </div>
           <div id="limpiezaStatus"></div>
 
+          <div class="section-title" style="margin-top:30px;">🔧 Reparar Fecha Original de OPs</div>
+          <div class="field-hint" style="margin-bottom:10px;">Úsalo cuando una OP haya quedado con la fecha equivocada (ej. por el cambio de mes que mueve OPs viejas al primer lunes). Sube aquí un archivo de Estándares VIEJO (de antes de que se moviera la fecha), y esta herramienta corrige la fecha original de esas OPs — sin tocar nada más de lo que ya subiste después.</div>
+          <div class="field">
+            <input type="file" id="fileRepararFechas" accept=".xlsx,.xls">
+          </div>
+          <button class="btn" id="btnRepararFechas" style="color:var(--bad); border-color:var(--bad);">Reparar Fechas con este Archivo</button>
+          <div id="repararFechasStatus"></div>
+
           <div class="section-title" style="margin-top:30px;">Asignar estándar manualmente (cuando no se encuentra)</div>
           <div class="field-hint" style="margin-bottom:10px;">Úsalo cuando una línea salga marcada "Sin estándar". En cuanto lo guardes aquí, el cálculo se corrige solo en todos los reportes (no hace falta reprocesar nada).</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -1463,6 +1471,7 @@ async function cargarAvanceDesdeArchivo(file, statusEl){
 
   const rows = await leerExcelComoJSON(file);
   const registros = {};
+  const fechaVistaPorOP = {};
 
   rows.forEach(r=>{
     const op = String(r['NoOP'] ?? '').trim();
@@ -1474,14 +1483,36 @@ async function cargarAvanceDesdeArchivo(file, statusEl){
     if(!registros[op] || cantTerminada > registros[op].cantTerminada){
       registros[op] = {cant, cantTerminada};
     }
+    // El archivo de Avance tambien trae su propia FechaVenc por OP -- se usa
+    // para alimentar (no solo Estandares) la proteccion de "fecha original":
+    // el que la vea primero (Avance o Estandares, lo que sea que subas antes)
+    // deja la fecha fija, sin importar cambios que vengan despues en cualquiera
+    // de los dos archivos.
+    const fechaRaw = r['FechaVenc'];
+    if(fechaRaw){
+      let fechaISO = fechaRaw instanceof Date ? fechaRaw.toISOString().slice(0,10) : String(fechaRaw).slice(0,10);
+      if(!fechaVistaPorOP[op]) fechaVistaPorOP[op] = fechaISO;
+    }
   });
+
+  let opsConFechaCorregida = 0;
+  Object.entries(fechaVistaPorOP).forEach(([op, fecha])=>{
+    if(!FECHA_ORIGINAL_OP[op]){
+      FECHA_ORIGINAL_OP[op] = fecha; // primera vez que se ve esta OP (en cualquiera de los dos archivos)
+      opsConFechaCorregida++;
+    }
+    // Si ya estaba registrada con otra fecha, no se toca -- se respeta la original.
+  });
+  if(opsConFechaCorregida > 0){
+    await db.collection('config').doc('fechaOriginalOP').set({mapa: FECHA_ORIGINAL_OP});
+  }
 
   statusEl.innerHTML = `<div class="status-msg info">Guardando avance de ${Object.keys(registros).length} OPs...</div>`;
   const operaciones = Object.entries(registros).map(([op, data]) => ({ref: db.collection('avanceOP').doc(safeDocId(op)), data}));
   await commitEnLotes(db, operaciones);
   AVANCE_OP = {...AVANCE_OP, ...registros};
 
-  return {total: Object.keys(registros).length};
+  return {total: Object.keys(registros).length, opsConFechaNueva: opsConFechaCorregida};
 }
 
 function safeDocId(key){
@@ -1632,7 +1663,7 @@ document.getElementById('btnGuardarManual').addEventListener('click', async ()=>
 });
 
 document.getElementById('btnEliminarCatalogo').addEventListener('click', async ()=>{
-  if(!confirm('¿Seguro que quieres borrar TODO el catálogo de estándares (OP+SKU)? Esta acción no se puede deshacer. Los reportes ya guardados no se ven afectados.')) return;
+  if(!confirm('¿Seguro que quieres borrar TODO el catálogo de estándares (OP+SKU) Y el mapa de "Fecha Original de OPs"? Esta acción no se puede deshacer. Los reportes ya guardados no se ven afectados. Úsalo cuando vayas a volver a empezar desde cero con un archivo viejo.')) return;
   const statusEl = document.getElementById('preciosStatus');
   statusEl.innerHTML = '<div class="status-msg info">Borrando catálogo...</div>';
 
@@ -1642,7 +1673,9 @@ document.getElementById('btnEliminarCatalogo').addEventListener('click', async (
   await commitEnLotes(db, ops);
 
   ESTANDARES_OP = {};
-  statusEl.innerHTML = `<div class="status-msg ok">Catálogo eliminado: ${ops.length} líneas borradas.</div>`;
+  FECHA_ORIGINAL_OP = {};
+  await db.collection('config').doc('fechaOriginalOP').set({mapa: {}});
+  statusEl.innerHTML = `<div class="status-msg ok">Catálogo eliminado: ${ops.length} líneas borradas. También se limpió el mapa de Fecha Original de OPs, así que el próximo archivo que subas queda como el punto de partida nuevo.</div>`;
 });
 
 document.getElementById('btnLimpiarEstandaresViejos').addEventListener('click', async ()=>{
@@ -1665,6 +1698,67 @@ document.getElementById('btnLimpiarEstandaresViejos').addEventListener('click', 
   aEliminar.forEach(([key]) => delete ESTANDARES_OP[key]);
 
   statusEl.innerHTML = `<div class="status-msg ok">${aEliminar.length} líneas de Programas anteriores a ${fechaLimite} eliminadas.</div>`;
+});
+
+document.getElementById('btnRepararFechas').addEventListener('click', async ()=>{
+  const file = document.getElementById('fileRepararFechas').files[0];
+  const statusEl = document.getElementById('repararFechasStatus');
+  if(!file){
+    statusEl.innerHTML = '<div class="status-msg err">Selecciona el archivo viejo de Estándares primero</div>';
+    return;
+  }
+
+  statusEl.innerHTML = '<div class="status-msg info">Leyendo archivo...</div>';
+  try{
+    const rows = await leerExcelComoJSON(file);
+    const fechaCorrectaPorOP = {};
+    rows.forEach(r=>{
+      const op = r['Nº orden producción'] ?? r['N° orden producción'] ?? r['No orden producción'];
+      const fechaRaw = r['Fecha vencimiento'];
+      if(!op || !fechaRaw) return;
+      let fechaISO;
+      if(fechaRaw instanceof Date) fechaISO = fechaRaw.toISOString().slice(0,10);
+      else fechaISO = String(fechaRaw).slice(0,10);
+      fechaCorrectaPorOP[String(op).trim()] = fechaISO;
+    });
+
+    const opsEncontradas = Object.keys(fechaCorrectaPorOP).length;
+    if(opsEncontradas === 0){
+      statusEl.innerHTML = '<div class="status-msg err">No se encontraron OPs con fecha en este archivo. Revisa que sea el formato correcto de Estándares.</div>';
+      return;
+    }
+
+    if(!confirm(`Se encontraron ${opsEncontradas} OPs en este archivo. Se va a forzar su fecha original a la que traiga este archivo, sin importar lo que haya quedado guardado antes. ¿Continuar?`)) return;
+
+    statusEl.innerHTML = '<div class="status-msg info">Corrigiendo fechas...</div>';
+
+    // 1) Forzar la fecha original de estas OPs (sobreescribe lo que hubiera quedado mal)
+    Object.entries(fechaCorrectaPorOP).forEach(([op, fecha])=>{
+      FECHA_ORIGINAL_OP[op] = fecha;
+    });
+    await db.collection('config').doc('fechaOriginalOP').set({mapa: FECHA_ORIGINAL_OP});
+
+    // 2) Corregir tambien las lineas ya guardadas en el catalogo de Estandares
+    //    para esas mismas OPs, para que dejen de mostrar la fecha equivocada.
+    const lineasACorregir = Object.entries(ESTANDARES_OP).filter(([key, std])=>{
+      const opDeKey = key.split('__')[0];
+      return fechaCorrectaPorOP[opDeKey] != null && std.fechaVenc !== fechaCorrectaPorOP[opDeKey];
+    });
+    lineasACorregir.forEach(([key, std])=>{
+      const opDeKey = key.split('__')[0];
+      std.fechaVenc = fechaCorrectaPorOP[opDeKey];
+    });
+    if(lineasACorregir.length > 0){
+      const operaciones = lineasACorregir.map(([key, data]) => ({ref: db.collection('estandaresOP').doc(safeDocId(key)), data}));
+      await commitEnLotes(db, operaciones);
+    }
+
+    statusEl.innerHTML = `<div class="status-msg ok">✓ Fecha original corregida para ${opsEncontradas} OPs. ${lineasACorregir.length} línea(s) de Estándares ya guardadas se actualizaron con la fecha correcta.</div>`;
+    document.getElementById('fileRepararFechas').value = '';
+  }catch(err){
+    console.error(err);
+    statusEl.innerHTML = `<div class="status-msg err">Error al reparar: ${err.message}</div>`;
+  }
 });
 
 /* ============================================================
@@ -1815,8 +1909,8 @@ document.getElementById('btnProcesarMovimientos').addEventListener('click', asyn
     }
     if(fAvance){
       const resAvance = await cargarAvanceDesdeArchivo(fAvance, statusEl);
-      mensajeEstandares += `Avance: ${resAvance.total} OPs actualizadas. `;
-      await registrarCarga('Avance', fAvance.name, `${resAvance.total} OPs actualizadas`);
+      mensajeEstandares += `Avance: ${resAvance.total} OPs actualizadas${resAvance.opsConFechaNueva>0 ? ` (${resAvance.opsConFechaNueva} con fecha original anclada desde este archivo)` : ''}. `;
+      await registrarCarga('Avance', fAvance.name, `${resAvance.total} OPs actualizadas${resAvance.opsConFechaNueva>0 ? `, ${resAvance.opsConFechaNueva} con fecha anclada` : ''}`);
     }
     if(fRechazos){
       const resRechazos = await cargarRechazosDesdeArchivo(fRechazos, statusEl);
