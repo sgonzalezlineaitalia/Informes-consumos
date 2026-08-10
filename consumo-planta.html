@@ -387,6 +387,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn primary" id="btnDescargarResumenSemanalPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
         </div>
 
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+          <div class="alertcard">
+            <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada", en cuyo caso cuenta como consumida aunque le falte algún material en 0.</span></span></div>
+            <div class="headline" id="semPctOPsConsumidas">—</div>
+            <div class="detail" id="semPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+        </div>
+
         <div class="bigrow">
           <div class="card">
             <div class="label">$ Estándar (Semana)</div>
@@ -3049,7 +3057,8 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
     {Concepto:'Total Gasto', Valor: md.gastoTotal},
     {Concepto:'', Valor: ''},
     {Concepto:'% Cumplimiento (OPs al 100%)', Valor: r.pctCumplimientoSemana.toFixed(1)+'%'},
-    {Concepto:'OPs al 100% / Total OPs', Valor: `${r.semOpsCompletas}/${r.semOpsTotal}`}
+    {Concepto:'OPs al 100% / Total OPs', Valor: `${r.semOpsCompletas}/${r.semOpsTotal}`},
+    {Concepto:'% de OPs Consumidas (de las terminadas)', Valor: `${r.opsConsumidasInfo.pct.toFixed(1)}% (${r.opsConsumidasInfo.opsConsumidas}/${r.opsConsumidasInfo.opsAl100})`}
   ];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenGeneral), 'Resumen General');
 
@@ -3131,6 +3140,16 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
     items.forEach((it,i)=> tarjeta(PAD + i*(ancho+gap), ancho, alto, it.t, it.v, it.c, it.s));
     y += alto + 6;
   }
+
+  // % de OPs Consumidas
+  doc.setFillColor(240,248,255);
+  doc.setDrawColor(...COLOR_ACCENT2);
+  doc.roundedRect(PAD, y, W-PAD*2, 14, 1.5, 1.5, 'FD');
+  doc.setFontSize(9); doc.setTextColor(...COLOR_ACCENT2); doc.setFont(undefined,'bold');
+  doc.text(`✅ % de OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, PAD+4, y+6);
+  doc.setFontSize(7.5); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+  doc.text(`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`, PAD+4, y+11);
+  y += 18;
 
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
@@ -3410,6 +3429,10 @@ async function renderSemanaPrograma(){
   const md = calcularMetricasDetalladas(todasLasLineasSemana);
   const pctCumplimientoSemana = semOpsTotal > 0 ? (semOpsCompletas/semOpsTotal)*100 : 0;
 
+  const opsConsumidasInfo = calcularPctOPsConsumidas(todasLasLineasSemana);
+  document.getElementById('semPctOPsConsumidas').textContent = `${opsConsumidasInfo.pct.toFixed(0)}%`;
+  document.getElementById('semPctOPsConsumidasDetail').textContent = `${opsConsumidasInfo.opsConsumidas} de ${opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`;
+
   const pctVsEstandar = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
 
   document.getElementById('semBigEstandar').textContent = fmtMoney(md.estandarTotal);
@@ -3466,7 +3489,7 @@ async function renderSemanaPrograma(){
 
   resumenSemanalCache = {
     rangoTexto: fmtLegible(dias[0]) + ' al ' + fmtLegible(dias[4]),
-    metricas: md, semOpsCompletas, semOpsTotal, pctCumplimientoSemana,
+    metricas: md, semOpsCompletas, semOpsTotal, pctCumplimientoSemana, opsConsumidasInfo,
     topOPs, topRazones, grupoMaterial, resumenDiasSemana, todasLasLineasSemana
   };
 
@@ -3667,6 +3690,29 @@ function volverASemanaPrograma(){
 function volverADiaPrograma(){
   document.getElementById('programa-nivel-dia').classList.remove('hidden');
   document.getElementById('programa-nivel-fase').classList.add('hidden');
+}
+
+function calcularPctOPsConsumidas(lineas){
+  const porOP = {};
+  lineas.forEach(l=>{
+    if(!porOP[l.noOP]) porOP[l.noOP] = [];
+    porOP[l.noOP].push(l);
+  });
+  let opsAl100 = 0, opsConsumidas = 0;
+  Object.entries(porOP).forEach(([op, lineasOP])=>{
+    const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
+    // Misma regla de siempre: si no aparece en Avance, se asume 100% (ya salio de produccion)
+    const al100 = avance ? (avance.cant > 0 && avance.cantTerminada >= avance.cant) : true;
+    if(al100){
+      opsAl100++;
+      const todosConsumidos = lineasOP.every(l => l.cantidadReal > 0);
+      const estaTerminada = lineasOP.some(l => estadoAbrev(l.estado) === 'T');
+      // Si la OP ya esta al 100% de avance Y su Estado es "Terminada", cuenta como
+      // consumida aunque tenga alguna linea en 0 -- el negocio ya la cerro.
+      if(todosConsumidos || estaTerminada) opsConsumidas++;
+    }
+  });
+  return {opsAl100, opsConsumidas, pct: opsAl100 > 0 ? (opsConsumidas/opsAl100)*100 : 0};
 }
 
 function calcularCumplimientoPrograma(lineas, fechaPrograma){
