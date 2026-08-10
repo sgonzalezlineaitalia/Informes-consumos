@@ -648,6 +648,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn" id="btnFiltroSinAhorro" style="color:var(--bad); border-color:var(--bad);">⚠ Solo materiales sin ahorro permitido</button>
           <button class="btn" id="btnFiltroConsumoCero" style="color:var(--bad); border-color:var(--bad);">⚠ Solo Consumo Real en 0</button>
           <button class="btn" id="btnFiltroAlCien" style="color:var(--good); border-color:var(--good);">✅ Solo OPs al 100% de producción</button>
+          <button class="btn" id="btnFiltroRechazo" style="color:var(--bad); border-color:var(--bad);">⚠ Solo OPs con Rechazo de Calidad</button>
           <input type="text" id="buscarProgramaFase" placeholder="Buscar OP, SKU, modelo, descripción..." style="margin-left:auto; min-width:280px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 12px; border-radius:6px; font-size:13px;">
         </div>
         <div class="toolbar" id="toolbarRazonLote" style="background:var(--panel-2); border-radius:8px; padding:10px 12px;">
@@ -2921,6 +2922,7 @@ let busquedaProgramaFase = '';
 let filtroSinAhorroActivo = false;
 let filtroConsumoCeroActivo = false;
 let filtroAlCienActivo = false;
+let filtroRechazoActivo = false;
 let resumenSemanalCache = null;
 let lineasSeleccionadasLote = new Set();
 function opAlCien(op){
@@ -4034,6 +4036,10 @@ function verProgramaFase(fase){
   const btnFiltroCien = document.getElementById('btnFiltroAlCien');
   btnFiltroCien.style.background = '';
   btnFiltroCien.style.color = '';
+  filtroRechazoActivo = false;
+  const btnFiltroRechazoEl = document.getElementById('btnFiltroRechazo');
+  btnFiltroRechazoEl.style.background = '';
+  btnFiltroRechazoEl.style.color = '';
   lineasSeleccionadasLote.clear();
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.remove('hidden');
@@ -4062,6 +4068,12 @@ document.getElementById('btnFiltroAlCien').addEventListener('click', (e)=>{
   e.target.style.color = filtroAlCienActivo ? '#fff' : '';
   renderTablaProgramaFase();
 });
+document.getElementById('btnFiltroRechazo').addEventListener('click', (e)=>{
+  filtroRechazoActivo = !filtroRechazoActivo;
+  e.target.style.background = filtroRechazoActivo ? 'var(--bad)' : '';
+  e.target.style.color = filtroRechazoActivo ? '#fff' : '';
+  renderTablaProgramaFase();
+});
 
 function renderTheadProgramaFase(){
   const thead = document.getElementById('theadProgramaFase');
@@ -4072,7 +4084,7 @@ function renderTheadProgramaFase(){
     {key:'diferencia', label:'Diferencia'}, {key:'pct', label:'%'}, {key:null, label:'Tipo'},
     {key:'ruta', label:'Centro de Trabajo'}, {key:null, label:'Avance OP'}, {key:null, label:'Modo de Cálculo'},
     {key:'estandarUSD', label:'$ Estándar'}, {key:'realUSD', label:'$ Real'}, {key:'diferenciaUSD', label:'$ Diferencia'},
-    {key:null, label:'Razón'}
+    {key:null, label:'Razón'}, {key:null, label:'⚠ Rechazo Calidad'}
   ];
   thead.innerHTML = '<tr><th style="width:30px;"><input type="checkbox" id="checkAllProgramaFase"></th>' + columnas.map(c=> c.key ? `<th data-key="${c.key}">${c.label} <span class="sort-arrow">▲▼</span></th>` : `<th>${c.label}</th>`).join('') + '</tr>';
   document.getElementById('checkAllProgramaFase').addEventListener('change', (e)=>{
@@ -4121,6 +4133,9 @@ function renderTablaProgramaFase(){
   }
   if(filtroAlCienActivo){
     lineas = lineas.filter(l=> opAlCien(l.noOP));
+  }
+  if(filtroRechazoActivo){
+    lineas = lineas.filter(l=> buscarRechazosParaOP(l.noOP, l.modelo).length > 0);
   }
 
   if(busquedaProgramaFase.trim()){
@@ -4175,6 +4190,12 @@ function renderTablaProgramaFase(){
       <td class="money">${fmtMoney(l.estandarUSD)}</td><td class="money">${fmtMoney(l.realUSD)}</td>
       <td class="money">${l.diferenciaUSD>=0?'+':''}${fmtMoney(l.diferenciaUSD)}</td>
       <td>${l.razonAutomatica ? `<span class="tag" style="background:rgba(70,130,220,0.12); color:var(--accent-2); font-weight:600;" title="Se justifica sola mientras el Avance siga en 0%. En cuanto salga producción, se revierte y hay que revisarla.">🤖 ${l.razon}</span>` : (esAlerta ? `<select class="razon ${!l.razon?'empty':''}" data-linea="${l.lineaKey}" data-diferencia="${l.diferencia}">${razonOptions}</select>` : '—')}</td>
+      <td>${(()=>{
+        if(l.diferencia <= 0 || RECHAZOS_CALIDAD.length === 0) return '';
+        const rechazosLinea = buscarRechazosParaOP(l.noOP, l.modelo);
+        if(rechazosLinea.length === 0) return '';
+        return `<span class="help-icon" style="width:auto; height:auto; padding:3px 8px; border-radius:12px; background:rgba(209,69,59,0.12); color:var(--bad); font-weight:600; font-size:11px; cursor:help;">⚠ ${rechazosLinea.length} <span class="help-tooltip" style="width:280px;">${rechazosLinea.map(r=>`${r.fecha} · ${r.coincidencia} · ${r.pieza||''}: ${r.descripcion||''}`).join('<br><br>')}</span></span>`;
+      })()}</td>
     </tr>`;
   }).join('');
 
