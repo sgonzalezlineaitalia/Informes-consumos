@@ -507,6 +507,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
           <div class="alertcard">
+            <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs de este Programa que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada", en cuyo caso cuenta como consumida aunque le falte algún material en 0.</span></span></div>
+            <div class="headline" id="progPctOPsConsumidas">—</div>
+            <div class="detail" id="progPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+          <div class="alertcard">
             <div class="label">📌 Razón más común</div>
             <div class="headline" id="progErrorComun">—</div>
             <div class="detail" id="progErrorComunDetail">&nbsp;</div>
@@ -3891,6 +3899,10 @@ function renderProgramaDiaDetalle(){
   const md = calcularMetricasDetalladas(lineas);
   const cumplimiento = calcularCumplimientoPrograma(lineas, currentProgramaDia);
   const pctVsEstandarDia = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
+
+  const opsConsumidasInfoDia = calcularPctOPsConsumidas(lineas);
+  document.getElementById('progPctOPsConsumidas').textContent = `${opsConsumidasInfoDia.pct.toFixed(0)}%`;
+  document.getElementById('progPctOPsConsumidasDetail').textContent = `${opsConsumidasInfoDia.opsConsumidas} de ${opsConsumidasInfoDia.opsAl100} OPs terminadas ya tienen todo su material consumido`;
 
   document.getElementById('progBigEstandar').textContent = fmtMoney(md.estandarTotal);
   document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.porcentaje.toFixed(0)}% de cumplimiento (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%)`;
