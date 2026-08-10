@@ -1008,6 +1008,7 @@ let modoCalculoPorFase = {1:'completo', 2:'completo', 3:'completo', 4:'ajustado'
 let MODO_POR_LINEA = {};        // "periodoKey||OP||SKU" -> 'completo'|'ajustado' -- override individual de esa linea agregada
 let RAZONES_POR_LINEA = {};     // "periodoKey||OP||SKU" -> "texto de la razon" (ya no se guarda dentro del reporte diario)
 let RECHAZOS_CALIDAD = [];      // [{numeroRechazo, fecha, modelo, cantidad, opSufijo, area, pieza, descripcion, definicion}]
+let RAZONES_EXCLUIDAS_TOP_OPS = new Set(['Aun no termina producción']); // Razones que no deben contar en el $ de desviacion del Top 10 OPs (ej. "aun no ha salido de produccion")
 let FECHA_ORIGINAL_OP = {};     // "OP0924xxxx" -> fecha ISO original (la primera vez que se vio esa OP). Al inicio de cada mes, la practica interna cambia la Fecha Vencimiento de OPs viejas al primer lunes del mes -- esto ignora ese cambio y siempre usa la fecha original.
 let MATERIALES_CON_AHORRO = []; // ["MELAMINA","TUBULAR","CHAPACINTA","CARTON",...] -- palabras clave de materiales donde SI es normal que haya ahorro. Todo lo demas, por default, NO deberia tener ahorro (cualquier ahorro ahi se marca como sospechoso).
 
@@ -1082,7 +1083,7 @@ document.querySelectorAll('.admin-nav button').forEach(btn=>{
    CARGA INICIAL DE CATALOGOS (Firestore)
    ============================================================ */
 async function cargarTodoAdmin(){
-  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarUmbralDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarRazonesExcluidasTopOPsDesdeDB(), cargarUmbralDesdeDB()]);
   renderFasesAdmin();
   renderRazonesAdmin();
   renderExcepcionesAdmin();
@@ -1330,20 +1331,39 @@ document.getElementById('btnGuardarMaterialesAhorro').addEventListener('click', 
 function renderRazonesAdmin(){
   const cont = document.getElementById('listaRazones');
   cont.innerHTML = RAZONES.map((r,i)=>`
-    <div style="display:flex; gap:8px; margin-bottom:8px;">
+    <div style="display:flex; gap:8px; margin-bottom:8px; align-items:center;">
       <input type="text" class="razon-input" value="${r}" style="flex:1;">
+      <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); white-space:nowrap;">
+        <input type="checkbox" class="razon-excluir-top" data-razon="${r}" ${RAZONES_EXCLUIDAS_TOP_OPS.has(r)?'checked':''}>
+        No contar en Top OPs
+      </label>
       <button class="btn small razon-eliminar" data-i="${i}">Eliminar</button>
     </div>`).join('');
   cont.querySelectorAll('.razon-eliminar').forEach(b=>b.addEventListener('click', ()=>{
     RAZONES.splice(parseInt(b.dataset.i),1); renderRazonesAdmin();
   }));
+  cont.querySelectorAll('.razon-excluir-top').forEach(chk=>{
+    chk.addEventListener('change', ()=>{
+      if(chk.checked) RAZONES_EXCLUIDAS_TOP_OPS.add(chk.dataset.razon);
+      else RAZONES_EXCLUIDAS_TOP_OPS.delete(chk.dataset.razon);
+    });
+  });
 }
 document.getElementById('btnAgregarRazon').addEventListener('click', ()=>{
   RAZONES.push('Nueva razón'); renderRazonesAdmin();
 });
 document.getElementById('btnGuardarRazones').addEventListener('click', async ()=>{
-  RAZONES = Array.from(document.querySelectorAll('.razon-input')).map(i=>i.value.trim()).filter(Boolean);
+  const inputs = Array.from(document.querySelectorAll('.razon-input'));
+  const chks = Array.from(document.querySelectorAll('.razon-excluir-top'));
+  const nuevaExclusion = new Set();
+  inputs.forEach((inp, idx)=>{
+    const texto = inp.value.trim();
+    if(texto && chks[idx] && chks[idx].checked) nuevaExclusion.add(texto);
+  });
+  RAZONES = inputs.map(i=>i.value.trim()).filter(Boolean);
+  RAZONES_EXCLUIDAS_TOP_OPS = nuevaExclusion;
   await db.collection('config').doc('razones').set({lista: RAZONES});
+  await db.collection('config').doc('razonesExcluidasTopOPs').set({lista: [...RAZONES_EXCLUIDAS_TOP_OPS]});
   document.getElementById('razonesStatus').innerHTML = '<div class="status-msg ok">Guardado correctamente</div>';
   renderRazonesAdmin();
 });
@@ -1802,6 +1822,7 @@ function renderDiagnosticoFechaOriginal(){
 document.getElementById('btnRefrescarDiagnostico').addEventListener('click', async ()=>{
   document.getElementById('diagnosticoFechaOriginalResumen').textContent = 'Consultando Firebase directamente...';
   await cargarFechaOriginalOPDesdeDB();
+  await cargarRazonesExcluidasTopOPsDesdeDB();
   renderDiagnosticoFechaOriginal();
   document.getElementById('resultadoBusquedaDiagnostico').innerHTML = '';
 });
@@ -1911,6 +1932,11 @@ async function cargarRechazosCalidadDesdeDB(){
 async function cargarFechaOriginalOPDesdeDB(){
   const doc = await db.collection('config').doc('fechaOriginalOP').get();
   FECHA_ORIGINAL_OP = doc.exists ? doc.data().mapa : {};
+}
+
+async function cargarRazonesExcluidasTopOPsDesdeDB(){
+  const doc = await db.collection('config').doc('razonesExcluidasTopOPs').get();
+  RAZONES_EXCLUIDAS_TOP_OPS = doc.exists ? new Set(doc.data().lista) : new Set(['Aun no termina producción']);
 }
 
 function buscarRechazosParaOP(op, modelo){
@@ -3362,7 +3388,7 @@ async function construirProgramaDia(fechaD){
 }
 
 async function refrescarDatosPrograma(){
-  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarRazonesExcluidasTopOPsDesdeDB()]);
   lineasHistoricoCache = null; consumoAcumuladoCache = null;
   const ahora = new Date();
   const horaTxt = ahora.toLocaleDateString('es-MX') + ' ' + ahora.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
@@ -3816,11 +3842,19 @@ function calcularTopOPsPorDesviacion(lineas, n=10){
   lineas.forEach(l=>{
     if(!grupos[l.noOP]) grupos[l.noOP] = {noOP:l.noOP, modelo:l.modelo, diffUSD:0, estandarUSD:0, razones:new Set()};
     const g = grupos[l.noOP];
-    g.diffUSD += (l.realUSD - l.estandarUSD);
-    g.estandarUSD += l.estandarUSD;
+    // No se cuenta hacia el $ de desviacion (para el ranking) si la justificacion
+    // es que "aun no ha salido/se produce/se consume" -- ni la automatica del
+    // sistema (0% avance), ni las que el admin marco como "No contar en Top OPs"
+    // en el catalogo de Razones. Si cuenta se le suma el $ y la razon queda visible.
+    const seExcluyeDeTop = l.razonAutomatica || (l.razon && RAZONES_EXCLUIDAS_TOP_OPS.has(l.razon));
+    if(!seExcluyeDeTop){
+      g.diffUSD += (l.realUSD - l.estandarUSD);
+      g.estandarUSD += l.estandarUSD;
+    }
     if(l.razon) g.razones.add(l.razon);
   });
   return Object.values(grupos)
+    .filter(g => Math.abs(g.diffUSD) > 0.01) // si toda su desviacion quedo excluida, no aparece en el top
     .map(g=>({...g, razones:[...g.razones], pct: g.estandarUSD!==0 ? (g.diffUSD/g.estandarUSD)*100 : 0}))
     .sort((a,b)=> Math.abs(b.diffUSD) - Math.abs(a.diffUSD))
     .slice(0,n);
@@ -4322,6 +4356,7 @@ document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
   await cargarAvanceDesdeDB();
   await cargarRechazosCalidadDesdeDB();
   await cargarFechaOriginalOPDesdeDB();
+  await cargarRazonesExcluidasTopOPsDesdeDB();
   if(Object.keys(CENTRO_A_FASE).length===0) CENTRO_A_FASE = {...FASES_DEFAULT};
   if(RAZONES.length===0) RAZONES = [...RAZONES_DEFAULT];
   document.getElementById('fechaSelector').value = currentDate;
