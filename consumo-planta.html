@@ -2469,8 +2469,14 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(porDia), 'Por Día');
 
+  const pctCumplimientoOP = (op)=>{
+    const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
+    if(!avance || avance.cant <= 0) return 100;
+    return Math.round((avance.cantTerminada/avance.cant)*100);
+  };
   const todasLasOPs = r.todasLasLineasSemana.map(l=>({
     'Fecha Programa': l.fechaPrograma, Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar', OP: l.noOP, Estado: l.estado,
+    '% Cumplimiento OP': pctCumplimientoOP(l.noOP) + '%',
     Modelo: l.modelo, 'No. Componente': l.noComponente, Descripcion: l.descripcion,
     'Cant. Estandar': l.cantidadEstandar, 'Cant. Real': l.cantidadReal, Diferencia: l.diferencia,
     'Centro de Trabajo': l.ruta, '$ Estandar': l.estandarUSD, '$ Real': l.realUSD,
@@ -2709,17 +2715,16 @@ async function construirProgramaDia(fechaD){
     // siempre, sin excepcion, sin importar el material ni el avance de la OP.
     const consumoCero = cantidadEstandar > 0 && cantidadRealConsumida === 0;
 
-    // Auto-justificacion: si el consumo esta en 0 Y el Avance confirma
-    // EXPLICITAMENTE que la OP va en 0% (no que "no aparece", sino que si
-    // aparece con 0 unidades terminadas), se justifica sola -- tiene sentido
-    // que no se haya consumido nada si el mueble ni siquiera ha arrancado.
-    // Esto se recalcula cada vez, asi que en cuanto el Avance muestre CUALQUIER
-    // progreso (>0), deja de aplicar automaticamente y vuelve a pedir revision.
+    // Auto-justificacion: si el consumo esta en 0 Y el Avance confirma que la
+    // OP va en MENOS de 100% (a veces no se consume nada hasta que esta casi
+    // terminada), se justifica sola. Se recalcula cada vez, asi que en cuanto
+    // el Avance llegue a 100%, deja de aplicar automaticamente y vuelve a pedir revision.
     let razonAuto = '';
     if(consumoCero){
       const avanceOP = AVANCE_OP[safeDocId(noOP)] || AVANCE_OP[noOP] || null;
-      if(avanceOP && avanceOP.cant > 0 && avanceOP.cantTerminada === 0){
-        razonAuto = 'Aún no ha iniciado producción (0% de avance)';
+      if(avanceOP && avanceOP.cant > 0 && avanceOP.cantTerminada < avanceOP.cant){
+        const pctAvanceAuto = Math.round((avanceOP.cantTerminada/avanceOP.cant)*100);
+        razonAuto = `Aún en producción (${pctAvanceAuto}% de avance)`;
       }
     }
     const razonGuardada = (RAZONES_POR_LINEA[lineaKey] && RAZONES_POR_LINEA[lineaKey].tipo === tipoDeDesviacion(diferencia)) ? RAZONES_POR_LINEA[lineaKey].razon : '';
