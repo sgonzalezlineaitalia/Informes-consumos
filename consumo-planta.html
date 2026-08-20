@@ -3245,7 +3245,7 @@ function calcularTopRazonesPorDinero(lineas, n=5){
   const grupos = {};
   let totalDesviacionAbs = 0;
   lineas.forEach(l=> totalDesviacionAbs += Math.abs(l.realUSD - l.estandarUSD));
-  lineas.filter(l=>l.razon).forEach(l=>{
+  lineas.filter(l=> l.razon && !l.razonAutomatica && !RAZONES_EXCLUIDAS_TOP_OPS.has(l.razon)).forEach(l=>{
     if(!grupos[l.razon]) grupos[l.razon] = {razon:l.razon, monto:0, count:0};
     grupos[l.razon].monto += Math.abs(l.realUSD - l.estandarUSD);
     grupos[l.razon].count++;
