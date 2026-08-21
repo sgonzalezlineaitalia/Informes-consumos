@@ -335,7 +335,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="section-title" style="margin-top:24px;">Razones más utilizadas (por dinero)</div>
         <table>
-          <thead><tr><th>Razón</th><th># Líneas</th><th>$ Total asociado</th><th>% del total</th></tr></thead>
+          <thead><tr><th>Razón</th><th># Líneas</th><th>$ Total (neto)</th><th>% del total</th><th>Tipo</th></tr></thead>
           <tbody id="tablaTopRazonesSemana"></tbody>
         </table>
 
@@ -470,7 +470,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="section-title" style="margin-top:24px;">Razones más utilizadas (por dinero)</div>
         <table>
-          <thead><tr><th>Razón</th><th># Líneas</th><th>$ Total asociado</th><th>% del total</th></tr></thead>
+          <thead><tr><th>Razón</th><th># Líneas</th><th>$ Total (neto)</th><th>% del total</th><th>Tipo</th></tr></thead>
           <tbody id="tablaTopRazonesDia"></tbody>
         </table>
 
@@ -2455,7 +2455,7 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
   const topOPsExport = r.topOPs.map(o=>({OP:o.noOP, Modelo:o.modelo, '$ Desviación':o.diffUSD, 'Razones asociadas': o.razones.join('; ') || 'Sin justificar'}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topOPsExport), 'Top 10 OPs');
 
-  const topRazonesExport = r.topRazones.map(x=>({Razon:x.razon, 'No. Líneas':x.count, '$ Total':x.monto}));
+  const topRazonesExport = r.topRazones.map(x=>({Razon:x.razon, 'No. Líneas':x.count, '$ Total (neto)':x.monto, Tipo:x.tipo, '%':x.pct.toFixed(1)+'%'}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topRazonesExport), 'Top Razones');
 
   const grupoMaterialExport = r.grupoMaterial.map(g=>({Grupo:g.nombre, '# Líneas':g.count, '$ Desviación Total':g.totalUSD, '$ Promedio por Línea':g.promedioUSD, '%':g.pct.toFixed(1)+'%', Tipo: g.totalUSD>=0?'Gasto':'Ahorro'}));
@@ -2608,10 +2608,16 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   y += 3;
   doc.autoTable({
     startY: y, margin:{left:PAD, right:PAD},
-    head:[['Razón','No. Líneas','$ Total Asociado','%']],
-    body: r.topRazones.length>0 ? r.topRazones.map(x=>[x.razon, String(x.count), fmtMoney(x.monto), x.pct.toFixed(1)+'%']) : [['Aún no hay Razones capturadas','','','']],
+    head:[['Razón','No. Líneas','$ Total (neto)','%','Tipo']],
+    body: r.topRazones.length>0 ? r.topRazones.map(x=>[x.razon, String(x.count), (x.monto>=0?'+':'')+fmtMoney(x.monto), x.pct.toFixed(1)+'%', x.tipo]) : [['Aún no hay Razones capturadas','','','','']],
     theme:'striped', headStyles:{fillColor:COLOR_ACCENT2, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
-    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}}
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}},
+    didParseCell: function(data){
+      if(data.section==='body' && data.column.index===4){
+        data.cell.styles.textColor = data.cell.raw==='Gasto' ? COLOR_BAD : (data.cell.raw==='Ahorro' ? COLOR_GOOD : COLOR_MUTED);
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
   });
   y = doc.lastAutoTable.finalY + 8;
 
@@ -2870,8 +2876,11 @@ async function renderSemanaPrograma(){
 
   const topRazones = calcularTopRazonesPorDinero(todasLasLineasSemana, 5);
   document.getElementById('tablaTopRazonesSemana').innerHTML = topRazones.length > 0 ? topRazones.map(r=>`<tr>
-    <td>${r.razon}</td><td>${r.count}</td><td class="money">${fmtMoney(r.monto)}</td><td>${r.pct.toFixed(1)}%</td>
-  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas esta semana.</td></tr>';
+    <td>${r.razon}</td><td>${r.count}</td>
+    <td class="money" style="color:${r.monto<0?'var(--good)':(r.monto>0?'var(--bad)':'var(--text)')}; font-weight:600;">${r.monto>=0?'+':''}${fmtMoney(r.monto)}</td>
+    <td>${r.pct.toFixed(1)}%</td>
+    <td style="color:${r.tipo==='Ahorro'?'var(--good)':(r.tipo==='Gasto'?'var(--bad)':'var(--muted)')}; font-weight:600;">${r.tipo}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas esta semana.</td></tr>';
 
   const grupoMaterial = calcularDesviacionPorGrupoMaterial(todasLasLineasSemana);
   document.getElementById('tablaGrupoMaterialSemana').innerHTML = grupoMaterial.length > 0 ? grupoMaterial.map(g=>`<tr>
@@ -3246,13 +3255,15 @@ function calcularTopRazonesPorDinero(lineas, n=5){
   let totalDesviacionAbs = 0;
   lineas.forEach(l=> totalDesviacionAbs += Math.abs(l.realUSD - l.estandarUSD));
   lineas.filter(l=> l.razon && !l.razonAutomatica && !RAZONES_EXCLUIDAS_TOP_OPS.has(l.razon)).forEach(l=>{
-    if(!grupos[l.razon]) grupos[l.razon] = {razon:l.razon, monto:0, count:0};
-    grupos[l.razon].monto += Math.abs(l.realUSD - l.estandarUSD);
+    if(!grupos[l.razon]) grupos[l.razon] = {razon:l.razon, monto:0, montoAbs:0, count:0};
+    const diff = l.realUSD - l.estandarUSD;
+    grupos[l.razon].monto += diff; // neto, con signo: negativo=ahorro, positivo=gasto
+    grupos[l.razon].montoAbs += Math.abs(diff);
     grupos[l.razon].count++;
   });
   return Object.values(grupos)
-    .map(g=>({...g, pct: totalDesviacionAbs > 0 ? (g.monto/totalDesviacionAbs)*100 : 0}))
-    .sort((a,b)=>b.monto-a.monto).slice(0,n);
+    .map(g=>({...g, pct: totalDesviacionAbs > 0 ? (g.montoAbs/totalDesviacionAbs)*100 : 0, tipo: g.monto<0 ? 'Ahorro' : (g.monto>0 ? 'Gasto' : '—')}))
+    .sort((a,b)=>b.montoAbs-a.montoAbs).slice(0,n);
 }
 
 function calcularMetricasPrograma(lineas){
@@ -3337,8 +3348,11 @@ function renderProgramaDiaDetalle(){
 
   const topRazonesDia = calcularTopRazonesPorDinero(lineas, 5);
   document.getElementById('tablaTopRazonesDia').innerHTML = topRazonesDia.length > 0 ? topRazonesDia.map(r=>`<tr>
-    <td>${r.razon}</td><td>${r.count}</td><td class="money">${fmtMoney(r.monto)}</td><td>${r.pct.toFixed(1)}%</td>
-  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas este día.</td></tr>';
+    <td>${r.razon}</td><td>${r.count}</td>
+    <td class="money" style="color:${r.monto<0?'var(--good)':(r.monto>0?'var(--bad)':'var(--text)')}; font-weight:600;">${r.monto>=0?'+':''}${fmtMoney(r.monto)}</td>
+    <td>${r.pct.toFixed(1)}%</td>
+    <td style="color:${r.tipo==='Ahorro'?'var(--good)':(r.tipo==='Gasto'?'var(--bad)':'var(--muted)')}; font-weight:600;">${r.tipo}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas este día.</td></tr>';
 
   const grupoMaterialDia = calcularDesviacionPorGrupoMaterial(lineas);
   document.getElementById('tablaGrupoMaterialDia').innerHTML = grupoMaterialDia.length > 0 ? grupoMaterialDia.map(g=>`<tr>
