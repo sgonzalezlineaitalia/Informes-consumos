@@ -242,6 +242,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           Resumen Semanal Estándar
           <button class="btn primary" id="btnDescargarResumenSemanal" style="font-size:12px; padding:6px 14px;">⬇ Descargar Resumen Semanal (Excel)</button>
           <button class="btn primary" id="btnDescargarResumenSemanalPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
+          <button class="btn" id="btnVerResumenMensual" style="font-size:12px; padding:6px 14px; margin-left:auto;">📅 Ver Resumen Mensual</button>
         </div>
 
         <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
@@ -348,6 +349,125 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div class="section-title" style="margin-top:24px;">⚠ Programas vencidos con material pendiente</div>
         <div class="field-hint" style="margin-bottom:10px;">Programas cuya fecha ya pasó y todavía les falta consumir material según su estándar.</div>
         <div id="alertasProgramasVencidos"></div>
+      </main>
+    </div>
+
+    <div id="programa-nivel-mes" class="hidden">
+      <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
+        <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <button class="date-arrow" id="prevMesProgramaBtn">‹</button>
+        <div class="date-display" id="mesProgramaDisplay" style="font-size:16px;">—</div>
+        <button class="date-arrow" id="nextMesProgramaBtn">›</button>
+      </div>
+      <main>
+        <div class="section-title" style="display:flex; align-items:center; gap:12px;">
+          Resumen Mensual Estándar
+          <button class="btn primary" id="btnDescargarResumenMensual" style="font-size:12px; padding:6px 14px;">⬇ Descargar Resumen Mensual (Excel)</button>
+          <button class="btn primary" id="btnDescargarResumenMensualPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
+        </div>
+
+        <div class="field-hint" style="margin-bottom:16px; padding:10px; background:var(--panel-2); border-radius:6px;" id="mesDatosDisponibles">Cargando...</div>
+
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+          <div class="alertcard">
+            <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs de este mes que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada".</span></span></div>
+            <div class="headline" id="mesPctOPsConsumidas">—</div>
+            <div class="detail" id="mesPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">$ Estándar (Mes)</div>
+            <div class="big" id="mesBigEstandar">$0</div>
+            <div class="sub" id="mesSubEstandar">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">$ Real Consumido (Mes)</div>
+            <div class="big" id="mesBigReal">$0</div>
+            <div class="sub" id="mesSubReal">&nbsp;</div>
+          </div>
+          <div class="card deviation">
+            <div class="label">Balance (Real − Estándar)</div>
+            <div class="big" id="mesBigBalance">$0</div>
+            <div class="sub" id="mesSubBalance">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">$ Faltante sin Justificar — por qué falta</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Aún No Sale de Producción</div>
+            <div class="big" id="mesBigPendienteProduccion" style="color:var(--warn);">$0</div>
+            <div class="sub" id="mesSubPendienteProduccion">La OP sigue en proceso</div>
+          </div>
+          <div class="card">
+            <div class="label">No Hay Material en WIP de Producción</div>
+            <div class="big" id="mesBigPendienteSinWIP" style="color:var(--bad);">$0</div>
+            <div class="sub" id="mesSubPendienteSinWIP">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">Consumo en 0 sin Justificar</div>
+            <div class="big" id="mesBigPendienteSinExplicacion" style="color:var(--bad);">$0</div>
+            <div class="sub" id="mesSubPendienteSinExplicacion">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">Ahorro (materiales donde SÍ es normal ahorrar)</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Ahorro Justificado</div>
+            <div class="big" id="mesBigAhorroJust" style="color:var(--good);">$0</div>
+            <div class="sub" id="mesSubAhorroJust">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">Ahorro No Justificado</div>
+            <div class="big" id="mesBigAhorroNoJust" style="color:var(--good);">$0</div>
+            <div class="sub" id="mesSubAhorroNoJust">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">Total Ahorro</div>
+            <div class="big" id="mesBigAhorroTotal" style="color:var(--good);">$0</div>
+            <div class="sub" id="mesSubAhorroTotal">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">Gasto (sobreconsumo)</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Gasto Justificado</div>
+            <div class="big" id="mesBigGastoJust" style="color:var(--bad);">$0</div>
+            <div class="sub" id="mesSubGastoJust">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">Gasto No Justificado</div>
+            <div class="big" id="mesBigGastoNoJust" style="color:var(--bad);">$0</div>
+            <div class="sub" id="mesSubGastoNoJust">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">Total Gasto</div>
+            <div class="big" id="mesBigGastoTotal" style="color:var(--bad);">$0</div>
+            <div class="sub" id="mesSubGastoTotal">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <table>
+          <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
+          <tbody id="tablaTopOPsMes"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Razones más utilizadas (por dinero)</div>
+        <table>
+          <thead><tr><th>Razón</th><th># Líneas</th><th>$ Total (neto)</th><th>% del total</th><th>Tipo</th></tr></thead>
+          <tbody id="tablaTopRazonesMes"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
+        <table>
+          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+          <tbody id="tablaGrupoMaterialMes"></tbody>
+        </table>
       </main>
     </div>
 
@@ -2487,6 +2607,72 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
   XLSX.writeFile(wb, `Resumen_Semanal_${r.rangoTexto.replace(/ /g,'_')}.xlsx`);
 });
 
+document.getElementById('btnDescargarResumenMensual').addEventListener('click', ()=>{
+  if(!resumenMensualCache){
+    alert('Espera a que termine de cargar el mes antes de descargar (o no hay datos para este mes).');
+    return;
+  }
+  const r = resumenMensualCache;
+  const md = r.metricas;
+  const wb = XLSX.utils.book_new();
+
+  const resumenGeneral = [
+    {Concepto:'Mes', Valor: r.rangoTexto},
+    {Concepto:'Días con Programa cargado', Valor: r.diasConDatos.join(', ')},
+    {Concepto:'Días sin Programa', Valor: r.diasSinDatos.join(', ') || 'Ninguno'},
+    {Concepto:'', Valor: ''},
+    {Concepto:'$ Estándar', Valor: md.estandarTotal},
+    {Concepto:'$ Real Consumido', Valor: md.realTotal},
+    {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
+    {Concepto:'', Valor: ''},
+    {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
+    {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
+    {Concepto:'No Hay Material en WIP de Producción', Valor: md.pendienteSinWIP},
+    {Concepto:'Consumo en 0 sin Justificar', Valor: md.pendienteSinExplicacion},
+    {Concepto:'Total Faltante sin Justificar', Valor: md.pendienteRealTotal},
+    {Concepto:'Faltante Ya Justificado', Valor: md.pendienteJustificado},
+    {Concepto:'', Valor: ''},
+    {Concepto:'--- Ahorro ---', Valor: ''},
+    {Concepto:'Ahorro Justificado', Valor: md.ahorroJustificado},
+    {Concepto:'Ahorro No Justificado', Valor: md.ahorroNoJustificado},
+    {Concepto:'Total Ahorro', Valor: md.ahorroTotal},
+    {Concepto:'', Valor: ''},
+    {Concepto:'--- Gasto (Sobreconsumo) ---', Valor: ''},
+    {Concepto:'Gasto Justificado', Valor: md.gastoJustificado},
+    {Concepto:'Gasto No Justificado', Valor: md.gastoNoJustificado},
+    {Concepto:'Total Gasto', Valor: md.gastoTotal},
+    {Concepto:'', Valor: ''},
+    {Concepto:'% de OPs Consumidas (de las terminadas)', Valor: `${r.opsConsumidasInfo.pct.toFixed(1)}% (${r.opsConsumidasInfo.opsConsumidas}/${r.opsConsumidasInfo.opsAl100})`}
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenGeneral), 'Resumen General');
+
+  const topOPsExport = r.topOPs.map(o=>({OP:o.noOP, Modelo:o.modelo, '$ Desviación':o.diffUSD, 'Razones asociadas': o.razones.join('; ') || 'Sin justificar'}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topOPsExport), 'Top 10 OPs');
+
+  const topRazonesExport = r.topRazones.map(x=>({Razon:x.razon, 'No. Líneas':x.count, '$ Total (neto)':x.monto, Tipo:x.tipo, '%':x.pct.toFixed(1)+'%'}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topRazonesExport), 'Top Razones');
+
+  const grupoMaterialExport = r.grupoMaterial.map(g=>({Grupo:g.nombre, '# Líneas':g.count, '$ Desviación Total':g.totalUSD, '$ Promedio por Línea':g.promedioUSD, '%':g.pct.toFixed(1)+'%', Tipo: g.totalUSD>=0?'Gasto':'Ahorro'}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(grupoMaterialExport), 'Grupo de Material');
+
+  const pctCumplimientoOPMes = (op)=>{
+    const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
+    if(!avance || avance.cant <= 0) return 100;
+    return Math.round((avance.cantTerminada/avance.cant)*100);
+  };
+  const todasLasOPsMes = r.todasLasLineasMes.map(l=>({
+    'Fecha Programa': l.fechaPrograma, Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar', OP: l.noOP, Estado: l.estado,
+    '% Cumplimiento OP': pctCumplimientoOPMes(l.noOP) + '%',
+    Modelo: l.modelo, 'No. Componente': l.noComponente, Descripcion: l.descripcion,
+    'Cant. Estandar': l.cantidadEstandar, 'Cant. Real': l.cantidadReal, Diferencia: l.diferencia,
+    'Centro de Trabajo': l.ruta, '$ Estandar': l.estandarUSD, '$ Real': l.realUSD,
+    '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon: l.razon
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(todasLasOPsMes), 'Todas las Líneas');
+
+  XLSX.writeFile(wb, `Resumen_Mensual_${r.rangoTexto.replace(/ /g,'_')}.xlsx`);
+});
+
 document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click', ()=>{
   if(!resumenSemanalCache){
     alert('Espera a que termine de cargar la semana antes de descargar.');
@@ -2652,6 +2838,171 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   doc.save(`Reporte_Semanal_${r.rangoTexto.replace(/ /g,'_')}.pdf`);
 });
 
+document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click', ()=>{
+  if(!resumenMensualCache){
+    alert('Espera a que termine de cargar el mes antes de descargar (o no hay datos para este mes).');
+    return;
+  }
+  const r = resumenMensualCache;
+  const md = r.metricas;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'letter'});
+  const W = 216, PAD = 14;
+  const COLOR_TEXT = [28,39,51], COLOR_MUTED = [107,122,137], COLOR_ACCENT = [30,64,110],
+        COLOR_GOOD = [30,158,106], COLOR_BAD = [209,69,59], COLOR_WARN = [201,138,26], COLOR_ACCENT2 = [47,128,201];
+  let y = 16;
+
+  // Encabezado
+  doc.setFillColor(...COLOR_ACCENT);
+  doc.rect(0,0,W,10,'F');
+  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
+  doc.text('LÍNEA ITALIA', PAD, 7);
+  doc.setFont(undefined,'normal');
+  doc.text('Reporte Mensual de Consumo de Materiales', W-PAD, 7, {align:'right'});
+
+  y = 20;
+  doc.setTextColor(...COLOR_TEXT); doc.setFontSize(16); doc.setFont(undefined,'bold');
+  doc.text(`${r.rangoTexto}`, PAD, y);
+  y += 6;
+  doc.setFontSize(9); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+  doc.text(`Generado: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`, PAD, y);
+  y += 8;
+
+  function tarjeta(x, ancho, alto, titulo, valor, colorValor, subtitulo){
+    doc.setDrawColor(225,225,225); doc.setFillColor(250,250,250);
+    doc.roundedRect(x, y, ancho, alto, 1.5, 1.5, 'FD');
+    doc.setFontSize(7.5); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'bold');
+    doc.text(titulo.toUpperCase(), x+3, y+5, {maxWidth: ancho-6});
+    doc.setFontSize(13); doc.setTextColor(...colorValor); doc.setFont(undefined,'bold');
+    doc.text(valor, x+3, y+11.5);
+    if(subtitulo){
+      doc.setFontSize(6.8); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+      doc.text(subtitulo, x+3, y+alto-2.5, {maxWidth: ancho-6});
+    }
+  }
+
+  function filaTarjetas(items, alto){
+    const gap = 4;
+    const ancho = (W - PAD*2 - gap*(items.length-1)) / items.length;
+    items.forEach((it,i)=> tarjeta(PAD + i*(ancho+gap), ancho, alto, it.t, it.v, it.c, it.s));
+    y += alto + 6;
+  }
+
+  // % de OPs Consumidas
+  doc.setFillColor(240,248,255);
+  doc.setDrawColor(...COLOR_ACCENT2);
+  doc.roundedRect(PAD, y, W-PAD*2, 14, 1.5, 1.5, 'FD');
+  doc.setFontSize(9); doc.setTextColor(...COLOR_ACCENT2); doc.setFont(undefined,'bold');
+  doc.text(`✅ % de OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, PAD+4, y+6);
+  doc.setFontSize(7.5); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+  doc.text(`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`, PAD+4, y+11);
+  y += 18;
+
+  // Fila 1: Estandar / Real / Balance
+  filaTarjetas([
+    {t:'$ Estándar (Mes)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.diasConDatos.length} día(s) con Programa · ${r.opsConsumidasInfo.pct.toFixed(0)}% OPs consumidas`},
+    {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
+    {t:'Balance (Real - Estándar)', v: (md.balance>=0?'+':'')+fmtMoney(md.balance), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar`}
+  ], 20);
+
+  // Seccion: Faltante sin Justificar
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('$ Faltante sin Justificar — por qué falta', PAD, y);
+  y += 4;
+  filaTarjetas([
+    {t:'Aún No Sale de Producción', v: fmtMoney(md.pendienteEnProduccion), c: COLOR_WARN, s:`${md.estandarTotal!==0?((md.pendienteEnProduccion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · La OP sigue en proceso`},
+    {t:'No Hay Material en WIP de Producción', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
+    {t:'Consumo en 0 sin Justificar', v: fmtMoney(md.pendienteSinExplicacion), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinExplicacion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · Avance confirma 100%`}
+  ], 18);
+
+  // Seccion: Ahorro y Gasto lado a lado
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Ahorro y Gasto', PAD, y);
+  y += 4;
+  const anchoMitad = (W - PAD*2 - 6)/2;
+  const pctVal = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1)+'%' : '0.0%';
+  doc.autoTable({
+    startY: y, margin:{left:PAD}, tableWidth: anchoMitad,
+    head:[['Ahorro', '$', '%']],
+    body:[['Justificado', fmtMoney(md.ahorroJustificado), pctVal(md.ahorroJustificado)], ['No Justificado', fmtMoney(md.ahorroNoJustificado), pctVal(md.ahorroNoJustificado)], ['Total', fmtMoney(md.ahorroTotal), pctVal(md.ahorroTotal)]],
+    theme:'grid', headStyles:{fillColor:COLOR_GOOD, fontSize:8}, styles:{fontSize:8, cellPadding:2},
+    columnStyles:{1:{halign:'right'}, 2:{halign:'right'}}
+  });
+  const yAhorro = doc.lastAutoTable.finalY;
+  doc.autoTable({
+    startY: y, margin:{left:PAD+anchoMitad+6}, tableWidth: anchoMitad,
+    head:[['Gasto (Sobreconsumo)', '$', '%']],
+    body:[['Justificado', fmtMoney(md.gastoJustificado), pctVal(md.gastoJustificado)], ['No Justificado', fmtMoney(md.gastoNoJustificado), pctVal(md.gastoNoJustificado)], ['Total', fmtMoney(md.gastoTotal), pctVal(md.gastoTotal)]],
+    theme:'grid', headStyles:{fillColor:COLOR_BAD, fontSize:8}, styles:{fontSize:8, cellPadding:2},
+    columnStyles:{1:{halign:'right'}, 2:{halign:'right'}}
+  });
+  y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 8;
+
+  // Top 10 OPs
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Top 10 OPs con Mayor Desviación', PAD, y);
+  y += 3;
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD},
+    head:[['OP','Modelo','$ Desviación','%','Razón(es)']],
+    body: r.topOPs.length>0 ? r.topOPs.map(o=>[o.noOP, o.modelo, (o.diffUSD>=0?'+':'')+fmtMoney(o.diffUSD), (o.pct>=0?'+':'')+o.pct.toFixed(1)+'%', o.razones.join('; ')||'Sin justificar aún']) : [['Sin datos esta semana','','','','']],
+    theme:'striped', headStyles:{fillColor:COLOR_ACCENT, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}}
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  if(y > 240){ doc.addPage(); y = 16; }
+
+  // Top Razones
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Razones Más Utilizadas (por Dinero)', PAD, y);
+  y += 3;
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD},
+    head:[['Razón','No. Líneas','$ Total (neto)','%','Tipo']],
+    body: r.topRazones.length>0 ? r.topRazones.map(x=>[x.razon, String(x.count), (x.monto>=0?'+':'')+fmtMoney(x.monto), x.pct.toFixed(1)+'%', x.tipo]) : [['Aún no hay Razones capturadas','','','','']],
+    theme:'striped', headStyles:{fillColor:COLOR_ACCENT2, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}},
+    didParseCell: function(data){
+      if(data.section==='body' && data.column.index===4){
+        data.cell.styles.textColor = data.cell.raw==='Gasto' ? COLOR_BAD : (data.cell.raw==='Ahorro' ? COLOR_GOOD : COLOR_MUTED);
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  if(y > 250){ doc.addPage(); y = 16; }
+
+  // Desviacion por Grupo de Material
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Desviación por Grupo de Material', PAD, y);
+  y += 3;
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD},
+    head:[['Grupo','# Líneas','$ Desviación Total','$ Promedio','%','Tipo']],
+    body: r.grupoMaterial.length>0 ? r.grupoMaterial.map(g=>[g.nombre, String(g.count), (g.totalUSD>=0?'+':'')+fmtMoney(g.totalUSD), (g.promedioUSD>=0?'+':'')+fmtMoney(g.promedioUSD), (g.pct>=0?'+':'')+g.pct.toFixed(1)+'%', g.totalUSD>=0?'Gasto':'Ahorro']) : [['Sin datos esta semana','','','','','']],
+    theme:'striped', headStyles:{fillColor:COLOR_ACCENT, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'}},
+    didParseCell: function(data){
+      if(data.section==='body' && data.column.index===5){
+        data.cell.styles.textColor = data.cell.raw==='Gasto' ? COLOR_BAD : COLOR_GOOD;
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+
+  // Pie de pagina en todas las paginas
+  const totalPaginas = doc.internal.getNumberOfPages();
+  for(let p=1; p<=totalPaginas; p++){
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED);
+    doc.text(`Consumo de Materiales — Línea Italia · Página ${p} de ${totalPaginas}`, PAD, 279);
+  }
+
+  doc.save(`Reporte_Mensual_${r.rangoTexto.replace(/ /g,'_')}.pdf`);
+});
+
 document.getElementById('prevSemanaProgramaBtn').addEventListener('click', ()=>{
   currentSemanaProgramaFecha = sumarDiasISO(currentSemanaProgramaFecha, -7);
   renderSemanaPrograma();
@@ -2775,6 +3126,145 @@ document.getElementById('btnRefrescarDia').addEventListener('click', async (e)=>
   renderProgramaDiaDetalle();
   e.target.textContent = '🔄 Actualizar Datos';
 });
+
+let currentMesProgramaFecha = new Date().toISOString().slice(0,10);
+let resumenMensualCache = null;
+
+document.getElementById('btnVerResumenMensual').addEventListener('click', ()=>{
+  document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.remove('hidden');
+  renderResumenMensual();
+});
+document.getElementById('prevMesProgramaBtn').addEventListener('click', ()=>{
+  const d = new Date(currentMesProgramaFecha + 'T00:00:00');
+  d.setMonth(d.getMonth()-1);
+  currentMesProgramaFecha = d.toISOString().slice(0,10);
+  renderResumenMensual();
+});
+document.getElementById('nextMesProgramaBtn').addEventListener('click', ()=>{
+  const d = new Date(currentMesProgramaFecha + 'T00:00:00');
+  d.setMonth(d.getMonth()+1);
+  currentMesProgramaFecha = d.toISOString().slice(0,10);
+  renderResumenMensual();
+});
+
+async function renderResumenMensual(){
+  const nombresMes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const d = new Date(currentMesProgramaFecha + 'T00:00:00');
+  const anio = d.getFullYear(), mes = d.getMonth();
+  document.getElementById('mesProgramaDisplay').textContent = `${nombresMes[mes]} ${anio}`;
+
+  const primerDia = new Date(anio, mes, 1);
+  const ultimoDia = new Date(anio, mes+1, 0);
+
+  document.getElementById('mesDatosDisponibles').textContent = 'Buscando Programas de todo el mes...';
+
+  const diasConDatos = [];
+  const diasSinDatos = [];
+  const todasLasLineasMes = [];
+
+  const cursor = new Date(primerDia);
+  while(cursor <= ultimoDia){
+    const dow = cursor.getDay();
+    if(dow !== 0 && dow !== 6){ // solo dias entre semana (Lun-Vie)
+      const fechaISO = cursor.toISOString().slice(0,10);
+      const lineas = await construirProgramaDia(fechaISO);
+      if(lineas.length > 0){
+        diasConDatos.push(fechaISO);
+        todasLasLineasMes.push(...lineas.map(l=>({...l, fechaPrograma: fechaISO})));
+      } else {
+        diasSinDatos.push(fechaISO);
+      }
+    }
+    cursor.setDate(cursor.getDate()+1);
+  }
+
+  const fmtCorta = (iso)=>{ const p = iso.split('-'); return `${p[2]}`; };
+  document.getElementById('mesDatosDisponibles').innerHTML = diasConDatos.length > 0
+    ? `📊 <strong>Datos disponibles:</strong> ${diasConDatos.length} día(s) con Programa cargado (días ${diasConDatos.map(fmtCorta).join(', ')} de ${nombresMes[mes]}) — de ${diasConDatos.length + diasSinDatos.length} días hábiles en el mes. ${diasSinDatos.length>0 ? `<span style="color:var(--muted);">Sin Programa: días ${diasSinDatos.map(fmtCorta).join(', ')}.</span>` : ''}`
+    : `⚠ No hay ningún Programa cargado para ${nombresMes[mes]} ${anio}.`;
+
+  if(diasConDatos.length === 0){
+    ['mesBigEstandar','mesBigReal','mesBigBalance','mesBigPendienteProduccion','mesBigPendienteSinWIP','mesBigPendienteSinExplicacion','mesBigAhorroJust','mesBigAhorroNoJust','mesBigAhorroTotal','mesBigGastoJust','mesBigGastoNoJust','mesBigGastoTotal'].forEach(id=> document.getElementById(id).textContent = '$0');
+    document.getElementById('mesPctOPsConsumidas').textContent = '—';
+    document.getElementById('mesPctOPsConsumidasDetail').textContent = '';
+    document.getElementById('tablaTopOPsMes').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
+    document.getElementById('tablaTopRazonesMes').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
+    document.getElementById('tablaGrupoMaterialMes').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
+    resumenMensualCache = null;
+    return;
+  }
+
+  const md = calcularMetricasDetalladas(todasLasLineasMes);
+  const pctVsEstandarMes = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
+
+  const opsConsumidasInfoMes = calcularPctOPsConsumidas(todasLasLineasMes);
+  document.getElementById('mesPctOPsConsumidas').textContent = `${opsConsumidasInfoMes.pct.toFixed(0)}%`;
+  document.getElementById('mesPctOPsConsumidasDetail').textContent = `${opsConsumidasInfoMes.opsConsumidas} de ${opsConsumidasInfoMes.opsAl100} OPs terminadas ya tienen todo su material consumido`;
+
+  document.getElementById('mesBigEstandar').textContent = fmtMoney(md.estandarTotal);
+  document.getElementById('mesSubEstandar').textContent = `${diasConDatos.length} día(s) con Programa`;
+  document.getElementById('mesBigReal').textContent = fmtMoney(md.realTotal);
+  document.getElementById('mesSubReal').textContent = `${pctVsEstandarMes(md.realTotal)}% del estándar`;
+  const balanceElMes = document.getElementById('mesBigBalance');
+  balanceElMes.textContent = (md.balance>=0?'+':'') + fmtMoney(md.balance);
+  balanceElMes.className = 'big ' + (md.balance>0?'pos':'neg');
+  document.getElementById('mesSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandarMes(md.balance)}% vs estándar`;
+
+  document.getElementById('mesBigPendienteProduccion').textContent = fmtMoney(md.pendienteEnProduccion);
+  document.getElementById('mesSubPendienteProduccion').textContent = `${pctVsEstandarMes(md.pendienteEnProduccion)}% del estándar`;
+  document.getElementById('mesBigPendienteSinWIP').textContent = fmtMoney(md.pendienteSinWIP);
+  document.getElementById('mesSubPendienteSinWIP').textContent = `${pctVsEstandarMes(md.pendienteSinWIP)}% del estándar`;
+  document.getElementById('mesBigPendienteSinExplicacion').textContent = fmtMoney(md.pendienteSinExplicacion);
+  document.getElementById('mesSubPendienteSinExplicacion').textContent = `${pctVsEstandarMes(md.pendienteSinExplicacion)}% del estándar`;
+
+  document.getElementById('mesBigAhorroJust').textContent = fmtMoney(md.ahorroJustificado);
+  document.getElementById('mesSubAhorroJust').textContent = `${pctVsEstandarMes(md.ahorroJustificado)}% del estándar`;
+  document.getElementById('mesBigAhorroNoJust').textContent = fmtMoney(md.ahorroNoJustificado);
+  document.getElementById('mesSubAhorroNoJust').textContent = `${pctVsEstandarMes(md.ahorroNoJustificado)}% del estándar`;
+  document.getElementById('mesBigAhorroTotal').textContent = fmtMoney(md.ahorroTotal);
+  document.getElementById('mesSubAhorroTotal').textContent = `${pctVsEstandarMes(md.ahorroTotal)}% del estándar`;
+
+  document.getElementById('mesBigGastoJust').textContent = fmtMoney(md.gastoJustificado);
+  document.getElementById('mesSubGastoJust').textContent = `${pctVsEstandarMes(md.gastoJustificado)}% del estándar`;
+  document.getElementById('mesBigGastoNoJust').textContent = fmtMoney(md.gastoNoJustificado);
+  document.getElementById('mesSubGastoNoJust').textContent = `${pctVsEstandarMes(md.gastoNoJustificado)}% del estándar`;
+  document.getElementById('mesBigGastoTotal').textContent = fmtMoney(md.gastoTotal);
+  document.getElementById('mesSubGastoTotal').textContent = `${pctVsEstandarMes(md.gastoTotal)}% del estándar`;
+
+  const topOPsMes = calcularTopOPsPorDesviacion(todasLasLineasMes, 10);
+  document.getElementById('tablaTopOPsMes').innerHTML = topOPsMes.length > 0 ? topOPsMes.map(o=>`<tr>
+    <td>${o.noOP}</td><td>${o.modelo}</td>
+    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
+    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
+    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
+
+  const topRazonesMes = calcularTopRazonesPorDinero(todasLasLineasMes, 5);
+  document.getElementById('tablaTopRazonesMes').innerHTML = topRazonesMes.length > 0 ? topRazonesMes.map(r=>`<tr>
+    <td>${r.razon}</td><td>${r.count}</td>
+    <td class="money" style="color:${r.monto<0?'var(--good)':(r.monto>0?'var(--bad)':'var(--text)')}; font-weight:600;">${r.monto>=0?'+':''}${fmtMoney(r.monto)}</td>
+    <td>${r.pct.toFixed(1)}%</td>
+    <td style="color:${r.tipo==='Ahorro'?'var(--good)':(r.tipo==='Gasto'?'var(--bad)':'var(--muted)')}; font-weight:600;">${r.tipo}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas este mes.</td></tr>';
+
+  const grupoMaterialMes = calcularDesviacionPorGrupoMaterial(todasLasLineasMes);
+  document.getElementById('tablaGrupoMaterialMes').innerHTML = grupoMaterialMes.length > 0 ? grupoMaterialMes.map(g=>`<tr>
+    <td>${g.nombre}</td><td>${g.count}</td>
+    <td class="money" style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'+':''}${fmtMoney(g.totalUSD)}</td>
+    <td class="money">${g.promedioUSD>=0?'+':''}${fmtMoney(g.promedioUSD)}</td>
+    <td style="color:${g.pct>=0?'var(--bad)':'var(--good)'};">${g.pct>=0?'+':''}${g.pct.toFixed(1)}%</td>
+    <td style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'Gasto':'Ahorro'}</td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
+
+  resumenMensualCache = {
+    rangoTexto: `${nombresMes[mes]} ${anio}`,
+    diasConDatos, diasSinDatos,
+    metricas: md, opsConsumidasInfo: opsConsumidasInfoMes,
+    topOPs: topOPsMes, topRazones: topRazonesMes, grupoMaterial: grupoMaterialMes,
+    todasLasLineasMes
+  };
+}
 
 async function renderSemanaPrograma(){
   const lunes = lunesDeSemana(currentSemanaProgramaFecha);
@@ -3090,6 +3580,7 @@ function volverASemanaPrograma(){
   document.getElementById('programa-nivel-semana').classList.remove('hidden');
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.add('hidden');
 }
 function volverADiaPrograma(){
   document.getElementById('programa-nivel-dia').classList.remove('hidden');
