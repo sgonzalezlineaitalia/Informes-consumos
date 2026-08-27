@@ -235,7 +235,10 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       </div>
       <div id="ultimaActualizacionInfo" style="text-align:center; font-size:11px; color:var(--muted); padding:4px 0; background:var(--panel);">&nbsp;</div>
       <main>
-        <div class="section-title">Programas de la semana — clic en un día para analizarlo</div>
+        <div class="section-title" style="display:flex; align-items:center; gap:12px;">
+          Programas de la semana — clic en un día para analizarlo
+          <button class="btn primary" onclick="verSemanaCompleta()" style="font-size:12px; padding:6px 14px; margin-left:auto;">📋 Ver toda la Semana (una sola lista)</button>
+        </div>
         <div id="gridDiasPrograma" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:14px; margin-bottom:24px;"></div>
 
         <div class="section-title" style="display:flex; align-items:center; gap:12px;">
@@ -648,7 +651,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <div id="programa-nivel-fase" class="hidden">
       <main>
         <div class="toolbar" style="margin-bottom:16px;">
-          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverADiaPrograma()">← Volver al Programa del Día</button>
+          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="modoVistaSemanaCompleta ? volverASemanaPrograma() : volverADiaPrograma()">← Volver</button>
           <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="programaFaseTitulo">Fase</span>
         </div>
         <div class="toolbar">
@@ -657,6 +660,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn" id="btnFiltroConsumoCero" style="color:var(--bad); border-color:var(--bad);">⚠ Solo Consumo Real en 0</button>
           <button class="btn" id="btnFiltroAlCien" style="color:var(--good); border-color:var(--good);">✅ Solo OPs al 100% de producción</button>
           <button class="btn" id="btnFiltroRechazo" style="color:var(--bad); border-color:var(--bad);">⚠ Solo OPs con Rechazo de Calidad</button>
+          <button class="btn" id="btnFiltroPendientesJustificar" style="color:var(--accent); border-color:var(--accent); font-weight:600;">🎯 Solo Pendientes de Justificar</button>
           <input type="text" id="buscarProgramaFase" placeholder="Buscar OP, SKU, modelo, descripción..." style="margin-left:auto; min-width:280px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 12px; border-radius:6px; font-size:13px;">
         </div>
         <div class="toolbar" id="toolbarRazonLote" style="background:var(--panel-2); border-radius:8px; padding:10px 12px;">
@@ -2543,12 +2547,14 @@ let currentSemanaProgramaFecha = new Date().toISOString().slice(0,10);
 let currentProgramaDia = null;
 let currentProgramaLineas = [];
 let currentProgramaFaseSeleccionada = null;
+let modoVistaSemanaCompleta = false;
 let sortStateProgramaFase = {key:null, dir:1};
 let busquedaProgramaFase = '';
 let filtroSinAhorroActivo = false;
 let filtroConsumoCeroActivo = false;
 let filtroAlCienActivo = false;
 let filtroRechazoActivo = false;
+let filtroPendientesJustificarActivo = false;
 let resumenSemanalCache = null;
 let lineasSeleccionadasLote = new Set();
 function opAlCien(op){
@@ -4046,7 +4052,44 @@ function renderProgramaDiaDetalle(){
   tbody.innerHTML = html;
 }
 
+function verSemanaCompleta(){
+  if(!resumenSemanalCache || !resumenSemanalCache.todasLasLineasSemana || resumenSemanalCache.todasLasLineasSemana.length===0){
+    alert('Espera a que termine de cargar la semana antes de ver la lista completa.');
+    return;
+  }
+  modoVistaSemanaCompleta = true;
+  currentProgramaLineas = resumenSemanalCache.todasLasLineasSemana;
+  currentProgramaFaseSeleccionada = 'todas';
+  busquedaProgramaFase = '';
+  document.getElementById('buscarProgramaFase').value = '';
+  filtroSinAhorroActivo = false;
+  const btnFiltro = document.getElementById('btnFiltroSinAhorro');
+  btnFiltro.style.background = '';
+  btnFiltro.style.color = '';
+  filtroConsumoCeroActivo = false;
+  const btnFiltroCero = document.getElementById('btnFiltroConsumoCero');
+  btnFiltroCero.style.background = '';
+  btnFiltroCero.style.color = '';
+  filtroAlCienActivo = false;
+  const btnFiltroCien = document.getElementById('btnFiltroAlCien');
+  btnFiltroCien.style.background = '';
+  btnFiltroCien.style.color = '';
+  filtroRechazoActivo = false;
+  const btnFiltroRechazoEl = document.getElementById('btnFiltroRechazo');
+  btnFiltroRechazoEl.style.background = '';
+  btnFiltroRechazoEl.style.color = '';
+  filtroPendientesJustificarActivo = false;
+  const btnFiltroPendJustEl = document.getElementById('btnFiltroPendientesJustificar');
+  btnFiltroPendJustEl.style.background = '';
+  btnFiltroPendJustEl.style.color = 'var(--accent)';
+  lineasSeleccionadasLote.clear();
+  document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-fase').classList.remove('hidden');
+  document.getElementById('programaFaseTitulo').textContent = `Toda la Semana (${resumenSemanalCache.rangoTexto}) — lista completa`;
+  renderTablaProgramaFase();
+}
 function verProgramaFase(fase){
+  modoVistaSemanaCompleta = false;
   currentProgramaFaseSeleccionada = fase;
   busquedaProgramaFase = '';
   document.getElementById('buscarProgramaFase').value = '';
@@ -4066,6 +4109,10 @@ function verProgramaFase(fase){
   const btnFiltroRechazoEl = document.getElementById('btnFiltroRechazo');
   btnFiltroRechazoEl.style.background = '';
   btnFiltroRechazoEl.style.color = '';
+  filtroPendientesJustificarActivo = false;
+  const btnFiltroPendJustEl = document.getElementById('btnFiltroPendientesJustificar');
+  btnFiltroPendJustEl.style.background = '';
+  btnFiltroPendJustEl.style.color = 'var(--accent)';
   lineasSeleccionadasLote.clear();
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.remove('hidden');
@@ -4100,11 +4147,19 @@ document.getElementById('btnFiltroRechazo').addEventListener('click', (e)=>{
   e.target.style.color = filtroRechazoActivo ? '#fff' : '';
   renderTablaProgramaFase();
 });
+document.getElementById('btnFiltroPendientesJustificar').addEventListener('click', (e)=>{
+  filtroPendientesJustificarActivo = !filtroPendientesJustificarActivo;
+  e.target.style.background = filtroPendientesJustificarActivo ? 'var(--accent)' : '';
+  e.target.style.color = filtroPendientesJustificarActivo ? '#1a1006' : 'var(--accent)';
+  renderTablaProgramaFase();
+});
 
 function renderTheadProgramaFase(){
   const thead = document.getElementById('theadProgramaFase');
   const columnas = [
-    {key:'fase', label:'Fase'}, {key:'fechaEsperada', label:'Fecha Esperada'}, {key:'noOP', label:'OP'}, {key:'estado', label:'Estado'}, {key:'modelo', label:'Modelo'},
+    {key:'fase', label:'Fase'},
+    ...(modoVistaSemanaCompleta ? [{key:'fechaPrograma', label:'Fecha Programa'}] : []),
+    {key:'fechaEsperada', label:'Fecha Esperada'}, {key:'noOP', label:'OP'}, {key:'estado', label:'Estado'}, {key:'modelo', label:'Modelo'},
     {key:'noComponente', label:'No. Componente'}, {key:'descripcion', label:'Descripción'},
     {key:'cantidadEstandar', label:'Cant. Estándar'}, {key:'cantidadReal', label:'Cant. Real'},
     {key:'diferencia', label:'Diferencia'}, {key:'pct', label:'%'}, {key:null, label:'Tipo'},
@@ -4143,6 +4198,14 @@ function estadoAbrev(estado){
   return '';
 }
 
+function esLineaAlerta(l){
+  const esSobreconsumo = l.pct >= UMBRAL;
+  const esAhorroFuerte = l.pct <= -UMBRAL;
+  const esSospechoso = l.ahorroSospechoso;
+  const esConsumoCero = l.consumoCero && !l.razonAutomatica;
+  return esSobreconsumo || esAhorroFuerte || esSospechoso || esConsumoCero;
+}
+
 function renderTablaProgramaFase(){
   renderTheadProgramaFase();
   const selectLote = document.getElementById('selectRazonLote');
@@ -4162,6 +4225,9 @@ function renderTablaProgramaFase(){
   }
   if(filtroRechazoActivo){
     lineas = lineas.filter(l=> buscarRechazosParaOP(l.noOP, l.modelo).length > 0);
+  }
+  if(filtroPendientesJustificarActivo){
+    lineas = lineas.filter(l=> esLineaAlerta(l) && !l.razon);
   }
 
   if(busquedaProgramaFase.trim()){
@@ -4192,7 +4258,7 @@ function renderTablaProgramaFase(){
     const esAhorroFuerte = l.pct <= -UMBRAL;
     const esSospechoso = l.ahorroSospechoso; // cualquier ahorro (por chico que sea) en un material que NO deberia tener ahorro
     const esConsumoCero = l.consumoCero && !l.razonAutomatica; // consumo real = 0 -- SIEMPRE sospechoso, salvo que ya se auto-justifique
-    const esAlerta = esSobreconsumo || esAhorroFuerte || esSospechoso || esConsumoCero;
+    const esAlerta = esLineaAlerta(l);
     const filaEstilo = l.razonAutomatica ? 'background:rgba(70,130,220,0.05);' : ((esSobreconsumo || esSospechoso || esConsumoCero) ? 'background:rgba(209,69,59,0.08);' : (esAhorroFuerte?'background:rgba(30,158,106,0.08);':''));
     const razonOptions = ['<option value="">—</option>'].concat(RAZONES.map(r=>`<option value="${r}" ${r===l.razon?'selected':''}>${r}</option>`)).join('');
     const tipoTexto = l.razonAutomatica ? '🤖 Auto-justificado' : (esConsumoCero ? '⚠ Consumo real en 0 (imposible)' : (esSospechoso ? '⚠ Revisar (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'))));
@@ -4200,6 +4266,7 @@ function renderTablaProgramaFase(){
     return `<tr style="${filaEstilo}">
       <td>${(esAlerta && !l.razonAutomatica) ? `<input type="checkbox" class="check-linea" data-linea="${l.lineaKey}" ${lineasSeleccionadasLote.has(l.lineaKey)?'checked':''}>` : ''}</td>
       <td><strong>${l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar'}</strong>${l.fasesMultiples && l.fasesMultiples.length>1 ? ` <span style="color:var(--muted); font-size:10px;">(+${l.fasesMultiples.filter(f=>f!==l.fase).join(',')})</span>` : ''}</td>
+      ${modoVistaSemanaCompleta ? `<td style="font-family:var(--mono);">${l.fechaPrograma}</td>` : ''}
       <td style="font-family:var(--mono);">${l.fechaEsperada}</td>
       <td>${l.noOP}</td><td style="color:var(--muted);" title="${l.estado}">${estadoAbrev(l.estado) || l.estado || '—'}</td><td>${l.modelo}</td><td>${l.noComponente}</td>
       <td style="font-family:var(--sans); max-width:200px;">${l.descripcion}</td>
@@ -4311,7 +4378,9 @@ document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
     ? [...currentProgramaLineas]
     : currentProgramaLineas.filter(l=> l.fase===currentProgramaFaseSeleccionada || (l.fasesMultiples && l.fasesMultiples.includes(currentProgramaFaseSeleccionada)));
   const data = lineas.map(l=>({
-    Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar', 'Fecha Esperada':l.fechaEsperada, OP:l.noOP, Modelo:l.modelo, Estado:l.estado, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
+    Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar',
+    ...(modoVistaSemanaCompleta ? {'Fecha Programa': l.fechaPrograma} : {}),
+    'Fecha Esperada':l.fechaEsperada, OP:l.noOP, Modelo:l.modelo, Estado:l.estado, 'No. Componente':l.noComponente, Descripcion:l.descripcion,
     'Cant. Estandar':l.cantidadEstandar, 'Cant. Real':l.cantidadReal, Diferencia:l.diferencia,
     '%': (l.pct*100).toFixed(1)+'%', 'Tipo': l.consumoCero ? 'CONSUMO EN 0' : (l.ahorroSospechoso ? 'REVISAR (no debería ahorrar)' : (l.diferencia>0?'Gasto':(l.diferencia<0?'Ahorro':'—'))),
     'Centro de Trabajo':l.ruta, 'Avance OP': avanceOPTexto(l.noOP), 'Modo de Cálculo': l.modoUsado,
@@ -4319,8 +4388,8 @@ document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Fase '+currentProgramaFaseSeleccionada);
-  XLSX.writeFile(wb, `Programa_${currentProgramaDia}_Fase${currentProgramaFaseSeleccionada}.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, modoVistaSemanaCompleta ? 'Toda la Semana' : ('Fase '+currentProgramaFaseSeleccionada));
+  XLSX.writeFile(wb, modoVistaSemanaCompleta ? `Semana_Completa_${resumenSemanalCache.rangoTexto.replace(/ /g,'_')}.xlsx` : `Programa_${currentProgramaDia}_Fase${currentProgramaFaseSeleccionada}.xlsx`);
 });
 
 (async function init(){
