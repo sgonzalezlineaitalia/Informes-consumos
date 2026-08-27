@@ -245,11 +245,21 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn" id="btnVerResumenMensual" style="font-size:12px; padding:6px 14px; margin-left:auto;">📅 Ver Resumen Mensual</button>
         </div>
 
-        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr 1fr;">
           <div class="alertcard">
             <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada", en cuyo caso cuenta como consumida aunque le falte algún material en 0.</span></span></div>
             <div class="headline" id="semPctOPsConsumidas">—</div>
             <div class="detail" id="semPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+          <div class="alertcard">
+            <div class="label">🔒 % de OPs Cerradas <span class="help-icon">?<span class="help-tooltip">De TODAS las OPs de este periodo (sin importar su Avance), qué % ya tiene Estado = "Terminada" en el sistema. Te dice cuántas OPs siguen abiertas (Lanzada) pendientes de cerrar administrativamente.</span></span></div>
+            <div class="headline" id="semPctOPsCerradas">—</div>
+            <div class="detail" id="semPctOPsCerradasDetail">&nbsp;</div>
+          </div>
+          <div class="alertcard">
+            <div class="label">⚖ Balance Real (Solo OPs Terminadas) <span class="help-icon">?<span class="help-tooltip">Igual que el Balance de arriba, pero SIN las OPs que aún están en producción. Esas OPs muestran Real bajo o en 0 solo porque todavía no les toca consumir, no porque haya ahorro de verdad — este número excluye esa distorsión.</span></span></div>
+            <div class="headline" id="semBalanceReal">—</div>
+            <div class="detail" id="semBalanceRealDetail">&nbsp;</div>
           </div>
         </div>
 
@@ -327,6 +337,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="semSubGastoTotal">&nbsp;</div>
           </div>
         </div>
+        <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="semGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
 
         <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
         <table>
@@ -368,11 +379,21 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="field-hint" style="margin-bottom:16px; padding:10px; background:var(--panel-2); border-radius:6px;" id="mesDatosDisponibles">Cargando...</div>
 
-        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr 1fr;">
           <div class="alertcard">
             <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs de este mes que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada".</span></span></div>
             <div class="headline" id="mesPctOPsConsumidas">—</div>
             <div class="detail" id="mesPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+          <div class="alertcard">
+            <div class="label">🔒 % de OPs Cerradas <span class="help-icon">?<span class="help-tooltip">De TODAS las OPs de este mes (sin importar su Avance), qué % ya tiene Estado = "Terminada" en el sistema.</span></span></div>
+            <div class="headline" id="mesPctOPsCerradas">—</div>
+            <div class="detail" id="mesPctOPsCerradasDetail">&nbsp;</div>
+          </div>
+          <div class="alertcard">
+            <div class="label">⚖ Balance Real (Solo OPs Terminadas) <span class="help-icon">?<span class="help-tooltip">Igual que el Balance de arriba, pero SIN las OPs que aún están en producción. Esas OPs muestran Real bajo o en 0 solo porque todavía no les toca consumir, no porque haya ahorro de verdad.</span></span></div>
+            <div class="headline" id="mesBalanceReal">—</div>
+            <div class="detail" id="mesBalanceRealDetail">&nbsp;</div>
           </div>
         </div>
 
@@ -450,6 +471,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="mesSubGastoTotal">&nbsp;</div>
           </div>
         </div>
+        <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="mesGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
 
         <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
         <table>
@@ -572,6 +594,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="progSubGastoTotal">&nbsp;</div>
           </div>
         </div>
+        <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="progGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
 
         <div class="section-title" style="margin-top:24px;">Fases del Programa (con su fecha esperada de consumo) — clic para ver detalle</div>
         <div class="toolbar" style="margin-bottom:10px;">
@@ -2548,6 +2571,7 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
     {Concepto:'$ Estándar', Valor: md.estandarTotal},
     {Concepto:'$ Real Consumido', Valor: md.realTotal},
     {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
+    {Concepto:'Balance Real (Solo OPs Terminadas)', Valor: r.balanceReal.balance},
     {Concepto:'', Valor: ''},
     {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
     {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
@@ -2565,6 +2589,7 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
     {Concepto:'Gasto Justificado', Valor: md.gastoJustificado},
     {Concepto:'Gasto No Justificado', Valor: md.gastoNoJustificado},
     {Concepto:'Total Gasto', Valor: md.gastoTotal},
+    {Concepto:'Gasto Perdonado (variación normal)', Valor: md.gastoPerdonado},
     {Concepto:'', Valor: ''},
     {Concepto:'% Cumplimiento (OPs al 100%)', Valor: r.pctCumplimientoSemana.toFixed(1)+'%'},
     {Concepto:'OPs al 100% / Total OPs', Valor: `${r.semOpsCompletas}/${r.semOpsTotal}`},
@@ -2624,6 +2649,7 @@ document.getElementById('btnDescargarResumenMensual').addEventListener('click', 
     {Concepto:'$ Estándar', Valor: md.estandarTotal},
     {Concepto:'$ Real Consumido', Valor: md.realTotal},
     {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
+    {Concepto:'Balance Real (Solo OPs Terminadas)', Valor: r.balanceReal.balance},
     {Concepto:'', Valor: ''},
     {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
     {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
@@ -2641,6 +2667,7 @@ document.getElementById('btnDescargarResumenMensual').addEventListener('click', 
     {Concepto:'Gasto Justificado', Valor: md.gastoJustificado},
     {Concepto:'Gasto No Justificado', Valor: md.gastoNoJustificado},
     {Concepto:'Total Gasto', Valor: md.gastoTotal},
+    {Concepto:'Gasto Perdonado (variación normal)', Valor: md.gastoPerdonado},
     {Concepto:'', Valor: ''},
     {Concepto:'% de OPs Consumidas (de las terminadas)', Valor: `${r.opsConsumidasInfo.pct.toFixed(1)}% (${r.opsConsumidasInfo.opsConsumidas}/${r.opsConsumidasInfo.opsAl100})`}
   ];
@@ -2723,15 +2750,24 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
     y += alto + 6;
   }
 
-  // % de OPs Consumidas
-  doc.setFillColor(240,248,255);
-  doc.setDrawColor(...COLOR_ACCENT2);
-  doc.roundedRect(PAD, y, W-PAD*2, 14, 1.5, 1.5, 'FD');
-  doc.setFontSize(9); doc.setTextColor(...COLOR_ACCENT2); doc.setFont(undefined,'bold');
-  doc.text(`✅ % de OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, PAD+4, y+6);
-  doc.setFontSize(7.5); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
-  doc.text(`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`, PAD+4, y+11);
-  y += 18;
+  // 3 recuadros: % OPs Consumidas / % OPs Cerradas / Balance Real
+  const anchoInfo = (W - PAD*2 - 8)/3;
+  const cajasInfo = [
+    {titulo:`✅ % OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
+    {titulo:`🔒 % OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2},
+    {titulo:`⚖ Balance Real: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)}`, detalle:`Solo OPs terminadas (excluye en producción)`, color: r.balanceReal.balance>0?COLOR_BAD:COLOR_GOOD}
+  ];
+  cajasInfo.forEach((info,i)=>{
+    const x = PAD + i*(anchoInfo+4);
+    doc.setFillColor(240,248,255);
+    doc.setDrawColor(...info.color);
+    doc.roundedRect(x, y, anchoInfo, 18, 1.5, 1.5, 'FD');
+    doc.setFontSize(8); doc.setTextColor(...info.color); doc.setFont(undefined,'bold');
+    doc.text(doc.splitTextToSize(info.titulo, anchoInfo-6), x+3, y+6);
+    doc.setFontSize(6.3); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+    doc.text(doc.splitTextToSize(info.detalle, anchoInfo-6), x+3, y+12);
+  });
+  y += 22;
 
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
@@ -2739,6 +2775,7 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
     {t:'Balance (Real - Estándar)', v: (md.balance>=0?'+':'')+fmtMoney(md.balance), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar`}
   ], 20);
+
 
   // Seccion: Faltante sin Justificar
   doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
@@ -2771,7 +2808,11 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
     theme:'grid', headStyles:{fillColor:COLOR_BAD, fontSize:8}, styles:{fontSize:8, cellPadding:2},
     columnStyles:{1:{halign:'right'}, 2:{halign:'right'}}
   });
-  y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 8;
+  y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 5;
+  doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'italic');
+  doc.text(`🎯 Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
+  doc.setFont(undefined,'normal');
+  y += 6;
 
   // Top 10 OPs
   doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
@@ -2888,15 +2929,24 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
     y += alto + 6;
   }
 
-  // % de OPs Consumidas
-  doc.setFillColor(240,248,255);
-  doc.setDrawColor(...COLOR_ACCENT2);
-  doc.roundedRect(PAD, y, W-PAD*2, 14, 1.5, 1.5, 'FD');
-  doc.setFontSize(9); doc.setTextColor(...COLOR_ACCENT2); doc.setFont(undefined,'bold');
-  doc.text(`✅ % de OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, PAD+4, y+6);
-  doc.setFontSize(7.5); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
-  doc.text(`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`, PAD+4, y+11);
-  y += 18;
+  // 3 recuadros: % OPs Consumidas / % OPs Cerradas / Balance Real
+  const anchoInfo = (W - PAD*2 - 8)/3;
+  const cajasInfo = [
+    {titulo:`✅ % OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
+    {titulo:`🔒 % OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2},
+    {titulo:`⚖ Balance Real: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)}`, detalle:`Solo OPs terminadas (excluye en producción)`, color: r.balanceReal.balance>0?COLOR_BAD:COLOR_GOOD}
+  ];
+  cajasInfo.forEach((info,i)=>{
+    const x = PAD + i*(anchoInfo+4);
+    doc.setFillColor(240,248,255);
+    doc.setDrawColor(...info.color);
+    doc.roundedRect(x, y, anchoInfo, 18, 1.5, 1.5, 'FD');
+    doc.setFontSize(8); doc.setTextColor(...info.color); doc.setFont(undefined,'bold');
+    doc.text(doc.splitTextToSize(info.titulo, anchoInfo-6), x+3, y+6);
+    doc.setFontSize(6.3); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+    doc.text(doc.splitTextToSize(info.detalle, anchoInfo-6), x+3, y+12);
+  });
+  y += 22;
 
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
@@ -2904,6 +2954,7 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
     {t:'Balance (Real - Estándar)', v: (md.balance>=0?'+':'')+fmtMoney(md.balance), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar`}
   ], 20);
+
 
   // Seccion: Faltante sin Justificar
   doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
@@ -2936,7 +2987,11 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
     theme:'grid', headStyles:{fillColor:COLOR_BAD, fontSize:8}, styles:{fontSize:8, cellPadding:2},
     columnStyles:{1:{halign:'right'}, 2:{halign:'right'}}
   });
-  y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 8;
+  y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 5;
+  doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'italic');
+  doc.text(`🎯 Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
+  doc.setFont(undefined,'normal');
+  y += 6;
 
   // Top 10 OPs
   doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
@@ -3185,9 +3240,13 @@ async function renderResumenMensual(){
     : `⚠ No hay ningún Programa cargado para ${nombresMes[mes]} ${anio}.`;
 
   if(diasConDatos.length === 0){
-    ['mesBigEstandar','mesBigReal','mesBigBalance','mesBigPendienteProduccion','mesBigPendienteSinWIP','mesBigPendienteSinExplicacion','mesBigAhorroJust','mesBigAhorroNoJust','mesBigAhorroTotal','mesBigGastoJust','mesBigGastoNoJust','mesBigGastoTotal'].forEach(id=> document.getElementById(id).textContent = '$0');
+    ['mesBigEstandar','mesBigReal','mesBigBalance','mesBigPendienteProduccion','mesBigPendienteSinWIP','mesBigPendienteSinExplicacion','mesBigAhorroJust','mesBigAhorroNoJust','mesBigAhorroTotal','mesBigGastoJust','mesBigGastoNoJust','mesBigGastoTotal','mesGastoPerdonado'].forEach(id=> document.getElementById(id).textContent = '$0');
     document.getElementById('mesPctOPsConsumidas').textContent = '—';
     document.getElementById('mesPctOPsConsumidasDetail').textContent = '';
+    document.getElementById('mesBalanceReal').textContent = '—';
+    document.getElementById('mesBalanceRealDetail').textContent = '';
+    document.getElementById('mesPctOPsCerradas').textContent = '—';
+    document.getElementById('mesPctOPsCerradasDetail').textContent = '';
     document.getElementById('tablaTopOPsMes').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
     document.getElementById('tablaTopRazonesMes').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
     document.getElementById('tablaGrupoMaterialMes').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
@@ -3201,6 +3260,16 @@ async function renderResumenMensual(){
   const opsConsumidasInfoMes = calcularPctOPsConsumidas(todasLasLineasMes);
   document.getElementById('mesPctOPsConsumidas').textContent = `${opsConsumidasInfoMes.pct.toFixed(0)}%`;
   document.getElementById('mesPctOPsConsumidasDetail').textContent = `${opsConsumidasInfoMes.opsConsumidas} de ${opsConsumidasInfoMes.opsAl100} OPs terminadas ya tienen todo su material consumido`;
+
+  const opsCerradasMes = calcularPctOPsCerradas(todasLasLineasMes);
+  document.getElementById('mesPctOPsCerradas').textContent = `${opsCerradasMes.pct.toFixed(0)}%`;
+  document.getElementById('mesPctOPsCerradasDetail').textContent = `${opsCerradasMes.opsCerradas} de ${opsCerradasMes.opsTotal} OPs ya Terminadas · ${opsCerradasMes.opsAbiertas} siguen abiertas (Lanzada)`;
+
+  const balanceRealMes = calcularBalanceOPsTerminadas(todasLasLineasMes);
+  const mesBalanceRealEl = document.getElementById('mesBalanceReal');
+  mesBalanceRealEl.textContent = (balanceRealMes.balance>=0?'+':'') + fmtMoney(balanceRealMes.balance);
+  mesBalanceRealEl.style.color = balanceRealMes.balance>0?'var(--bad)':'var(--good)';
+  document.getElementById('mesBalanceRealDetail').textContent = `Sobre ${balanceRealMes.numLineas} línea(s) de OPs ya terminadas (excluye las que aún están en producción)`;
 
   document.getElementById('mesBigEstandar').textContent = fmtMoney(md.estandarTotal);
   document.getElementById('mesSubEstandar').textContent = `${diasConDatos.length} día(s) con Programa`;
@@ -3231,6 +3300,7 @@ async function renderResumenMensual(){
   document.getElementById('mesSubGastoNoJust').textContent = `${pctVsEstandarMes(md.gastoNoJustificado)}% del estándar`;
   document.getElementById('mesBigGastoTotal').textContent = fmtMoney(md.gastoTotal);
   document.getElementById('mesSubGastoTotal').textContent = `${pctVsEstandarMes(md.gastoTotal)}% del estándar`;
+  document.getElementById('mesGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
   const topOPsMes = calcularTopOPsPorDesviacion(todasLasLineasMes, 10);
   document.getElementById('tablaTopOPsMes').innerHTML = topOPsMes.length > 0 ? topOPsMes.map(o=>`<tr>
@@ -3260,7 +3330,7 @@ async function renderResumenMensual(){
   resumenMensualCache = {
     rangoTexto: `${nombresMes[mes]} ${anio}`,
     diasConDatos, diasSinDatos,
-    metricas: md, opsConsumidasInfo: opsConsumidasInfoMes,
+    metricas: md, opsConsumidasInfo: opsConsumidasInfoMes, opsCerradas: opsCerradasMes, balanceReal: balanceRealMes,
     topOPs: topOPsMes, topRazones: topRazonesMes, grupoMaterial: grupoMaterialMes,
     todasLasLineasMes
   };
@@ -3324,6 +3394,16 @@ async function renderSemanaPrograma(){
   document.getElementById('semPctOPsConsumidas').textContent = `${opsConsumidasInfo.pct.toFixed(0)}%`;
   document.getElementById('semPctOPsConsumidasDetail').textContent = `${opsConsumidasInfo.opsConsumidas} de ${opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`;
 
+  const balanceRealSemana = calcularBalanceOPsTerminadas(todasLasLineasSemana);
+  const semBalanceRealEl = document.getElementById('semBalanceReal');
+  semBalanceRealEl.textContent = (balanceRealSemana.balance>=0?'+':'') + fmtMoney(balanceRealSemana.balance);
+  semBalanceRealEl.style.color = balanceRealSemana.balance>0?'var(--bad)':'var(--good)';
+  document.getElementById('semBalanceRealDetail').textContent = `Sobre ${balanceRealSemana.numLineas} línea(s) de OPs ya terminadas (excluye las que aún están en producción)`;
+
+  const opsCerradasSemana = calcularPctOPsCerradas(todasLasLineasSemana);
+  document.getElementById('semPctOPsCerradas').textContent = `${opsCerradasSemana.pct.toFixed(0)}%`;
+  document.getElementById('semPctOPsCerradasDetail').textContent = `${opsCerradasSemana.opsCerradas} de ${opsCerradasSemana.opsTotal} OPs ya Terminadas · ${opsCerradasSemana.opsAbiertas} siguen abiertas (Lanzada)`;
+
   const pctVsEstandar = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
 
   document.getElementById('semBigEstandar').textContent = fmtMoney(md.estandarTotal);
@@ -3355,6 +3435,7 @@ async function renderSemanaPrograma(){
   document.getElementById('semSubGastoNoJust').textContent = `${pctVsEstandar(md.gastoNoJustificado)}% del estándar · Sin explicar todavía`;
   document.getElementById('semBigGastoTotal').textContent = fmtMoney(md.gastoTotal);
   document.getElementById('semSubGastoTotal').textContent = `${pctVsEstandar(md.gastoTotal)}% del estándar`;
+  document.getElementById('semGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
   const topOPs = calcularTopOPsPorDesviacion(todasLasLineasSemana, 10);
   document.getElementById('tablaTopOPsSemana').innerHTML = topOPs.length > 0 ? topOPs.map(o=>`<tr>
@@ -3383,7 +3464,7 @@ async function renderSemanaPrograma(){
 
   resumenSemanalCache = {
     rangoTexto: fmtLegible(dias[0]) + ' al ' + fmtLegible(dias[4]),
-    metricas: md, semOpsCompletas, semOpsTotal, pctCumplimientoSemana, opsConsumidasInfo,
+    metricas: md, semOpsCompletas, semOpsTotal, pctCumplimientoSemana, opsConsumidasInfo, opsCerradas: opsCerradasSemana, balanceReal: balanceRealSemana,
     topOPs, topRazones, grupoMaterial, resumenDiasSemana, todasLasLineasSemana
   };
 
@@ -3587,6 +3668,31 @@ function volverADiaPrograma(){
   document.getElementById('programa-nivel-fase').classList.add('hidden');
 }
 
+function calcularBalanceOPsTerminadas(lineas){
+  // Solo cuenta lineas de OPs que ya llegaron al 100% de avance (o no aparecen en
+  // Avance, que por regla se asume 100%). Excluye por completo las OPs que aun
+  // siguen en produccion, para no confundir "todavia no le toca consumir" con
+  // ahorro real.
+  const lineasFiltradas = lineas.filter(l=>{
+    const avance = AVANCE_OP[safeDocId(l.noOP)] || AVANCE_OP[l.noOP] || null;
+    return avance ? (avance.cant > 0 && avance.cantTerminada >= avance.cant) : true;
+  });
+  const estandarTotal = lineasFiltradas.reduce((s,l)=>s+l.estandarUSD,0);
+  const realTotal = lineasFiltradas.reduce((s,l)=>s+l.realUSD,0);
+  return {estandarTotal, realTotal, balance: round2(realTotal-estandarTotal), numLineas: lineasFiltradas.length};
+}
+
+function calcularPctOPsCerradas(lineas){
+  const porOP = {};
+  lineas.forEach(l=>{
+    if(!porOP[l.noOP]) porOP[l.noOP] = false;
+    if(estadoAbrev(l.estado) === 'T') porOP[l.noOP] = true;
+  });
+  const opsTotal = Object.keys(porOP).length;
+  const opsCerradas = Object.values(porOP).filter(Boolean).length;
+  return {opsCerradas, opsTotal, opsAbiertas: opsTotal-opsCerradas, pct: opsTotal>0 ? (opsCerradas/opsTotal)*100 : 0};
+}
+
 function calcularPctOPsConsumidas(lineas){
   const porOP = {};
   lineas.forEach(l=>{
@@ -3645,7 +3751,7 @@ function calcularMetricasDetalladas(lineas){
 
   let pendienteEnProduccion = 0, pendienteSinWIP = 0, pendienteSinExplicacion = 0, pendienteJustificado = 0;
   let ahorroJustificado = 0, ahorroNoJustificado = 0;
-  let gastoJustificado = 0, gastoNoJustificado = 0;
+  let gastoJustificado = 0, gastoNoJustificado = 0, gastoPerdonado = 0;
 
   lineas.forEach(l=>{
     const diffUSD = l.realUSD - l.estandarUSD;
@@ -3679,8 +3785,17 @@ function calcularMetricasDetalladas(lineas){
         else ahorroNoJustificado += -diffUSD;
       }
     } else if(diffUSD > 0){
-      if(l.razon) gastoJustificado += diffUSD;
-      else gastoNoJustificado += diffUSD;
+      // Gasto chico (menor al Umbral) en materiales de Ahorro Permitido se
+      // perdona -- es variacion normal de corte/nesting, igual que ya se
+      // perdona el ahorro chico en esos mismos materiales. No cuenta como
+      // Justificado ni No Justificado, simplemente no entra al conteo.
+      const esGastoPerdonado = l.permiteAhorro && Math.abs(l.pct) < UMBRAL;
+      if(!esGastoPerdonado){
+        if(l.razon) gastoJustificado += diffUSD;
+        else gastoNoJustificado += diffUSD;
+      } else {
+        gastoPerdonado += diffUSD;
+      }
     }
   });
 
@@ -3692,7 +3807,7 @@ function calcularMetricasDetalladas(lineas){
     estandarTotal, realTotal, balance,
     pendienteEnProduccion, pendienteSinWIP, pendienteSinExplicacion, pendienteRealTotal, pendienteJustificado,
     ahorroJustificado, ahorroNoJustificado, ahorroTotal,
-    gastoJustificado, gastoNoJustificado, gastoTotal
+    gastoJustificado, gastoNoJustificado, gastoTotal, gastoPerdonado
   };
 }
 
@@ -3828,6 +3943,7 @@ function renderProgramaDiaDetalle(){
   document.getElementById('progSubGastoNoJust').textContent = `${pctVsEstandarDia(md.gastoNoJustificado)}% del estándar · Sin explicar todavía`;
   document.getElementById('progBigGastoTotal').textContent = fmtMoney(md.gastoTotal);
   document.getElementById('progSubGastoTotal').textContent = `${pctVsEstandarDia(md.gastoTotal)}% del estándar`;
+  document.getElementById('progGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
   const topOPsDia = calcularTopOPsPorDesviacion(lineas, 10);
   document.getElementById('tablaTopOPsDia').innerHTML = topOPsDia.length > 0 ? topOPsDia.map(o=>`<tr>
