@@ -2813,7 +2813,7 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   filaTarjetas([
     {t:'$ Estándar (Semana)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.semOpsTotal} OPs · ${r.pctCumplimientoSemana.toFixed(0)}% al 100%`},
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
-    {t:'Balance (Real - Estándar)', v: (md.balance>=0?'+':'')+fmtMoney(md.balance), c: COLOR_TEXT, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
+    {t:'Balance (Real - Estándar)', v: fmtMoney(Math.abs(md.balance)), c: md.balance<0?COLOR_GOOD:COLOR_BAD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
 
@@ -2991,7 +2991,7 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
   filaTarjetas([
     {t:'$ Estándar (Mes)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.diasConDatos.length} día(s) con Programa · ${r.opsConsumidasInfo.pct.toFixed(0)}% OPs consumidas`},
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
-    {t:'Balance (Real - Estándar)', v: (md.balance>=0?'+':'')+fmtMoney(md.balance), c: COLOR_TEXT, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
+    {t:'Balance (Real - Estándar)', v: fmtMoney(Math.abs(md.balance)), c: md.balance<0?COLOR_GOOD:COLOR_BAD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
 
@@ -3309,7 +3309,8 @@ async function renderResumenMensual(){
   document.getElementById('mesBigReal').textContent = fmtMoney(md.realTotal);
   document.getElementById('mesSubReal').textContent = `${pctVsEstandarMes(md.realTotal)}% del estándar`;
   const balanceElMes = document.getElementById('mesBigBalance');
-  balanceElMes.textContent = (md.balance>=0?'+':'') + fmtMoney(md.balance);
+  balanceElMes.textContent = fmtMoney(Math.abs(md.balance));
+  balanceElMes.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
   
   document.getElementById('mesSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandarMes(md.balance)}% vs estándar (de esos, ${balanceRealMes.balance>=0?'+':''}${fmtMoney(balanceRealMes.balance)} considerando solo OPs terminadas)`;
 
@@ -3440,7 +3441,8 @@ async function renderSemanaPrograma(){
   document.getElementById('semBigReal').textContent = fmtMoney(md.realTotal);
   document.getElementById('semSubReal').textContent = `${pctVsEstandar(md.realTotal)}% del estándar`;
   const balanceEl = document.getElementById('semBigBalance');
-  balanceEl.textContent = (md.balance>=0?'+':'') + fmtMoney(md.balance);
+  balanceEl.textContent = fmtMoney(Math.abs(md.balance));
+  balanceEl.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
   document.getElementById('semSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandar(md.balance)}% vs estándar (de esos, ${balanceRealSemana.balance>=0?'+':''}${fmtMoney(balanceRealSemana.balance)} considerando solo OPs terminadas)`;
 
   document.getElementById('semBigPendienteProduccion').textContent = fmtMoney(md.pendienteEnProduccion);
@@ -3947,7 +3949,8 @@ function renderProgramaDiaDetalle(){
   document.getElementById('progBigReal').textContent = fmtMoney(md.realTotal);
   document.getElementById('progSubReal').textContent = `${pctVsEstandarDia(md.realTotal)}% del estándar`;
   const balanceEl = document.getElementById('progBigBalance');
-  balanceEl.textContent = (md.balance>=0?'+':'') + fmtMoney(md.balance);
+  balanceEl.textContent = fmtMoney(Math.abs(md.balance));
+  balanceEl.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
   document.getElementById('progSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandarDia(md.balance)}% vs estándar`;
 
   document.getElementById('progBigPendienteProduccion').textContent = fmtMoney(md.pendienteEnProduccion);
