@@ -641,8 +641,12 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <div id="programa-nivel-fase" class="hidden">
       <main>
         <div class="toolbar" style="margin-bottom:16px;">
-          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="modoVistaSemanaCompleta ? volverASemanaPrograma() : volverADiaPrograma()">← Volver</button>
+          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="modoVistaSemanaCompleta ? (vinoDelResumenMensual ? volverAResumenMensualDesdeFase() : volverASemanaPrograma()) : volverADiaPrograma()">← Volver</button>
           <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="programaFaseTitulo">Fase</span>
+        </div>
+        <div id="avisoFiltroOPsEspecificas" class="hidden" style="margin-bottom:12px; padding:10px 14px; background:rgba(224,123,57,0.12); border:1px solid var(--accent); border-radius:6px; display:flex; align-items:center; gap:12px;">
+          <span>🎯 Mostrando solo las <strong id="cantidadOPsFiltradas">0</strong> OP(s) que están al 100% pero no cuentan como consumidas.</span>
+          <button class="btn small" onclick="quitarFiltroOPsEspecificas()">✕ Quitar filtro</button>
         </div>
         <div class="toolbar">
           <button class="btn" id="btnExportProgramaFase">⬇ Exportar Excel</button>
@@ -2583,6 +2587,7 @@ let currentProgramaDia = null;
 let currentProgramaLineas = [];
 let currentProgramaFaseSeleccionada = null;
 let modoVistaSemanaCompleta = false;
+let vinoDelResumenMensual = false;
 let sortStateProgramaFase = {key:null, dir:1};
 let busquedaProgramaFase = '';
 let filtroSinAhorroActivo = false;
@@ -2590,6 +2595,7 @@ let filtroConsumoCeroActivo = false;
 let filtroAlCienActivo = false;
 let filtroRechazoActivo = false;
 let filtroPendientesJustificarActivo = false;
+let filtroOPsEspecificas = null; // array de numeros de OP, o null si no esta activo
 let resumenSemanalCache = null;
 let lineasSeleccionadasLote = new Set();
 function opAlCien(op){
@@ -3296,7 +3302,7 @@ async function renderResumenMensual(){
 
   const opsConsumidasInfoMes = calcularPctOPsConsumidas(todasLasLineasMes);
   document.getElementById('mesPctOPsConsumidas').textContent = `${opsConsumidasInfoMes.pct.toFixed(0)}%`;
-  document.getElementById('mesPctOPsConsumidasDetail').textContent = `${opsConsumidasInfoMes.opsConsumidas} de ${opsConsumidasInfoMes.opsAl100} OPs terminadas ya tienen todo su material consumido`;
+  document.getElementById('mesPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfoMes.opsConsumidas} de ${opsConsumidasInfoMes.opsAl100} OPs terminadas ya tienen todo su material consumido${opsConsumidasInfoMes.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('mes'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfoMes.opsPendientes.length} OP(s)</a>` : ''}`;
 
   const opsCerradasMes = calcularPctOPsCerradas(todasLasLineasMes);
   document.getElementById('mesPctOPsCerradas').textContent = `${opsCerradasMes.pct.toFixed(0)}%`;
@@ -3426,7 +3432,7 @@ async function renderSemanaPrograma(){
 
   const opsConsumidasInfo = calcularPctOPsConsumidas(todasLasLineasSemana);
   document.getElementById('semPctOPsConsumidas').textContent = `${opsConsumidasInfo.pct.toFixed(0)}%`;
-  document.getElementById('semPctOPsConsumidasDetail').textContent = `${opsConsumidasInfo.opsConsumidas} de ${opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)`;
+  document.getElementById('semPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfo.opsConsumidas} de ${opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)${opsConsumidasInfo.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('semana'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfo.opsPendientes.length} OP(s)</a>` : ''}`;
 
   const balanceRealSemana = calcularBalanceOPsTerminadas(todasLasLineasSemana);
 
@@ -3730,6 +3736,7 @@ function calcularPctOPsConsumidas(lineas){
     porOP[l.noOP].push(l);
   });
   let opsAl100 = 0, opsConsumidas = 0;
+  const opsPendientes = [];
   Object.entries(porOP).forEach(([op, lineasOP])=>{
     const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
     // Misma regla de siempre: si no aparece en Avance, se asume 100% (ya salio de produccion)
@@ -3741,9 +3748,10 @@ function calcularPctOPsConsumidas(lineas){
       // Si la OP ya esta al 100% de avance Y su Estado es "Terminada", cuenta como
       // consumida aunque tenga alguna linea en 0 -- el negocio ya la cerro.
       if(todosConsumidos || estaTerminada) opsConsumidas++;
+      else opsPendientes.push(op);
     }
   });
-  return {opsAl100, opsConsumidas, pct: opsAl100 > 0 ? (opsConsumidas/opsAl100)*100 : 0};
+  return {opsAl100, opsConsumidas, opsPendientes, pct: opsAl100 > 0 ? (opsConsumidas/opsAl100)*100 : 0};
 }
 
 function calcularCumplimientoPrograma(lineas, fechaPrograma){
@@ -3942,7 +3950,8 @@ function renderProgramaDiaDetalle(){
 
   const opsConsumidasInfoDia = calcularPctOPsConsumidas(lineas);
   document.getElementById('progPctOPsConsumidas').textContent = `${opsConsumidasInfoDia.pct.toFixed(0)}%`;
-  document.getElementById('progPctOPsConsumidasDetail').textContent = `${opsConsumidasInfoDia.opsConsumidas} de ${opsConsumidasInfoDia.opsAl100} OPs terminadas ya tienen todo su material consumido`;
+  document.getElementById('progPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfoDia.opsConsumidas} de ${opsConsumidasInfoDia.opsAl100} OPs terminadas ya tienen todo su material consumido${opsConsumidasInfoDia.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('dia'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfoDia.opsPendientes.length} OP(s)</a>` : ''}`;
+  window._opsPendientesDia = opsConsumidasInfoDia.opsPendientes;
 
   document.getElementById('progBigEstandar').textContent = fmtMoney(md.estandarTotal);
   document.getElementById('progSubEstandar').textContent = `${lineas.length} líneas de material · ${cumplimiento.porcentaje.toFixed(0)}% de cumplimiento (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%)`;
@@ -4076,12 +4085,59 @@ function renderProgramaDiaDetalle(){
   tbody.innerHTML = html;
 }
 
+function volverAResumenMensualDesdeFase(){
+  document.getElementById('programa-nivel-fase').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.remove('hidden');
+  filtroOPsEspecificas = null;
+}
+function verOPsPendientesDeConsumir(origen){
+  let opsPendientes, tituloBase;
+  if(origen === 'semana'){
+    if(!resumenSemanalCache) return;
+    opsPendientes = resumenSemanalCache.opsConsumidasInfo.opsPendientes;
+    verSemanaCompleta();
+    tituloBase = `Toda la Semana (${resumenSemanalCache.rangoTexto})`;
+  } else if(origen === 'mes'){
+    if(!resumenMensualCache) return;
+    opsPendientes = resumenMensualCache.opsConsumidasInfo.opsPendientes;
+    verSemanaCompleta_paraMes();
+    tituloBase = resumenMensualCache.rangoTexto;
+  } else {
+    opsPendientes = window._opsPendientesDia || [];
+    verProgramaFase('todas');
+    tituloBase = `Programa del ${currentProgramaDia}`;
+  }
+  filtroOPsEspecificas = opsPendientes;
+  document.getElementById('cantidadOPsFiltradas').textContent = opsPendientes.length;
+  document.getElementById('avisoFiltroOPsEspecificas').classList.toggle('hidden', opsPendientes.length===0);
+  document.getElementById('programaFaseTitulo').textContent = `${tituloBase} — OPs sin consumir`;
+  renderTablaProgramaFase();
+}
+function quitarFiltroOPsEspecificas(){
+  filtroOPsEspecificas = null;
+  document.getElementById('avisoFiltroOPsEspecificas').classList.add('hidden');
+  renderTablaProgramaFase();
+}
+function verSemanaCompleta_paraMes(){
+  if(!resumenMensualCache || !resumenMensualCache.todasLasLineasMes || resumenMensualCache.todasLasLineasMes.length===0) return;
+  modoVistaSemanaCompleta = true;
+  vinoDelResumenMensual = true;
+  currentProgramaLineas = resumenMensualCache.todasLasLineasMes;
+  currentProgramaFaseSeleccionada = 'todas';
+  busquedaProgramaFase = '';
+  document.getElementById('buscarProgramaFase').value = '';
+  document.getElementById('programa-nivel-mes').classList.add('hidden');
+  document.getElementById('programa-nivel-fase').classList.remove('hidden');
+}
 function verSemanaCompleta(){
   if(!resumenSemanalCache || !resumenSemanalCache.todasLasLineasSemana || resumenSemanalCache.todasLasLineasSemana.length===0){
     alert('Espera a que termine de cargar la semana antes de ver la lista completa.');
     return;
   }
   modoVistaSemanaCompleta = true;
+  vinoDelResumenMensual = false;
+  filtroOPsEspecificas = null;
+  document.getElementById('avisoFiltroOPsEspecificas').classList.add('hidden');
   currentProgramaLineas = resumenSemanalCache.todasLasLineasSemana;
   currentProgramaFaseSeleccionada = 'todas';
   busquedaProgramaFase = '';
@@ -4114,6 +4170,8 @@ function verSemanaCompleta(){
 }
 function verProgramaFase(fase){
   modoVistaSemanaCompleta = false;
+  filtroOPsEspecificas = null;
+  document.getElementById('avisoFiltroOPsEspecificas').classList.add('hidden');
   currentProgramaFaseSeleccionada = fase;
   busquedaProgramaFase = '';
   document.getElementById('buscarProgramaFase').value = '';
@@ -4252,6 +4310,9 @@ function renderTablaProgramaFase(){
   }
   if(filtroPendientesJustificarActivo){
     lineas = lineas.filter(l=> esLineaAlerta(l) && !l.razon);
+  }
+  if(filtroOPsEspecificas){
+    lineas = lineas.filter(l=> filtroOPsEspecificas.includes(l.noOP));
   }
 
   if(busquedaProgramaFase.trim()){
