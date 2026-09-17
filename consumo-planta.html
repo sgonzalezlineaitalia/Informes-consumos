@@ -2862,8 +2862,8 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   // 3 recuadros: % OPs Consumidas / % OPs Cerradas / Balance Real
   const anchoInfo = (W - PAD*2 - 4)/2;
   const cajasInfo = [
-    {titulo:`✅ % OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
-    {titulo:`🔒 % OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2}
+    {titulo:`% OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
+    {titulo:`% OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2}
   ];
   cajasInfo.forEach((info,i)=>{
     const x = PAD + i*(anchoInfo+4);
@@ -2918,7 +2918,7 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   });
   y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 5;
   doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'italic');
-  doc.text(`🎯 Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
+  doc.text(`Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
   doc.setFont(undefined,'normal');
   y += 6;
 
@@ -3040,8 +3040,8 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
   // 3 recuadros: % OPs Consumidas / % OPs Cerradas / Balance Real
   const anchoInfo = (W - PAD*2 - 4)/2;
   const cajasInfo = [
-    {titulo:`✅ % OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
-    {titulo:`🔒 % OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2}
+    {titulo:`% OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
+    {titulo:`% OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2}
   ];
   cajasInfo.forEach((info,i)=>{
     const x = PAD + i*(anchoInfo+4);
@@ -3096,7 +3096,7 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
   });
   y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 5;
   doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'italic');
-  doc.text(`🎯 Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
+  doc.text(`Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
   doc.setFont(undefined,'normal');
   y += 6;
 
