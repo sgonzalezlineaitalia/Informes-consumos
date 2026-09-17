@@ -273,7 +273,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="semSubReal">&nbsp;</div>
           </div>
           <div class="card deviation">
-            <div class="label">Balance (Real − Estándar) <span class="help-icon">?<span class="help-tooltip">Positivo = se gastó más de lo esperado en total. Negativo = se ahorró más de lo esperado en total. Es la suma neta de todo, gastos y ahorros juntos.</span></span></div>
+            <div class="label"><span id="semLabelBalance">Balance</span> <span class="help-icon">?<span class="help-tooltip">Compara lo que se consumió contra lo esperado en total. "Ahorro" = se consumió menos de lo esperado en general. "Gasto" = se consumió más de lo esperado en general.</span></span></div>
             <div class="big" id="semBigBalance">$0</div>
             <div class="sub" id="semSubBalance">&nbsp;</div>
           </div>
@@ -287,7 +287,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="semSubPendienteProduccion">La OP sigue en proceso</div>
           </div>
           <div class="card">
-            <div class="label">No Hay Material en WIP de Producción <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
+            <div class="label">Errores Listas de Materiales o Transferencias de Almacén <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
             <div class="big" id="semBigPendienteSinWIP" style="color:var(--bad);">$0</div>
             <div class="sub" id="semSubPendienteSinWIP">No aparece como activa, pero falta consumo</div>
           </div>
@@ -402,7 +402,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="mesSubReal">&nbsp;</div>
           </div>
           <div class="card deviation">
-            <div class="label">Balance (Real − Estándar)</div>
+            <div class="label" id="mesLabelBalance">Balance</div>
             <div class="big" id="mesBigBalance">$0</div>
             <div class="sub" id="mesSubBalance">&nbsp;</div>
           </div>
@@ -416,7 +416,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="mesSubPendienteProduccion">La OP sigue en proceso</div>
           </div>
           <div class="card">
-            <div class="label">No Hay Material en WIP de Producción</div>
+            <div class="label">Errores Listas de Materiales o Transferencias de Almacén</div>
             <div class="big" id="mesBigPendienteSinWIP" style="color:var(--bad);">$0</div>
             <div class="sub" id="mesSubPendienteSinWIP">&nbsp;</div>
           </div>
@@ -525,7 +525,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="progSubReal">&nbsp;</div>
           </div>
           <div class="card deviation">
-            <div class="label">Balance (Real − Estándar) <span class="help-icon">?<span class="help-tooltip">Positivo = se gastó más de lo esperado en total. Negativo = se ahorró más de lo esperado en total. Es la suma neta de todo, gastos y ahorros juntos.</span></span></div>
+            <div class="label"><span id="progLabelBalance">Balance</span> <span class="help-icon">?<span class="help-tooltip">Compara lo que se consumió contra lo esperado en total. "Ahorro" = se consumió menos de lo esperado en general. "Gasto" = se consumió más de lo esperado en general.</span></span></div>
             <div class="big" id="progBigBalance">$0</div>
             <div class="sub" id="progSubBalance">&nbsp;</div>
           </div>
@@ -539,7 +539,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
             <div class="sub" id="progSubPendienteProduccion">La OP sigue en proceso</div>
           </div>
           <div class="card">
-            <div class="label">No Hay Material en WIP de Producción <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
+            <div class="label">Errores Listas de Materiales o Transferencias de Almacén <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
             <div class="big" id="progBigPendienteSinWIP" style="color:var(--bad);">$0</div>
             <div class="sub" id="progSubPendienteSinWIP">No aparece como activa, pero falta consumo</div>
           </div>
@@ -2684,7 +2684,7 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
     {Concepto:'', Valor: ''},
     {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
     {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
-    {Concepto:'No Hay Material en WIP de Producción', Valor: md.pendienteSinWIP},
+    {Concepto:'Errores Listas de Materiales o Transferencias de Almacén', Valor: md.pendienteSinWIP},
     {Concepto:'Consumo en 0 en Sistema', Valor: md.pendienteSinExplicacion},
     {Concepto:'Total Faltante sin Justificar', Valor: md.pendienteRealTotal},
     {Concepto:'Faltante Ya Justificado', Valor: md.pendienteJustificado},
@@ -2762,7 +2762,7 @@ document.getElementById('btnDescargarResumenMensual').addEventListener('click', 
     {Concepto:'', Valor: ''},
     {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
     {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
-    {Concepto:'No Hay Material en WIP de Producción', Valor: md.pendienteSinWIP},
+    {Concepto:'Errores Listas de Materiales o Transferencias de Almacén', Valor: md.pendienteSinWIP},
     {Concepto:'Consumo en 0 en Sistema', Valor: md.pendienteSinExplicacion},
     {Concepto:'Total Faltante sin Justificar', Valor: md.pendienteRealTotal},
     {Concepto:'Faltante Ya Justificado', Valor: md.pendienteJustificado},
@@ -2881,7 +2881,7 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   filaTarjetas([
     {t:'$ Estándar (Semana)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.semOpsTotal} OPs · ${r.pctCumplimientoSemana.toFixed(0)}% al 100%`},
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
-    {t:'Balance (Real - Estándar)', v: fmtMoney(Math.abs(md.balance)), c: md.balance<0?COLOR_GOOD:COLOR_BAD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
+    {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
 
@@ -2891,7 +2891,7 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   y += 4;
   filaTarjetas([
     {t:'Aún No Sale de Producción', v: fmtMoney(md.pendienteEnProduccion), c: COLOR_WARN, s:`${md.estandarTotal!==0?((md.pendienteEnProduccion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · La OP sigue en proceso`},
-    {t:'No Hay Material en WIP de Producción', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
+    {t:'Errores Listas de Materiales o Transferencias de Almacén', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
     {t:'Consumo en 0 en Sistema', v: fmtMoney(md.pendienteSinExplicacion), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinExplicacion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · Avance confirma 100%`}
   ], 18);
 
@@ -3059,7 +3059,7 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
   filaTarjetas([
     {t:'$ Estándar (Mes)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.diasConDatos.length} día(s) con Programa · ${r.opsConsumidasInfo.pct.toFixed(0)}% OPs consumidas`},
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
-    {t:'Balance (Real - Estándar)', v: fmtMoney(Math.abs(md.balance)), c: md.balance<0?COLOR_GOOD:COLOR_BAD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
+    {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
 
@@ -3069,7 +3069,7 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
   y += 4;
   filaTarjetas([
     {t:'Aún No Sale de Producción', v: fmtMoney(md.pendienteEnProduccion), c: COLOR_WARN, s:`${md.estandarTotal!==0?((md.pendienteEnProduccion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · La OP sigue en proceso`},
-    {t:'No Hay Material en WIP de Producción', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
+    {t:'Errores Listas de Materiales o Transferencias de Almacén', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
     {t:'Consumo en 0 en Sistema', v: fmtMoney(md.pendienteSinExplicacion), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinExplicacion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · Avance confirma 100%`}
   ], 18);
 
@@ -3378,6 +3378,9 @@ async function renderResumenMensual(){
   document.getElementById('mesSubReal').textContent = `${pctVsEstandarMes(md.realTotal)}% del estándar`;
   const balanceElMes = document.getElementById('mesBigBalance');
   balanceElMes.textContent = fmtMoney(Math.abs(md.balance));
+  const mesLabelBalanceEl = document.getElementById('mesLabelBalance');
+  mesLabelBalanceEl.textContent = md.balance > 0 ? 'Gasto' : (md.balance < 0 ? 'Ahorro' : 'Balance');
+  mesLabelBalanceEl.style.color = md.balance > 0 ? 'var(--bad)' : (md.balance < 0 ? 'var(--good)' : '');
   balanceElMes.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
   
   document.getElementById('mesSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandarMes(md.balance)}% vs estándar (de esos, ${balanceRealMes.balance>=0?'+':''}${fmtMoney(balanceRealMes.balance)} considerando solo OPs terminadas)`;
@@ -3510,6 +3513,9 @@ async function renderSemanaPrograma(){
   document.getElementById('semSubReal').textContent = `${pctVsEstandar(md.realTotal)}% del estándar`;
   const balanceEl = document.getElementById('semBigBalance');
   balanceEl.textContent = fmtMoney(Math.abs(md.balance));
+  const labelBalanceEl = document.getElementById(balanceEl.id.replace('Big','Label'));
+  labelBalanceEl.textContent = md.balance > 0 ? 'Gasto' : (md.balance < 0 ? 'Ahorro' : 'Balance');
+  labelBalanceEl.style.color = md.balance > 0 ? 'var(--bad)' : (md.balance < 0 ? 'var(--good)' : '');
   balanceEl.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
   document.getElementById('semSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandar(md.balance)}% vs estándar (de esos, ${balanceRealSemana.balance>=0?'+':''}${fmtMoney(balanceRealSemana.balance)} considerando solo OPs terminadas)`;
 
@@ -4021,6 +4027,9 @@ function renderProgramaDiaDetalle(){
   document.getElementById('progSubReal').textContent = `${pctVsEstandarDia(md.realTotal)}% del estándar`;
   const balanceEl = document.getElementById('progBigBalance');
   balanceEl.textContent = fmtMoney(Math.abs(md.balance));
+  const labelBalanceEl = document.getElementById(balanceEl.id.replace('Big','Label'));
+  labelBalanceEl.textContent = md.balance > 0 ? 'Gasto' : (md.balance < 0 ? 'Ahorro' : 'Balance');
+  labelBalanceEl.style.color = md.balance > 0 ? 'var(--bad)' : (md.balance < 0 ? 'var(--good)' : '');
   balanceEl.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
   document.getElementById('progSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandarDia(md.balance)}% vs estándar`;
 
