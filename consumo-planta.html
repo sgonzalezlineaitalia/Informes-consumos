@@ -246,6 +246,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn primary" id="btnDescargarResumenSemanal" style="font-size:12px; padding:6px 14px;">⬇ Descargar Resumen Semanal (Excel)</button>
           <button class="btn primary" id="btnDescargarResumenSemanalPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
           <button class="btn" id="btnVerResumenMensual" style="font-size:12px; padding:6px 14px; margin-left:auto;">📅 Ver Resumen Mensual</button>
+          <button class="btn" onclick="verReporteAlterno()" style="font-size:12px; padding:6px 14px;">🔀 Ver Reporte Alterno</button>
         </div>
 
         <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr;">
@@ -358,6 +359,129 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div class="section-title" style="margin-top:24px;">⚠ Programas vencidos con material pendiente</div>
         <div class="field-hint" style="margin-bottom:10px;">Programas cuya fecha ya pasó y todavía les falta consumir material según su estándar.</div>
         <div id="alertasProgramasVencidos"></div>
+      </main>
+    </div>
+
+    <div id="programa-nivel-alterno" class="hidden">
+      <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
+        <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <div class="date-display" id="altProgramaDisplay" style="font-size:16px;">—</div>
+      </div>
+      <main>
+        <div class="field-hint" style="margin-bottom:16px; padding:10px; background:var(--panel-2); border-radius:6px;">🔀 Este reporte es aparte del Resumen Semanal normal — aquí se excluyen por completo: (1) las líneas con Consumo Real en 0, y (2) las OPs cuyo número empieza con "OPM". No afecta ni cambia el Resumen Semanal estándar.</div>
+        <div class="section-title" style="display:flex; align-items:center; gap:12px;">
+          Reporte Alterno (sin líneas en 0, sin OPs OPM)
+          <button class="btn primary" id="btnDescargarResumenAlterno" style="font-size:12px; padding:6px 14px;">⬇ Descargar Reporte Alterno (Excel)</button>
+          <button class="btn primary" id="btnDescargarResumenAlternoPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
+        </div>
+
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr;">
+          <div class="alertcard">
+            <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada", en cuyo caso cuenta como consumida aunque le falte algún material en 0.</span></span></div>
+            <div class="headline" id="altPctOPsConsumidas">—</div>
+            <div class="detail" id="altPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+          <div class="alertcard">
+            <div class="label">🔒 % de OPs Cerradas <span class="help-icon">?<span class="help-tooltip">De TODAS las OPs de este periodo (sin importar su Avance), qué % ya tiene Estado = "Terminada" en el sistema. Te dice cuántas OPs siguen abiertas (Lanzada) pendientes de cerrar administrativamente.</span></span></div>
+            <div class="headline" id="altPctOPsCerradas">—</div>
+            <div class="detail" id="altPctOPsCerradasDetail">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">$ Estándar (Semana)</div>
+            <div class="big" id="altBigEstandar">$0</div>
+            <div class="sub" id="altSubEstandar">&nbsp;</div>
+          </div>
+          <div class="card">
+            <div class="label">$ Real Consumido (Semana)</div>
+            <div class="big" id="altBigReal">$0</div>
+            <div class="sub" id="altSubReal">&nbsp;</div>
+          </div>
+          <div class="card deviation">
+            <div class="label"><span id="altLabelBalance">Balance</span> <span class="help-icon">?<span class="help-tooltip">Compara lo que se consumió contra lo esperado en total. "Ahorro" = se consumió menos de lo esperado en general. "Gasto" = se consumió más de lo esperado en general.</span></span></div>
+            <div class="big" id="altBigBalance">$0</div>
+            <div class="sub" id="altSubBalance">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">$ Faltante sin Justificar — por qué falta</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Aún No Sale de Producción <span class="help-icon">?<span class="help-tooltip">La OP sigue activa en el Avance del Programa y no ha llegado al 100%. Es normal que aún falte por consumir — se espera que se resuelva solo conforme avance.</span></span></div>
+            <div class="big" id="altBigPendienteProduccion" style="color:var(--warn);">$0</div>
+            <div class="sub" id="altSubPendienteProduccion">La OP sigue en proceso</div>
+          </div>
+          <div class="card">
+            <div class="label">Errores Listas de Materiales o Transferencias de Almacén <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
+            <div class="big" id="altBigPendienteSinWIP" style="color:var(--bad);">$0</div>
+            <div class="sub" id="altSubPendienteSinWIP">No aparece como activa, pero falta consumo</div>
+          </div>
+          <div class="card">
+            <div class="label">Consumo en 0 en Sistema <span class="help-icon">?<span class="help-tooltip">El Avance confirma que la OP ya está al 100%, y aun así falta material por consumir (total o parcial). Esta es la señal más fuerte de un error real.</span></span></div>
+            <div class="big" id="altBigPendienteSinExplicacion" style="color:var(--bad);">$0</div>
+            <div class="sub" id="altSubPendienteSinExplicacion">El Avance confirma 100%, pero falta material</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">Ahorro (materiales donde SÍ es normal ahorrar)</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Ahorro Justificado</div>
+            <div class="big" id="altBigAhorroJust" style="color:var(--good);">$0</div>
+            <div class="sub" id="altSubAhorroJust">Con Razón capturada</div>
+          </div>
+          <div class="card">
+            <div class="label">Ahorro No Justificado</div>
+            <div class="big" id="altBigAhorroNoJust" style="color:var(--good);">$0</div>
+            <div class="sub" id="altSubAhorroNoJust">Sin Razón, pero es material que sí puede ahorrar</div>
+          </div>
+          <div class="card">
+            <div class="label">Total Ahorro</div>
+            <div class="big" id="altBigAhorroTotal" style="color:var(--good);">$0</div>
+            <div class="sub" id="altSubAhorroTotal">&nbsp;</div>
+          </div>
+        </div>
+
+        <div class="section-title" style="font-size:13px; margin-top:20px;">Gasto (sobreconsumo)</div>
+        <div class="bigrow">
+          <div class="card">
+            <div class="label">Gasto Justificado</div>
+            <div class="big" id="altBigGastoJust" style="color:var(--bad);">$0</div>
+            <div class="sub" id="altSubGastoJust">Con Razón capturada</div>
+          </div>
+          <div class="card">
+            <div class="label">Gasto No Justificado</div>
+            <div class="big" id="altBigGastoNoJust" style="color:var(--bad);">$0</div>
+            <div class="sub" id="altSubGastoNoJust">Sin explicar todavía</div>
+          </div>
+          <div class="card">
+            <div class="label">Total Gasto</div>
+            <div class="big" id="altBigGastoTotal" style="color:var(--bad);">$0</div>
+            <div class="sub" id="altSubGastoTotal">&nbsp;</div>
+          </div>
+        </div>
+        <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="altGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
+
+        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <table>
+          <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
+          <tbody id="tablaTopOPsAlterno"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Razones más utilizadas (por dinero)</div>
+        <table>
+          <thead><tr><th>Razón</th><th># OPs</th><th>$ Total (neto)</th><th>% de OPs afectadas</th><th>Tipo</th></tr></thead>
+          <tbody id="tablaTopRazonesAlterno"></tbody>
+        </table>
+
+        <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
+        <table>
+          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+          <tbody id="tablaGrupoMaterialAlterno"></tbody>
+        </table>
+
       </main>
     </div>
 
@@ -2659,6 +2783,7 @@ let filtroRechazoActivo = false;
 let filtroPendientesJustificarActivo = false;
 let filtroOPsEspecificas = null; // array de numeros de OP, o null si no esta activo
 let resumenSemanalCache = null;
+let reporteAlternoCache = null;
 let lineasSeleccionadasLote = new Set();
 function opAlCien(op){
   const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
@@ -2739,6 +2864,71 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(todasLasOPs), 'Todas las Líneas');
 
   XLSX.writeFile(wb, `Resumen_Semanal_${r.rangoTexto.replace(/ /g,'_')}.xlsx`);
+});
+
+document.getElementById('btnDescargarResumenAlterno').addEventListener('click', ()=>{
+  if(!reporteAlternoCache){
+    alert('Espera a que termine de cargar el reporte alterno antes de descargar.');
+    return;
+  }
+  const r = reporteAlternoCache;
+  const md = r.metricas;
+  const wb = XLSX.utils.book_new();
+
+  const resumenGeneral = [
+    {Concepto:'Semana', Valor: r.rangoTexto}, {Concepto:'Filtros aplicados', Valor: 'Excluye líneas con Consumo Real en 0 y OPs que empiezan con OPM'},
+    {Concepto:'$ Estándar', Valor: md.estandarTotal},
+    {Concepto:'$ Real Consumido', Valor: md.realTotal},
+    {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
+    {Concepto:'Balance Real (Solo OPs Terminadas)', Valor: r.balanceReal.balance},
+    {Concepto:'', Valor: ''},
+    {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
+    {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
+    {Concepto:'Errores Listas de Materiales o Transferencias de Almacén', Valor: md.pendienteSinWIP},
+    {Concepto:'Consumo en 0 en Sistema', Valor: md.pendienteSinExplicacion},
+    {Concepto:'Total Faltante sin Justificar', Valor: md.pendienteRealTotal},
+    {Concepto:'Faltante Ya Justificado', Valor: md.pendienteJustificado},
+    {Concepto:'', Valor: ''},
+    {Concepto:'--- Ahorro ---', Valor: ''},
+    {Concepto:'Ahorro Justificado', Valor: md.ahorroJustificado},
+    {Concepto:'Ahorro No Justificado', Valor: md.ahorroNoJustificado},
+    {Concepto:'Total Ahorro', Valor: md.ahorroTotal},
+    {Concepto:'', Valor: ''},
+    {Concepto:'--- Gasto (Sobreconsumo) ---', Valor: ''},
+    {Concepto:'Gasto Justificado', Valor: md.gastoJustificado},
+    {Concepto:'Gasto No Justificado', Valor: md.gastoNoJustificado},
+    {Concepto:'Total Gasto', Valor: md.gastoTotal},
+    {Concepto:'Gasto Perdonado (variación normal)', Valor: md.gastoPerdonado},
+    {Concepto:'', Valor: ''},
+    {Concepto:'% de OPs Consumidas (de las terminadas)', Valor: `${r.opsConsumidasInfo.pct.toFixed(1)}% (${r.opsConsumidasInfo.opsConsumidas}/${r.opsConsumidasInfo.opsAl100})`}
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenGeneral), 'Resumen General');
+
+  const topOPsExport = r.topOPs.map(o=>({OP:o.noOP, Modelo:o.modelo, '$ Desviación':o.diffUSD, 'Razones asociadas': o.razones.join('; ') || 'Sin justificar'}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topOPsExport), 'Top 10 OPs');
+
+  const topRazonesExport = r.topRazones.map(x=>({Razon:x.razon, 'No. OPs':x.numOPs, '$ Total (neto)':x.monto, Tipo:x.tipo, '% de OPs afectadas':x.pct.toFixed(1)+'%'}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(topRazonesExport), 'Top Razones');
+
+  const grupoMaterialExport = r.grupoMaterial.map(g=>({Grupo:g.nombre, '# Líneas':g.count, '$ Desviación Total':g.totalUSD, '$ Promedio por Línea':g.promedioUSD, '%':g.pct.toFixed(1)+'%', Tipo: g.totalUSD>=0?'Gasto':'Ahorro'}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(grupoMaterialExport), 'Grupo de Material');
+
+  const pctCumplimientoOP = (op)=>{
+    const avance = AVANCE_OP[safeDocId(op)] || AVANCE_OP[op] || null;
+    if(!avance || avance.cant <= 0) return 100;
+    return Math.round((avance.cantTerminada/avance.cant)*100);
+  };
+  const todasLasOPs = r.lineasFiltradas.map(l=>({
+    'Fecha Programa': l.fechaPrograma, Fase: l.fase!=null ? 'Fase '+l.fase : 'Sin clasificar', OP: l.noOP, Estado: l.estado,
+    '% Cumplimiento OP': pctCumplimientoOP(l.noOP) + '%',
+    Modelo: l.modelo, 'No. Componente': l.noComponente, Descripcion: l.descripcion,
+    'Cant. Estandar': l.cantidadEstandar, 'Cant. Real': l.cantidadReal, Diferencia: l.diferencia,
+    'Centro de Trabajo': l.ruta, '$ Estandar': l.estandarUSD, '$ Real': l.realUSD,
+    '$ Diferencia': round2(l.realUSD - l.estandarUSD), Razon: l.razon
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(todasLasOPs), 'Todas las Líneas');
+
+  XLSX.writeFile(wb, `Reporte_Alterno_${r.rangoTexto.replace(/ /g,'_')}.xlsx`);
 });
 
 document.getElementById('btnDescargarResumenMensual').addEventListener('click', ()=>{
@@ -2880,6 +3070,184 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
     {t:'$ Estándar (Semana)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.semOpsTotal} OPs · ${r.pctCumplimientoSemana.toFixed(0)}% al 100%`},
+    {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
+    {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
+  ], 20);
+
+
+  // Seccion: Faltante sin Justificar
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('$ Faltante sin Justificar — por qué falta', PAD, y);
+  y += 4;
+  filaTarjetas([
+    {t:'Aún No Sale de Producción', v: fmtMoney(md.pendienteEnProduccion), c: COLOR_WARN, s:`${md.estandarTotal!==0?((md.pendienteEnProduccion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · La OP sigue en proceso`},
+    {t:'Errores Listas de Materiales o Transferencias de Almacén', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
+    {t:'Consumo en 0 en Sistema', v: fmtMoney(md.pendienteSinExplicacion), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinExplicacion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · Avance confirma 100%`}
+  ], 18);
+
+  // Seccion: Ahorro y Gasto lado a lado
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Ahorro y Gasto', PAD, y);
+  y += 4;
+  const anchoMitad = (W - PAD*2 - 6)/2;
+  const pctVal = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1)+'%' : '0.0%';
+  doc.autoTable({
+    startY: y, margin:{left:PAD}, tableWidth: anchoMitad,
+    head:[['Ahorro', '$', '%']],
+    body:[['Justificado', fmtMoney(md.ahorroJustificado), pctVal(md.ahorroJustificado)], ['No Justificado', fmtMoney(md.ahorroNoJustificado), pctVal(md.ahorroNoJustificado)], ['Total', fmtMoney(md.ahorroTotal), pctVal(md.ahorroTotal)]],
+    theme:'grid', headStyles:{fillColor:COLOR_GOOD, fontSize:8}, styles:{fontSize:8, cellPadding:2},
+    columnStyles:{1:{halign:'right'}, 2:{halign:'right'}}
+  });
+  const yAhorro = doc.lastAutoTable.finalY;
+  doc.autoTable({
+    startY: y, margin:{left:PAD+anchoMitad+6}, tableWidth: anchoMitad,
+    head:[['Gasto (Sobreconsumo)', '$', '%']],
+    body:[['Justificado', fmtMoney(md.gastoJustificado), pctVal(md.gastoJustificado)], ['No Justificado', fmtMoney(md.gastoNoJustificado), pctVal(md.gastoNoJustificado)], ['Total', fmtMoney(md.gastoTotal), pctVal(md.gastoTotal)]],
+    theme:'grid', headStyles:{fillColor:COLOR_BAD, fontSize:8}, styles:{fontSize:8, cellPadding:2},
+    columnStyles:{1:{halign:'right'}, 2:{halign:'right'}}
+  });
+  y = Math.max(yAhorro, doc.lastAutoTable.finalY) + 5;
+  doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'italic');
+  doc.text(`Gasto Perdonado (variación normal de corte, no necesita Razón): ${fmtMoney(md.gastoPerdonado)}`, PAD, y);
+  doc.setFont(undefined,'normal');
+  y += 6;
+
+  // Top 10 OPs
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Top 10 OPs con Mayor Desviación', PAD, y);
+  y += 3;
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD},
+    head:[['OP','Modelo','$ Desviación','%','Razón(es)']],
+    body: r.topOPs.length>0 ? r.topOPs.map(o=>[o.noOP, o.modelo, (o.diffUSD>=0?'+':'')+fmtMoney(o.diffUSD), (o.pct>=0?'+':'')+o.pct.toFixed(1)+'%', o.razones.join('; ')||'Sin justificar aún']) : [['Sin datos esta semana','','','','']],
+    theme:'striped', headStyles:{fillColor:COLOR_ACCENT, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}}
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  if(y > 240){ doc.addPage(); y = 16; }
+
+  // Top Razones
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Razones Más Utilizadas (por Dinero)', PAD, y);
+  y += 3;
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD},
+    head:[['Razón','No. OPs','$ Total (neto)','% OPs afect.','Tipo']],
+    body: r.topRazones.length>0 ? r.topRazones.map(x=>[x.razon, String(x.numOPs), (x.monto>=0?'+':'')+fmtMoney(x.monto), x.pct.toFixed(1)+'%', x.tipo]) : [['Aún no hay Razones capturadas','','','','']],
+    theme:'striped', headStyles:{fillColor:COLOR_ACCENT2, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}},
+    didParseCell: function(data){
+      if(data.section==='body' && data.column.index===4){
+        data.cell.styles.textColor = data.cell.raw==='Gasto' ? COLOR_BAD : (data.cell.raw==='Ahorro' ? COLOR_GOOD : COLOR_MUTED);
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+  y = doc.lastAutoTable.finalY + 8;
+
+  if(y > 250){ doc.addPage(); y = 16; }
+
+  // Desviacion por Grupo de Material
+  doc.setFontSize(10); doc.setTextColor(...COLOR_TEXT); doc.setFont(undefined,'bold');
+  doc.text('Desviación por Grupo de Material', PAD, y);
+  y += 3;
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD},
+    head:[['Grupo','# Líneas','$ Desviación Total','$ Promedio','%','Tipo']],
+    body: r.grupoMaterial.length>0 ? r.grupoMaterial.map(g=>[g.nombre, String(g.count), (g.totalUSD>=0?'+':'')+fmtMoney(g.totalUSD), (g.promedioUSD>=0?'+':'')+fmtMoney(g.promedioUSD), (g.pct>=0?'+':'')+g.pct.toFixed(1)+'%', g.totalUSD>=0?'Gasto':'Ahorro']) : [['Sin datos esta semana','','','','','']],
+    theme:'striped', headStyles:{fillColor:COLOR_ACCENT, fontSize:8}, styles:{fontSize:7.5, cellPadding:2},
+    columnStyles:{2:{halign:'right'}, 3:{halign:'right'}, 4:{halign:'right'}},
+    didParseCell: function(data){
+      if(data.section==='body' && data.column.index===5){
+        data.cell.styles.textColor = data.cell.raw==='Gasto' ? COLOR_BAD : COLOR_GOOD;
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+
+  // Pie de pagina en todas las paginas
+  const totalPaginas = doc.internal.getNumberOfPages();
+  for(let p=1; p<=totalPaginas; p++){
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setTextColor(...COLOR_MUTED);
+    doc.text(`Consumo de Materiales — Línea Italia · Página ${p} de ${totalPaginas}`, PAD, 279);
+  }
+
+  doc.save(`Reporte_Semanal_${r.rangoTexto.replace(/ /g,'_')}.pdf`);
+});
+
+document.getElementById('btnDescargarResumenAlternoPDF').addEventListener('click', ()=>{
+  if(!reporteAlternoCache){
+    alert('Espera a que termine de cargar el reporte alterno antes de descargar.');
+    return;
+  }
+  const r = reporteAlternoCache;
+  const md = r.metricas;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'letter'});
+  const W = 216, PAD = 14;
+  const COLOR_TEXT = [28,39,51], COLOR_MUTED = [107,122,137], COLOR_ACCENT = [30,64,110],
+        COLOR_GOOD = [30,158,106], COLOR_BAD = [209,69,59], COLOR_WARN = [201,138,26], COLOR_ACCENT2 = [47,128,201];
+  let y = 16;
+
+  // Encabezado
+  doc.setFillColor(...COLOR_ACCENT);
+  doc.rect(0,0,W,10,'F');
+  doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont(undefined,'bold');
+  doc.text('LÍNEA ITALIA', PAD, 7);
+  doc.setFont(undefined,'normal');
+  doc.text('Reporte Semanal de Consumo de Materiales', W-PAD, 7, {align:'right'});
+
+  y = 20;
+  doc.setTextColor(...COLOR_TEXT); doc.setFontSize(16); doc.setFont(undefined,'bold');
+  doc.text(`Semana del ${r.rangoTexto}`, PAD, y);
+  y += 6;
+  doc.setFontSize(9); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+  doc.text(`Generado: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`, PAD, y);
+  y += 8;
+
+  function tarjeta(x, ancho, alto, titulo, valor, colorValor, subtitulo){
+    doc.setDrawColor(225,225,225); doc.setFillColor(250,250,250);
+    doc.roundedRect(x, y, ancho, alto, 1.5, 1.5, 'FD');
+    doc.setFontSize(7.5); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'bold');
+    doc.text(titulo.toUpperCase(), x+3, y+5, {maxWidth: ancho-6});
+    doc.setFontSize(13); doc.setTextColor(...colorValor); doc.setFont(undefined,'bold');
+    doc.text(valor, x+3, y+11.5);
+    if(subtitulo){
+      doc.setFontSize(6.8); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+      doc.text(subtitulo, x+3, y+alto-2.5, {maxWidth: ancho-6});
+    }
+  }
+
+  function filaTarjetas(items, alto){
+    const gap = 4;
+    const ancho = (W - PAD*2 - gap*(items.length-1)) / items.length;
+    items.forEach((it,i)=> tarjeta(PAD + i*(ancho+gap), ancho, alto, it.t, it.v, it.c, it.s));
+    y += alto + 6;
+  }
+
+  // 3 recuadros: % OPs Consumidas / % OPs Cerradas / Balance Real
+  const anchoInfo = (W - PAD*2 - 4)/2;
+  const cajasInfo = [
+    {titulo:`% OPs Consumidas: ${r.opsConsumidasInfo.pct.toFixed(0)}%`, detalle:`${r.opsConsumidasInfo.opsConsumidas} de ${r.opsConsumidasInfo.opsAl100} OPs terminadas con todo consumido`, color:COLOR_ACCENT2},
+    {titulo:`% OPs Cerradas: ${r.opsCerradas.pct.toFixed(0)}%`, detalle:`${r.opsCerradas.opsCerradas} de ${r.opsCerradas.opsTotal} OPs con Estado Terminada`, color:COLOR_ACCENT2}
+  ];
+  cajasInfo.forEach((info,i)=>{
+    const x = PAD + i*(anchoInfo+4);
+    doc.setFillColor(240,248,255);
+    doc.setDrawColor(...info.color);
+    doc.roundedRect(x, y, anchoInfo, 18, 1.5, 1.5, 'FD');
+    doc.setFontSize(8); doc.setTextColor(...info.color); doc.setFont(undefined,'bold');
+    doc.text(doc.splitTextToSize(info.titulo, anchoInfo-6), x+3, y+6);
+    doc.setFontSize(6.3); doc.setTextColor(...COLOR_MUTED); doc.setFont(undefined,'normal');
+    doc.text(doc.splitTextToSize(info.detalle, anchoInfo-6), x+3, y+12);
+  });
+  y += 22;
+
+  // Fila 1: Estandar / Real / Balance
+  filaTarjetas([
+    {t:'$ Estándar', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${new Set(r.lineasFiltradas.map(l=>l.noOP)).size} OPs en este reporte`},
     {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
     {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
@@ -3441,6 +3809,103 @@ async function renderResumenMensual(){
   };
 }
 
+function verReporteAlterno(){
+  if(!resumenSemanalCache || !resumenSemanalCache.todasLasLineasSemana){
+    alert('Espera a que termine de cargar la semana antes de ver el reporte alterno.');
+    return;
+  }
+  document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-alterno').classList.remove('hidden');
+  document.getElementById('altProgramaDisplay').textContent = 'Reporte Alterno — ' + resumenSemanalCache.rangoTexto;
+  renderReporteAlterno();
+}
+
+function renderReporteAlterno(){
+  const lineasFiltradas = resumenSemanalCache.todasLasLineasSemana.filter(l=>
+    l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM')
+  );
+
+  const md = calcularMetricasDetalladas(lineasFiltradas);
+
+  const opsConsumidasInfo = calcularPctOPsConsumidas(lineasFiltradas);
+  document.getElementById('altPctOPsConsumidas').textContent = `${opsConsumidasInfo.pct.toFixed(0)}%`;
+  document.getElementById('altPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfo.opsConsumidas} de ${opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)${opsConsumidasInfo.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('semana'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfo.opsPendientes.length} OP(s)</a>` : ''}`;
+
+  const balanceRealSemana = calcularBalanceOPsTerminadas(lineasFiltradas);
+
+  const opsCerradasSemana = calcularPctOPsCerradas(lineasFiltradas);
+  document.getElementById('altPctOPsCerradas').textContent = `${opsCerradasSemana.pct.toFixed(0)}%`;
+  document.getElementById('altPctOPsCerradasDetail').textContent = `${opsCerradasSemana.opsCerradas} de ${opsCerradasSemana.opsTotal} OPs ya Terminadas · ${opsCerradasSemana.opsAbiertas} siguen abiertas (Lanzada)`;
+
+  const pctVsEstandar = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
+
+  document.getElementById('altBigEstandar').textContent = fmtMoney(md.estandarTotal);
+  document.getElementById('altSubEstandar').textContent = `${new Set(lineasFiltradas.map(l=>l.noOP)).size} OPs en este reporte (excluye líneas en 0 y OPs OPM)`;
+  document.getElementById('altBigReal').textContent = fmtMoney(md.realTotal);
+  document.getElementById('altSubReal').textContent = `${pctVsEstandar(md.realTotal)}% del estándar`;
+  const balanceEl = document.getElementById('altBigBalance');
+  balanceEl.textContent = fmtMoney(Math.abs(md.balance));
+  const labelBalanceEl = document.getElementById(balanceEl.id.replace('Big','Label'));
+  labelBalanceEl.textContent = md.balance > 0 ? 'Gasto' : (md.balance < 0 ? 'Ahorro' : 'Balance');
+  labelBalanceEl.style.color = md.balance > 0 ? 'var(--bad)' : (md.balance < 0 ? 'var(--good)' : '');
+  balanceEl.style.color = md.balance<0 ? 'var(--good)' : 'var(--bad)';
+  document.getElementById('altSubBalance').textContent = `${md.balance>=0?'+':''}${pctVsEstandar(md.balance)}% vs estándar (de esos, ${balanceRealSemana.balance>=0?'+':''}${fmtMoney(balanceRealSemana.balance)} considerando solo OPs terminadas)`;
+
+  document.getElementById('altBigPendienteProduccion').textContent = fmtMoney(md.pendienteEnProduccion);
+  document.getElementById('altSubPendienteProduccion').textContent = `${pctVsEstandar(md.pendienteEnProduccion)}% del estándar · La OP sigue en proceso`;
+  document.getElementById('altBigPendienteSinWIP').textContent = fmtMoney(md.pendienteSinWIP);
+  document.getElementById('altSubPendienteSinWIP').textContent = `${pctVsEstandar(md.pendienteSinWIP)}% del estándar · No aparece como activa`;
+  document.getElementById('altBigPendienteSinExplicacion').textContent = fmtMoney(md.pendienteSinExplicacion);
+  document.getElementById('altSubPendienteSinExplicacion').textContent = `${pctVsEstandar(md.pendienteSinExplicacion)}% del estándar · Avance confirma 100%`;
+
+  document.getElementById('altBigAhorroJust').textContent = fmtMoney(md.ahorroJustificado);
+  document.getElementById('altSubAhorroJust').textContent = `${pctVsEstandar(md.ahorroJustificado)}% del estándar · Con Razón capturada`;
+  document.getElementById('altBigAhorroNoJust').textContent = fmtMoney(md.ahorroNoJustificado);
+  document.getElementById('altSubAhorroNoJust').textContent = `${pctVsEstandar(md.ahorroNoJustificado)}% del estándar · Sin Razón, pero es normal`;
+  document.getElementById('altBigAhorroTotal').textContent = fmtMoney(md.ahorroTotal);
+  document.getElementById('altSubAhorroTotal').textContent = `${pctVsEstandar(md.ahorroTotal)}% del estándar`;
+
+  document.getElementById('altBigGastoJust').textContent = fmtMoney(md.gastoJustificado);
+  document.getElementById('altSubGastoJust').textContent = `${pctVsEstandar(md.gastoJustificado)}% del estándar · Con Razón capturada`;
+  document.getElementById('altBigGastoNoJust').textContent = fmtMoney(md.gastoNoJustificado);
+  document.getElementById('altSubGastoNoJust').textContent = `${pctVsEstandar(md.gastoNoJustificado)}% del estándar · Sin explicar todavía`;
+  document.getElementById('altBigGastoTotal').textContent = fmtMoney(md.gastoTotal);
+  document.getElementById('altSubGastoTotal').textContent = `${pctVsEstandar(md.gastoTotal)}% del estándar`;
+  document.getElementById('altGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
+
+  const topOPs = calcularTopOPsPorDesviacion(lineasFiltradas, 10);
+  document.getElementById('tablaTopOPsAlterno').innerHTML = topOPs.length > 0 ? topOPs.map(o=>`<tr>
+    <td>${o.noOP}</td><td>${o.modelo}</td>
+    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
+    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
+    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos esta semana.</td></tr>';
+
+  const topRazones = calcularTopRazonesPorDinero(lineasFiltradas, 5);
+  document.getElementById('tablaTopRazonesAlterno').innerHTML = topRazones.length > 0 ? topRazones.map(r=>`<tr>
+    <td>${r.razon}</td><td>${r.numOPs}</td>
+    <td class="money" style="color:${r.monto<0?'var(--good)':(r.monto>0?'var(--bad)':'var(--text)')}; font-weight:600;">${r.monto>=0?'+':''}${fmtMoney(r.monto)}</td>
+    <td>${r.pct.toFixed(1)}%</td>
+    <td style="color:${r.tipo==='Ahorro'?'var(--good)':(r.tipo==='Gasto'?'var(--bad)':'var(--muted)')}; font-weight:600;">${r.tipo}</td>
+  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay Razones capturadas esta semana.</td></tr>';
+
+  const grupoMaterial = calcularDesviacionPorGrupoMaterial(lineasFiltradas);
+  document.getElementById('tablaGrupoMaterialAlterno').innerHTML = grupoMaterial.length > 0 ? grupoMaterial.map(g=>`<tr>
+    <td>${g.nombre}</td><td>${g.count}</td>
+    <td class="money" style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'+':''}${fmtMoney(g.totalUSD)}</td>
+    <td class="money">${g.promedioUSD>=0?'+':''}${fmtMoney(g.promedioUSD)}</td>
+    <td style="color:${g.pct>=0?'var(--bad)':'var(--good)'};">${g.pct>=0?'+':''}${g.pct.toFixed(1)}%</td>
+    <td style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'Gasto':'Ahorro'}</td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos esta semana.</td></tr>';
+
+  reporteAlternoCache = {
+    rangoTexto: resumenSemanalCache.rangoTexto,
+    metricas: md, opsConsumidasInfo, opsCerradas: opsCerradasSemana, balanceReal: balanceRealSemana,
+    topOPs, topRazones, grupoMaterial, lineasFiltradas: lineasFiltradas
+  };
+}
+
+
 async function renderSemanaPrograma(){
   const lunes = lunesDeSemana(currentSemanaProgramaFecha);
   const dias = [];
@@ -3766,6 +4231,7 @@ function volverASemanaPrograma(){
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.add('hidden');
   document.getElementById('programa-nivel-mes').classList.add('hidden');
+  document.getElementById('programa-nivel-alterno').classList.add('hidden');
 }
 function volverADiaPrograma(){
   document.getElementById('programa-nivel-dia').classList.remove('hidden');
