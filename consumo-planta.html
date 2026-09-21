@@ -407,22 +407,18 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </div>
 
         <div class="section-title" style="font-size:13px; margin-top:20px;">$ Faltante sin Justificar — por qué falta</div>
-        <div class="bigrow">
+        <div class="bigrow" style="grid-template-columns:1fr 1fr;">
           <div class="card">
             <div class="label">Aún No Sale de Producción <span class="help-icon">?<span class="help-tooltip">La OP sigue activa en el Avance del Programa y no ha llegado al 100%. Es normal que aún falte por consumir — se espera que se resuelva solo conforme avance.</span></span></div>
             <div class="big" id="altBigPendienteProduccion" style="color:var(--warn);">$0</div>
             <div class="sub" id="altSubPendienteProduccion">La OP sigue en proceso</div>
           </div>
           <div class="card">
-            <div class="label">Errores Listas de Materiales o Transferencias de Almacén <span class="help-icon">?<span class="help-tooltip">Consumo Real en 0, y alguien ya escribió una Razón que menciona "WIP" para explicarlo (ej. "Faltante de material en WIP producción"). Si no tiene esa Razón, se clasifica por el Avance en las otras dos cajas.</span></span></div>
-            <div class="big" id="altBigPendienteSinWIP" style="color:var(--bad);">$0</div>
-            <div class="sub" id="altSubPendienteSinWIP">No aparece como activa, pero falta consumo</div>
-          </div>
-          <div class="card">
             <div class="label">Consumo en 0 en Sistema <span class="help-icon">?<span class="help-tooltip">El Avance confirma que la OP ya está al 100%, y aun así falta material por consumir (total o parcial). Esta es la señal más fuerte de un error real.</span></span></div>
             <div class="big" id="altBigPendienteSinExplicacion" style="color:var(--bad);">$0</div>
             <div class="sub" id="altSubPendienteSinExplicacion">El Avance confirma 100%, pero falta material</div>
           </div>
+
         </div>
 
         <div class="section-title" style="font-size:13px; margin-top:20px;">Ahorro (materiales donde SÍ es normal ahorrar)</div>
@@ -2884,9 +2880,8 @@ document.getElementById('btnDescargarResumenAlterno').addEventListener('click', 
     {Concepto:'', Valor: ''},
     {Concepto:'--- Faltante sin Justificar ---', Valor: ''},
     {Concepto:'Aún No Sale de Producción', Valor: md.pendienteEnProduccion},
-    {Concepto:'Errores Listas de Materiales o Transferencias de Almacén', Valor: md.pendienteSinWIP},
     {Concepto:'Consumo en 0 en Sistema', Valor: md.pendienteSinExplicacion},
-    {Concepto:'Total Faltante sin Justificar', Valor: md.pendienteRealTotal},
+    {Concepto:'Total Faltante sin Justificar', Valor: md.pendienteEnProduccion + md.pendienteSinExplicacion},
     {Concepto:'Faltante Ya Justificado', Valor: md.pendienteJustificado},
     {Concepto:'', Valor: ''},
     {Concepto:'--- Ahorro ---', Valor: ''},
@@ -3259,7 +3254,6 @@ document.getElementById('btnDescargarResumenAlternoPDF').addEventListener('click
   y += 4;
   filaTarjetas([
     {t:'Aún No Sale de Producción', v: fmtMoney(md.pendienteEnProduccion), c: COLOR_WARN, s:`${md.estandarTotal!==0?((md.pendienteEnProduccion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · La OP sigue en proceso`},
-    {t:'Errores Listas de Materiales o Transferencias de Almacén', v: fmtMoney(md.pendienteSinWIP), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinWIP/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · No aparece activa`},
     {t:'Consumo en 0 en Sistema', v: fmtMoney(md.pendienteSinExplicacion), c: COLOR_BAD, s:`${md.estandarTotal!==0?((md.pendienteSinExplicacion/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar · Avance confirma 100%`}
   ], 18);
 
@@ -3853,8 +3847,6 @@ function renderReporteAlterno(){
 
   document.getElementById('altBigPendienteProduccion').textContent = fmtMoney(md.pendienteEnProduccion);
   document.getElementById('altSubPendienteProduccion').textContent = `${pctVsEstandar(md.pendienteEnProduccion)}% del estándar · La OP sigue en proceso`;
-  document.getElementById('altBigPendienteSinWIP').textContent = fmtMoney(md.pendienteSinWIP);
-  document.getElementById('altSubPendienteSinWIP').textContent = `${pctVsEstandar(md.pendienteSinWIP)}% del estándar · No aparece como activa`;
   document.getElementById('altBigPendienteSinExplicacion').textContent = fmtMoney(md.pendienteSinExplicacion);
   document.getElementById('altSubPendienteSinExplicacion').textContent = `${pctVsEstandar(md.pendienteSinExplicacion)}% del estándar · Avance confirma 100%`;
 
