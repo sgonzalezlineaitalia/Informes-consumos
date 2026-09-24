@@ -264,12 +264,12 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="bigrow">
           <div class="card">
-            <div class="label">$ Estándar (Semana)</div>
+            <div class="label">$ Estándar MP (Semana)</div>
             <div class="big" id="semBigEstandar">$0</div>
             <div class="sub" id="semSubEstandar">&nbsp;</div>
           </div>
           <div class="card">
-            <div class="label">$ Real Consumido (Semana)</div>
+            <div class="label">$ Real MP Consumido (Semana)</div>
             <div class="big" id="semBigReal">$0</div>
             <div class="sub" id="semSubReal">&nbsp;</div>
           </div>
@@ -390,12 +390,12 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="bigrow">
           <div class="card">
-            <div class="label">$ Estándar (Semana)</div>
+            <div class="label">$ Estándar MP (Semana)</div>
             <div class="big" id="altBigEstandar">$0</div>
             <div class="sub" id="altSubEstandar">&nbsp;</div>
           </div>
           <div class="card">
-            <div class="label">$ Real Consumido (Semana)</div>
+            <div class="label">$ Real MP Consumido (Semana)</div>
             <div class="big" id="altBigReal">$0</div>
             <div class="sub" id="altSubReal">&nbsp;</div>
           </div>
@@ -512,12 +512,12 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="bigrow">
           <div class="card">
-            <div class="label">$ Estándar (Mes)</div>
+            <div class="label">$ Estándar MP (Mes)</div>
             <div class="big" id="mesBigEstandar">$0</div>
             <div class="sub" id="mesSubEstandar">&nbsp;</div>
           </div>
           <div class="card">
-            <div class="label">$ Real Consumido (Mes)</div>
+            <div class="label">$ Real MP Consumido (Mes)</div>
             <div class="big" id="mesBigReal">$0</div>
             <div class="sub" id="mesSubReal">&nbsp;</div>
           </div>
@@ -635,12 +635,12 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
         <div class="bigrow">
           <div class="card">
-            <div class="label">$ Estándar del Programa <span class="help-icon">?<span class="help-tooltip">Lo que se esperaba consumir de material, según la lista de materiales (BOM) de este programa.</span></span></div>
+            <div class="label">$ Estándar MP del Programa <span class="help-icon">?<span class="help-tooltip">Lo que se esperaba consumir de material, según la lista de materiales (BOM) de este programa.</span></span></div>
             <div class="big" id="progBigEstandar">$0</div>
             <div class="sub" id="progSubEstandar">&nbsp;</div>
           </div>
           <div class="card">
-            <div class="label">$ Real Consumido <span class="help-icon">?<span class="help-tooltip">Lo que realmente se ha consumido hasta hoy, según los movimientos de inventario registrados.</span></span></div>
+            <div class="label">$ Real MP Consumido <span class="help-icon">?<span class="help-tooltip">Lo que realmente se ha consumido hasta hoy, según los movimientos de inventario registrados.</span></span></div>
             <div class="big" id="progBigReal">$0</div>
             <div class="sub" id="progSubReal">&nbsp;</div>
           </div>
@@ -2798,8 +2798,8 @@ document.getElementById('btnDescargarResumenSemanal').addEventListener('click', 
 
   const resumenGeneral = [
     {Concepto:'Semana', Valor: r.rangoTexto},
-    {Concepto:'$ Estándar', Valor: md.estandarTotal},
-    {Concepto:'$ Real Consumido', Valor: md.realTotal},
+    {Concepto:'$ Estándar MP', Valor: md.estandarTotal},
+    {Concepto:'$ Real MP Consumido', Valor: md.realTotal},
     {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
     {Concepto:'Balance Real (Solo OPs Terminadas)', Valor: r.balanceReal.balance},
     {Concepto:'', Valor: ''},
@@ -2873,8 +2873,8 @@ document.getElementById('btnDescargarResumenAlterno').addEventListener('click', 
 
   const resumenGeneral = [
     {Concepto:'Semana', Valor: r.rangoTexto}, {Concepto:'Filtros aplicados', Valor: 'Excluye líneas con Consumo Real en 0 y OPs que empiezan con OPM'},
-    {Concepto:'$ Estándar', Valor: md.estandarTotal},
-    {Concepto:'$ Real Consumido', Valor: md.realTotal},
+    {Concepto:'$ Estándar MP', Valor: md.estandarTotal},
+    {Concepto:'$ Real MP Consumido', Valor: md.realTotal},
     {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
     {Concepto:'Balance Real (Solo OPs Terminadas)', Valor: r.balanceReal.balance},
     {Concepto:'', Valor: ''},
@@ -2940,8 +2940,8 @@ document.getElementById('btnDescargarResumenMensual').addEventListener('click', 
     {Concepto:'Días con Programa cargado', Valor: r.diasConDatos.join(', ')},
     {Concepto:'Días sin Programa', Valor: r.diasSinDatos.join(', ') || 'Ninguno'},
     {Concepto:'', Valor: ''},
-    {Concepto:'$ Estándar', Valor: md.estandarTotal},
-    {Concepto:'$ Real Consumido', Valor: md.realTotal},
+    {Concepto:'$ Estándar MP', Valor: md.estandarTotal},
+    {Concepto:'$ Real MP Consumido', Valor: md.realTotal},
     {Concepto:'Balance (Real - Estándar)', Valor: md.balance},
     {Concepto:'Balance Real (Solo OPs Terminadas)', Valor: r.balanceReal.balance},
     {Concepto:'', Valor: ''},
@@ -3064,8 +3064,8 @@ document.getElementById('btnDescargarResumenSemanalPDF').addEventListener('click
 
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
-    {t:'$ Estándar (Semana)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.semOpsTotal} OPs · ${r.pctCumplimientoSemana.toFixed(0)}% al 100%`},
-    {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
+    {t:'$ Estándar MP (Semana)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.semOpsTotal} OPs · ${r.pctCumplimientoSemana.toFixed(0)}% al 100%`},
+    {t:'$ Real MP Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
     {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
@@ -3242,8 +3242,8 @@ document.getElementById('btnDescargarResumenAlternoPDF').addEventListener('click
 
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
-    {t:'$ Estándar', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${new Set(r.lineasFiltradas.map(l=>l.noOP)).size} OPs en este reporte`},
-    {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
+    {t:'$ Estándar MP', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${new Set(r.lineasFiltradas.map(l=>l.noOP)).size} OPs en este reporte`},
+    {t:'$ Real MP Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
     {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
@@ -3419,8 +3419,8 @@ document.getElementById('btnDescargarResumenMensualPDF').addEventListener('click
 
   // Fila 1: Estandar / Real / Balance
   filaTarjetas([
-    {t:'$ Estándar (Mes)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.diasConDatos.length} día(s) con Programa · ${r.opsConsumidasInfo.pct.toFixed(0)}% OPs consumidas`},
-    {t:'$ Real Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
+    {t:'$ Estándar MP (Mes)', v: fmtMoney(md.estandarTotal), c: COLOR_TEXT, s: `${r.diasConDatos.length} día(s) con Programa · ${r.opsConsumidasInfo.pct.toFixed(0)}% OPs consumidas`},
+    {t:'$ Real MP Consumido', v: fmtMoney(md.realTotal), c: COLOR_TEXT, s: `${md.estandarTotal!==0?((md.realTotal/md.estandarTotal)*100).toFixed(1):'0.0'}% del estándar`},
     {t:`${md.balance>0?'Gasto':(md.balance<0?'Ahorro':'Balance')}`, v: fmtMoney(Math.abs(md.balance)), c: md.balance>0?COLOR_BAD:COLOR_GOOD, s: `${md.estandarTotal!==0?(md.balance>=0?'+':'')+((md.balance/md.estandarTotal)*100).toFixed(1):'0.0'}% vs estándar (solo terminadas: ${r.balanceReal.balance>=0?'+':''}${fmtMoney(r.balanceReal.balance)})`}
   ], 20);
 
