@@ -48,6 +48,24 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
 .tab-btn.active{background:var(--panel-2); color:var(--text); border-color:var(--line);}
 .tab-btn:hover{color:var(--text);}
 
+.app-layout{display:flex; min-height:100vh;}
+.app-sidebar{
+  width:230px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; padding:18px 12px; position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.app-sidebar .brand{padding:0 8px 16px; margin-bottom:10px; border-bottom:1px solid var(--line);}
+.sidebar-btn{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  background:transparent; border:1px solid transparent; color:var(--text);
+  padding:10px 12px; border-radius:8px; font-size:13px; cursor:pointer; font-family:var(--sans);
+  font-weight:500; margin-bottom:2px;
+}
+.sidebar-btn:hover{background:var(--panel-2);}
+.sidebar-btn.active{background:var(--panel-2); border-color:var(--line); color:var(--accent);}
+.sidebar-spacer{flex:1;}
+.sidebar-section-label{font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:10px 12px 4px;}
+.app-main{flex:1; min-width:0;}
+
 .period-bar{
   display:flex; gap:6px; padding:12px 24px 4px; background:var(--panel); border-bottom:none;
   align-items:center; flex-wrap:wrap; justify-content:center;
@@ -205,19 +223,30 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 </head>
 <body>
 
-<div class="topbar">
-  <div class="brand">
-    <div class="dot"></div>
-    <div>
-      <h1>Consumo de Materiales</h1>
-      <span>Línea Italia · Reporte Diario</span>
+<div class="app-layout">
+  <div class="app-sidebar">
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>Consumo de Materiales</h1>
+        <span>Línea Italia · Reporte Diario</span>
+      </div>
     </div>
+
+    <div class="sidebar-section-label">Reportes</div>
+    <button class="sidebar-btn" id="sbVistaPrograma" onclick="irAReporte(); volverASemanaPrograma(); marcarSidebarActivo('sbVistaPrograma');">📅 Vista por Programa</button>
+    <button class="sidebar-btn" id="sbListaCompleta" onclick="irAReporte(); verListaCompletaProgramas(); marcarSidebarActivo('sbListaCompleta');">📋 Todos los Programas</button>
+    <button class="sidebar-btn" id="sbResumenMensual" onclick="irAReporte(); verResumenMensual(); marcarSidebarActivo('sbResumenMensual');">📊 Resumen Mensual</button>
+    <button class="sidebar-btn" id="sbReporteAlterno" onclick="irAReporte(); verReporteAlterno(); marcarSidebarActivo('sbReporteAlterno');">🔀 Reporte Alterno</button>
+
+    <div class="sidebar-section-label">Datos</div>
+    <button class="sidebar-btn" id="sbActualizarDatos" onclick="actualizarDatosDesdeSidebar(this)">🔄 Actualizar Datos</button>
+
+    <div class="sidebar-spacer"></div>
+    <button class="sidebar-btn" id="sbAdmin" onclick="irAAdmin()">⚙️ Admin</button>
   </div>
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="viewer">Reporte</button>
-    <button class="tab-btn" data-tab="admin">Admin</button>
-  </div>
-</div>
+
+  <div class="app-main">
 <div id="localModeBanner" class="hidden" style="background:#fbf0dd; color:#8a5a00; padding:8px 24px; font-size:12px; text-align:center; border-bottom:1px solid #e6d19a;">
   ⚠ Modo local: los datos se guardan solo en este navegador (no se comparten con otras personas todavía). Conecta Firebase cuando puedas para que jefes y demás vean el reporte.
 </div>
@@ -231,7 +260,6 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <button class="date-arrow" id="prevSemanaProgramaBtn">‹</button>
         <div class="date-display" id="semanaProgramaDisplay" style="font-size:16px;">—</div>
         <button class="date-arrow" id="nextSemanaProgramaBtn">›</button>
-        <button class="btn" id="btnRefrescarSemana" style="position:absolute; right:24px;">🔄 Actualizar Datos</button>
       </div>
       <div id="ultimaActualizacionInfo" style="text-align:center; font-size:11px; color:var(--muted); padding:4px 0; background:var(--panel);">&nbsp;</div>
       <main>
@@ -245,8 +273,6 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           Resumen Semanal Estándar
           <button class="btn primary" id="btnDescargarResumenSemanal" style="font-size:12px; padding:6px 14px;">⬇ Descargar Resumen Semanal (Excel)</button>
           <button class="btn primary" id="btnDescargarResumenSemanalPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
-          <button class="btn" id="btnVerResumenMensual" style="font-size:12px; padding:6px 14px; margin-left:auto;">📅 Ver Resumen Mensual</button>
-          <button class="btn" onclick="verReporteAlterno()" style="font-size:12px; padding:6px 14px;">🔀 Ver Reporte Alterno</button>
         </div>
 
         <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr;">
@@ -351,14 +377,29 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </table>
 
         <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
-        <table>
-          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+        <table style="background:#eef0f3;">
+          <thead><tr style="background:#dde1e7;"><th style="background:#dde1e7;">Grupo</th><th style="background:#dde1e7;"># Líneas</th><th style="background:#dde1e7;">$ Desviación Total</th><th style="background:#dde1e7;">$ Promedio por Línea</th><th style="background:#dde1e7;">% vs Estándar</th><th style="background:#dde1e7;">Tipo</th></tr></thead>
           <tbody id="tablaGrupoMaterialSemana"></tbody>
         </table>
+      </main>
+    </div>
 
-        <div class="section-title" style="margin-top:24px;">⚠ Programas vencidos con material pendiente</div>
-        <div class="field-hint" style="margin-bottom:10px;">Programas cuya fecha ya pasó y todavía les falta consumir material según su estándar.</div>
-        <div id="alertasProgramasVencidos"></div>
+    <div id="programa-nivel-lista-completa" class="hidden">
+      <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
+        <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <div class="date-display" style="font-size:16px;">Todos los Programas (ordenados por fecha)</div>
+      </div>
+      <main>
+        <div class="field-hint" style="margin-bottom:12px;">Se muestran todos los días con Programa cargado en tu catálogo de Estándares, del más reciente al más antiguo. Dale clic a un día para ver su detalle completo (OPs, materiales, Grupo de Material, etc.) 🔀 Los números de esta lista ya excluyen las líneas con Consumo Real en 0 y las OPs OPM (mismo filtro del Reporte Alterno), para no mostrar ahorro falso por material que aún no sale de producción o que falta.</div>
+        <div class="toolbar" style="margin-bottom:12px;">
+          <input type="text" id="buscarListaCompleta" placeholder="Buscar por fecha (AAAA-MM-DD)..." style="flex:1;">
+        </div>
+        <table>
+          <thead><tr>
+            <th>Fecha</th><th># OPs</th><th>% Cumplimiento</th><th>$ Estándar MP</th><th>$ Real MP</th><th>$ Diferencia</th><th>Tipo</th>
+          </tr></thead>
+          <tbody id="tablaListaCompletaProgramas"></tbody>
+        </table>
       </main>
     </div>
 
@@ -473,8 +514,8 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </table>
 
         <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
-        <table>
-          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+        <table style="background:#eef0f3;">
+          <thead><tr style="background:#dde1e7;"><th style="background:#dde1e7;">Grupo</th><th style="background:#dde1e7;"># Líneas</th><th style="background:#dde1e7;">$ Desviación Total</th><th style="background:#dde1e7;">$ Promedio por Línea</th><th style="background:#dde1e7;">% vs Estándar</th><th style="background:#dde1e7;">Tipo</th></tr></thead>
           <tbody id="tablaGrupoMaterialAlterno"></tbody>
         </table>
 
@@ -599,8 +640,8 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </table>
 
         <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
-        <table>
-          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+        <table style="background:#eef0f3;">
+          <thead><tr style="background:#dde1e7;"><th style="background:#dde1e7;">Grupo</th><th style="background:#dde1e7;"># Líneas</th><th style="background:#dde1e7;">$ Desviación Total</th><th style="background:#dde1e7;">$ Promedio por Línea</th><th style="background:#dde1e7;">% vs Estándar</th><th style="background:#dde1e7;">Tipo</th></tr></thead>
           <tbody id="tablaGrupoMaterialMes"></tbody>
         </table>
       </main>
@@ -609,13 +650,38 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <div id="programa-nivel-dia" class="hidden">
       <main>
         <div class="toolbar" style="margin-bottom:16px;">
-          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverDesdePrograma()">← Volver</button>
           <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="programaDiaTitulo">Programa</span>
           <button class="btn" id="btnRefrescarDia">🔄 Actualizar Datos</button>
           <button class="btn" id="btnExportLanzadasConsumoCero" style="color:var(--bad); border-color:var(--bad);">⬇ Excel: OPs Lanzadas con Consumo Real 0</button>
         </div>
 
         <div id="avisoProgramaVencido"></div>
+
+        <div class="section-title" style="margin-top:26px; display:flex; align-items:center; gap:12px;">
+          Resumen por OP (suma de todos sus materiales)
+          <button class="btn" id="btnToggleFiltroDia" style="font-size:12px; padding:6px 14px; margin-left:auto;">👁 Mostrar Todo (sin filtro)</button>
+        </div>
+        <div class="field-hint" id="hintFiltroDia" style="margin-bottom:10px;"></div>
+        <div class="table-scroll" style="height:auto; max-height:65vh;">
+          <table>
+            <thead>
+              <tr>
+                <th data-key-resumenop="noOP">OP <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="modelo">Modelo <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="estado">Estado <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="cumplimiento">% Cumplimiento <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="pendienteReal">$ Pendiente <span class="sort-arrow">▲▼</span></th>
+                <th data-key-resumenop="diferenciaNeta">$ Diferencia <span class="sort-arrow">▲▼</span></th>
+                <th>Tipo</th>
+                <th>⚠ Rechazo de Calidad</th>
+              </tr>
+            </thead>
+            <tbody id="tablaResumenPorOP"></tbody>
+          </table>
+        </div>
 
         <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr;">
           <div class="alertcard">
@@ -731,30 +797,11 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </table>
 
         <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
-        <table>
-          <thead><tr><th>Grupo</th><th># Líneas</th><th>$ Desviación Total</th><th>$ Promedio por Línea</th><th>% vs Estándar</th><th>Tipo</th></tr></thead>
+        <table style="background:#eef0f3;">
+          <thead><tr style="background:#dde1e7;"><th style="background:#dde1e7;">Grupo</th><th style="background:#dde1e7;"># Líneas</th><th style="background:#dde1e7;">$ Desviación Total</th><th style="background:#dde1e7;">$ Promedio por Línea</th><th style="background:#dde1e7;">% vs Estándar</th><th style="background:#dde1e7;">Tipo</th></tr></thead>
           <tbody id="tablaGrupoMaterialDia"></tbody>
         </table>
 
-        <div class="section-title" style="margin-top:26px;">Resumen por OP (suma de todos sus materiales)</div>
-        <div class="table-scroll" style="height:auto; max-height:40vh;">
-          <table>
-            <thead>
-              <tr>
-                <th data-key-resumenop="noOP">OP <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="modelo">Modelo <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="estado">Estado <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="cumplimiento">% Cumplimiento <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="estandarUSD">$ Estándar <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="realUSD">$ Real <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="pendienteReal">$ Pendiente <span class="sort-arrow">▲▼</span></th>
-                <th data-key-resumenop="pendienteJustificado">$ Diferencias Justificadas <span class="sort-arrow">▲▼</span></th>
-                <th>⚠ Rechazo de Calidad</th>
-              </tr>
-            </thead>
-            <tbody id="tablaResumenPorOP"></tbody>
-          </table>
-        </div>
       </main>
     </div>
 
@@ -985,6 +1032,9 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
   </main>
 </div>
 
+  </div>
+  </div>
+
 <script>
 /* ============================================================
    FIREBASE CONFIG — reemplaza con el config real de tu proyecto
@@ -1172,17 +1222,32 @@ function quitarAcentos(s){
 /* ============================================================
    TABS PRINCIPALES
    ============================================================ */
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-viewer').classList.toggle('hidden', btn.dataset.tab!=='viewer');
-    document.getElementById('tab-admin').classList.toggle('hidden', btn.dataset.tab!=='admin');
-    if(btn.dataset.tab==='admin' && !document.getElementById('admin-pin-gate').classList.contains('hidden')){
-      setTimeout(()=> document.getElementById('pinInput').focus(), 50);
-    }
-  });
-});
+function marcarSidebarActivo(id){
+  document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById(id);
+  if(btn) btn.classList.add('active');
+}
+function irAReporte(){
+  document.getElementById('tab-viewer').classList.remove('hidden');
+  document.getElementById('tab-admin').classList.add('hidden');
+}
+function irAAdmin(){
+  document.getElementById('tab-viewer').classList.add('hidden');
+  document.getElementById('tab-admin').classList.remove('hidden');
+  marcarSidebarActivo('sbAdmin');
+  if(!document.getElementById('admin-pin-gate').classList.contains('hidden')){
+    setTimeout(()=> document.getElementById('pinInput').focus(), 50);
+  }
+}
+async function actualizarDatosDesdeSidebar(btn){
+  btn.textContent = '🔄 Actualizando...';
+  await refrescarDatosPrograma();
+  irAReporte();
+  volverASemanaPrograma();
+  marcarSidebarActivo('sbVistaPrograma');
+  await renderSemanaPrograma();
+  btn.textContent = '🔄 Actualizar Datos';
+}
 
 /* ============================================================
    PIN GATE
@@ -1642,13 +1707,30 @@ async function cargarEstandaresDesdeArchivo(file, statusEl){
     await refDoc.set({fecha: hoyISO, deltas: {...previos, ...deltas}});
   }
 
+  // Reconciliar componentes que ya no aplican: para cada OP que SI viene en
+  // este archivo, si antes tenia guardada una linea (OP+SKU) que ya no aparece
+  // en la subida de HOY para esa misma OP, se borra -- significa que ese
+  // componente se quito de la lista de materiales de esa OP (o se le cambio el
+  // numero). Las OPs que NO vienen en este archivo NUNCA se tocan, aunque sean
+  // muy viejas -- solo se reconcilian las OPs que de verdad se estan subiendo hoy.
+  const opsEnEsteArchivo = new Set(Object.keys(registros).map(k=>k.split('__')[0]));
+  const keysABorrarPorReconciliacion = Object.keys(ESTANDARES_OP).filter(key=>{
+    const opDeKey = key.split('__')[0];
+    return opsEnEsteArchivo.has(opDeKey) && !registros[key];
+  });
+  if(keysABorrarPorReconciliacion.length > 0){
+    const operacionesBorrar = keysABorrarPorReconciliacion.map(key => ({tipo:'delete', ref: db.collection('estandaresOP').doc(safeDocId(key))}));
+    await commitEnLotes(db, operacionesBorrar);
+    keysABorrarPorReconciliacion.forEach(key => delete ESTANDARES_OP[key]);
+  }
+
   ESTANDARES_OP = {...ESTANDARES_OP, ...registros};
 
   if(rutasNuevas > 0){
     await db.collection('config').doc('centroFase').set({mapping: CENTRO_A_FASE});
   }
 
-  return {total: Object.keys(registros).length, rutasNuevas, opsConFechaCorregida};
+  return {total: Object.keys(registros).length, rutasNuevas, opsConFechaCorregida, componentesEliminados: keysABorrarPorReconciliacion.length};
 }
 
 async function cargarAvanceDesdeArchivo(file, statusEl){
@@ -2219,8 +2301,8 @@ document.getElementById('btnProcesarMovimientos').addEventListener('click', asyn
     let mensajeEstandares = '';
     if(fEstandares){
       const resEst = await cargarEstandaresDesdeArchivo(fEstandares, statusEl);
-      mensajeEstandares += `Estándares: ${resEst.total} líneas OP+SKU actualizadas${resEst.rutasNuevas>0 ? ' ('+resEst.rutasNuevas+' Centro(s) de Trabajo nuevos sin clasificar)' : ''}${resEst.opsConFechaCorregida>0 ? ` (${resEst.opsConFechaCorregida} línea(s) con fecha corregida a la fecha original de su OP)` : ''}. `;
-      await registrarCarga('Estandares', fEstandares.name, `${resEst.total} líneas OP+SKU actualizadas${resEst.opsConFechaCorregida>0 ? `, ${resEst.opsConFechaCorregida} con fecha corregida` : ''}`);
+      mensajeEstandares += `Estándares: ${resEst.total} líneas OP+SKU actualizadas${resEst.rutasNuevas>0 ? ' ('+resEst.rutasNuevas+' Centro(s) de Trabajo nuevos sin clasificar)' : ''}${resEst.opsConFechaCorregida>0 ? ` (${resEst.opsConFechaCorregida} línea(s) con fecha corregida a la fecha original de su OP)` : ''}${resEst.componentesEliminados>0 ? ` (${resEst.componentesEliminados} componente(s) eliminados por ya no venir en la lista de materiales de sus OPs)` : ''}. `;
+      await registrarCarga('Estandares', fEstandares.name, `${resEst.total} líneas OP+SKU actualizadas${resEst.opsConFechaCorregida>0 ? `, ${resEst.opsConFechaCorregida} con fecha corregida` : ''}${resEst.componentesEliminados>0 ? `, ${resEst.componentesEliminados} componente(s) eliminados` : ''}`);
     }
     if(fAvance){
       const resAvance = await cargarAvanceDesdeArchivo(fAvance, statusEl);
@@ -2768,6 +2850,8 @@ let currentSemanaProgramaFecha = new Date().toISOString().slice(0,10);
 let currentProgramaDia = null;
 let currentProgramaLineas = [];
 let currentProgramaFaseSeleccionada = null;
+let origenProgramaDia = 'semana'; // 'semana' o 'lista-completa' -- de donde se entro al detalle del dia
+let modoFiltradoDia = true; // true = vista filtrada (Resumen por OP solo OPs al 100%, metricas con reglas del Reporte Alterno)
 let modoVistaSemanaCompleta = false;
 let vinoDelResumenMensual = false;
 let sortStateProgramaFase = {key:null, dir:1};
@@ -3637,11 +3721,11 @@ async function refrescarDatosPrograma(){
   return horaTxt;
 }
 
-document.getElementById('btnRefrescarSemana').addEventListener('click', async (e)=>{
-  e.target.textContent = '🔄 Actualizando...';
-  await refrescarDatosPrograma();
-  await renderSemanaPrograma();
-  e.target.textContent = '🔄 Actualizar Datos';
+document.getElementById('btnToggleFiltroDia').addEventListener('click', (e)=>{
+  modoFiltradoDia = !modoFiltradoDia;
+  e.target.textContent = modoFiltradoDia ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
+  renderProgramaDiaDetalle();
+  renderResumenPorOP();
 });
 document.getElementById('btnRefrescarDia').addEventListener('click', async (e)=>{
   e.target.textContent = '🔄 Actualizando...';
@@ -3654,11 +3738,15 @@ document.getElementById('btnRefrescarDia').addEventListener('click', async (e)=>
 let currentMesProgramaFecha = new Date().toISOString().slice(0,10);
 let resumenMensualCache = null;
 
-document.getElementById('btnVerResumenMensual').addEventListener('click', ()=>{
+function verResumenMensual(){
   document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-dia').classList.add('hidden');
+  document.getElementById('programa-nivel-fase').classList.add('hidden');
+  document.getElementById('programa-nivel-alterno').classList.add('hidden');
+  document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
   document.getElementById('programa-nivel-mes').classList.remove('hidden');
   renderResumenMensual();
-});
+}
 document.getElementById('prevMesProgramaBtn').addEventListener('click', ()=>{
   const d = new Date(currentMesProgramaFecha + 'T00:00:00');
   d.setMonth(d.getMonth()-1);
@@ -3809,6 +3897,10 @@ function verReporteAlterno(){
     return;
   }
   document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-dia').classList.add('hidden');
+  document.getElementById('programa-nivel-fase').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.add('hidden');
+  document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
   document.getElementById('programa-nivel-alterno').classList.remove('hidden');
   document.getElementById('altProgramaDisplay').textContent = 'Reporte Alterno — ' + resumenSemanalCache.rangoTexto;
   renderReporteAlterno();
@@ -3938,7 +4030,7 @@ async function renderSemanaPrograma(){
     resumenDiasSemana.push({fecha, nombreDia: nombresDia[i], sinPrograma:false, ops: ops.size, cumplimiento: cumplimiento.porcentaje, estandarTotal: m.estandarTotal, realTotal: m.realTotal, pendienteReal: m.pendienteReal});
     const vencido = fecha < hoy && m.pendienteReal > 0.5;
     const esHoy = fecha === hoy;
-    tarjetas.push(`<div class="dia-programa-card ${vencido?'vencido':''} ${esHoy?'hoy':''}" onclick="verProgramaDia('${fecha}')">
+    tarjetas.push(`<div class="dia-programa-card ${vencido?'vencido':''} ${esHoy?'hoy':''}" onclick="origenProgramaDia='semana'; verProgramaDia('${fecha}')">
       <div class="dia-nombre">${nombresDia[i]}${esHoy?' • HOY':''}</div>
       <div class="dia-fecha">${fmtLegible(fecha)}</div>
       <div class="dia-stat"><strong>${ops.size}</strong> OPs · <strong>${cumplimiento.porcentaje.toFixed(0)}%</strong> cumplimiento (${cumplimiento.opsCompletas}/${cumplimiento.opsTotal} OPs al 100%)</div>
@@ -4028,8 +4120,6 @@ async function renderSemanaPrograma(){
     metricas: md, semOpsCompletas, semOpsTotal, pctCumplimientoSemana, opsConsumidasInfo, opsCerradas: opsCerradasSemana, balanceReal: balanceRealSemana,
     topOPs, topRazones, grupoMaterial, resumenDiasSemana, todasLasLineasSemana
   };
-
-  renderAlertasProgramasVencidos();
 }
 
 let sortStateResumenOP = {key:'pendienteReal', dir:-1};
@@ -4056,9 +4146,14 @@ function renderResumenPorOP(){
 
   let filas = Object.values(grupos).map(g=>({
     ...g,
+    diferenciaNeta: round2(g.realUSD - g.estandarUSD),
     cumplimiento: calcularCumplimientoPrograma(currentProgramaLineas.filter(l=>l.noOP===g.noOP), currentProgramaDia).porcentaje,
     rechazos: g.sobreconsumoUSD > 0 ? buscarRechazosParaOP(g.noOP, g.modelo) : []
   }));
+
+  if(modoFiltradoDia){
+    filas = filas.filter(g=> opAlCien(g.noOP));
+  }
 
   filas.sort((a,b)=>{
     let va = a[sortStateResumenOP.key], vb = b[sortStateResumenOP.key];
@@ -4071,10 +4166,10 @@ function renderResumenPorOP(){
 
   const tbody = document.getElementById('tablaResumenPorOP');
   if(filas.length === 0){
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs en este Programa.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs que coincidan.</td></tr>';
     return;
   }
-  tbody.innerHTML = filas.map(g=>`<tr>
+  tbody.innerHTML = filas.map(g=>`<tr style="cursor:pointer;" onclick="verMaterialesDeOP('${g.noOP}')" title="Clic para ver solo los materiales de esta OP">
     <td>${g.noOP}</td>
     <td>${g.modelo}</td>
     <td style="color:var(--muted); font-size:12px;">${g.estado||'—'}</td>
@@ -4082,7 +4177,8 @@ function renderResumenPorOP(){
     <td class="money">${fmtMoney(g.estandarUSD)}</td>
     <td class="money">${fmtMoney(g.realUSD)}</td>
     <td class="money" style="${g.pendienteReal>0.5?'color:var(--bad); font-weight:600;':''}">${fmtMoney(g.pendienteReal)}</td>
-    <td class="money" style="color:var(--muted);">${fmtMoney(g.pendienteJustificado)}</td>
+    <td class="money" style="color:${g.diferenciaNeta>0?'var(--bad)':(g.diferenciaNeta<0?'var(--good)':'var(--text)')}; font-weight:600;">${fmtMoney(Math.abs(g.diferenciaNeta))}</td>
+    <td style="color:${g.diferenciaNeta>0?'var(--bad)':(g.diferenciaNeta<0?'var(--good)':'var(--muted)')}; font-weight:700;">${g.diferenciaNeta>0?'Gasto':(g.diferenciaNeta<0?'Ahorro':'—')}</td>
     <td>${g.rechazos.length > 0 ? `<span class="help-icon" style="width:auto; height:auto; padding:3px 8px; border-radius:12px; background:rgba(209,69,59,0.12); color:var(--bad); font-weight:600; font-size:11px; cursor:help;">⚠ ${g.rechazos.length} rechazo(s) <span class="help-tooltip" style="width:280px;">${g.rechazos.map(r=>`${r.fecha} · ${r.coincidencia} · ${r.pieza||''}: ${r.descripcion||''}`).join('<br><br>')}</span></span>` : ''}</td>
   </tr>`).join('');
 }
@@ -4099,65 +4195,6 @@ document.querySelectorAll('th[data-key-resumenop]').forEach(th=>{
   });
 });
 
-async function renderAlertasProgramasVencidos(){
-  const cont = document.getElementById('alertasProgramasVencidos');
-  cont.innerHTML = '<div class="field-hint">Analizando programas...</div>';
-
-  const hoy = new Date().toISOString().slice(0,10);
-  const diasPrograma = calcularDiasPrograma();
-  const diasVencidos = [...diasPrograma].filter(f => f < hoy).sort();
-
-  const resultados = [];
-  for(const fecha of diasVencidos){
-    const lineas = await construirProgramaDia(fecha);
-    if(lineas.length === 0) continue;
-    const m = calcularMetricasPrograma(lineas);
-    if(m.pendienteReal <= 0.5) continue;
-    const opsAfectadas = new Set(lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro && (!l.razon || l.razonAutomatica)).map(l=>l.noOP));
-    const diasVencidoNum = Math.round((new Date(hoy) - new Date(fecha)) / 86400000);
-    const cumplimientoObj = calcularCumplimientoPrograma(lineas, fecha);
-    resultados.push({fecha, pendiente: m.pendienteReal, opsAfectadas: opsAfectadas.size, diasVencidoNum, lineas, cumplimiento: cumplimientoObj.porcentaje, cumplimientoDetalle: `${cumplimientoObj.opsCompletas}/${cumplimientoObj.opsTotal}`});
-  }
-
-  if(resultados.length === 0){
-    cont.innerHTML = '<div class="status-msg ok">✓ No hay programas vencidos con material pendiente. Todo al corriente.</div>';
-    return;
-  }
-
-  resultados.sort((a,b)=> b.pendiente - a.pendiente);
-
-  // Analisis: total pendiente, antigüedad, y el material que mas se repite como pendiente entre programas
-  const totalPendiente = resultados.reduce((s,r)=>s+r.pendiente,0);
-  const recientes = resultados.filter(r=>r.diasVencidoNum<=3).length;
-  const antiguos = resultados.filter(r=>r.diasVencidoNum>7).length;
-
-  const conteoMateriales = {};
-  resultados.forEach(r=>{
-    r.lineas.filter(l=> l.diferencia<0 && !l.permiteAhorro && (!l.razon || l.razonAutomatica)).forEach(l=>{
-      const k = l.descripcion || l.noComponente;
-      conteoMateriales[k] = (conteoMateriales[k]||0) + 1;
-    });
-  });
-  const topMaterial = Object.entries(conteoMateriales).sort((a,b)=>b[1]-a[1])[0];
-
-  let html = `<div class="alertrow" style="margin-bottom:16px;">
-    <div class="alertcard">
-      <div class="label">Total pendiente en programas vencidos</div>
-      <div class="headline">${fmtMoney(totalPendiente)}</div>
-      <div class="detail">${resultados.length} programa(s) vencidos · ${recientes} recientes (≤3 días) · ${antiguos} antiguos (&gt;7 días)</div>
-    </div>
-    <div class="alertcard">
-      <div class="label">Material más recurrente en pendientes</div>
-      <div class="headline" style="font-size:15px;">${topMaterial ? topMaterial[0] : '—'}</div>
-      <div class="detail">${topMaterial ? `Aparece pendiente en ${topMaterial[1]} programa(s) distintos — vale la pena revisar si es un problema sistemático` : 'Sin datos suficientes'}</div>
-    </div>
-  </div>
-  <div id="tablaAlertasVencidasCont"></div>`;
-  cont.innerHTML = html;
-
-  resultadosVencidosCache = resultados;
-  renderTablaAlertasVencidas();
-}
 
 let resultadosVencidosCache = [];
 let sortStateVencidos = {key:'pendiente', dir:-1};
@@ -4181,7 +4218,7 @@ function renderTablaAlertasVencidas(){
   ];
   let html = '<table><thead><tr>' + columnas.map(c=>`<th data-key-vencidas="${c.key}">${c.label} <span class="sort-arrow">▲▼</span></th>`).join('') + '<th></th></tr></thead><tbody>';
   resultados.slice(0, 20).forEach(r=>{
-    html += `<tr class="clickable" onclick="verProgramaDia('${r.fecha}')">
+    html += `<tr class="clickable" onclick="origenProgramaDia='semana'; verProgramaDia('${r.fecha}')">
       <td>${r.fecha}</td>
       <td>${r.diasVencidoNum} día(s)</td>
       <td>${r.opsAfectadas}</td>
@@ -4213,10 +4250,19 @@ async function verProgramaDia(fecha){
   currentProgramaDia = fecha;
   currentProgramaLineas = await construirProgramaDia(fecha);
   document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
   document.getElementById('programa-nivel-dia').classList.remove('hidden');
   document.getElementById('programa-nivel-fase').classList.add('hidden');
   renderProgramaDiaDetalle();
   renderResumenPorOP();
+}
+function volverDesdePrograma(){
+  if(origenProgramaDia === 'lista-completa'){
+    document.getElementById('programa-nivel-dia').classList.add('hidden');
+    document.getElementById('programa-nivel-lista-completa').classList.remove('hidden');
+  } else {
+    volverASemanaPrograma();
+  }
 }
 function volverASemanaPrograma(){
   document.getElementById('programa-nivel-semana').classList.remove('hidden');
@@ -4224,6 +4270,8 @@ function volverASemanaPrograma(){
   document.getElementById('programa-nivel-fase').classList.add('hidden');
   document.getElementById('programa-nivel-mes').classList.add('hidden');
   document.getElementById('programa-nivel-alterno').classList.add('hidden');
+  document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
+  marcarSidebarActivo('sbVistaPrograma');
 }
 function volverADiaPrograma(){
   document.getElementById('programa-nivel-dia').classList.remove('hidden');
@@ -4467,14 +4515,22 @@ function calcularMetricasPrograma(lineas){
 }
 
 function renderProgramaDiaDetalle(){
-  const lineas = currentProgramaLineas;
+  const lineasCompletas = currentProgramaLineas;
+  // Reglas del Reporte Alterno: se excluyen por completo las lineas con Consumo
+  // Real en 0 y las OPs OPM -- para no inflar el ahorro con material que aun
+  // no sale de produccion o que falto por completo.
+  const lineas = modoFiltradoDia ? lineasCompletas.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM')) : lineasCompletas;
   document.getElementById('programaDiaTitulo').textContent = 'Programa del ' + currentProgramaDia;
+  document.getElementById('btnToggleFiltroDia').textContent = modoFiltradoDia ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
+  document.getElementById('hintFiltroDia').textContent = modoFiltradoDia
+    ? '🔀 Vista filtrada: solo OPs al 100% de producción en "Resumen por OP", y las tarjetas de abajo excluyen líneas con Consumo Real en 0 y OPs OPM (mismas reglas del Reporte Alterno).'
+    : '👁 Vista completa: se muestran todas las OPs y todas las líneas, sin ningún filtro.';
 
   const md = calcularMetricasDetalladas(lineas);
-  const cumplimiento = calcularCumplimientoPrograma(lineas, currentProgramaDia);
+  const cumplimiento = calcularCumplimientoPrograma(lineasCompletas, currentProgramaDia);
   const pctVsEstandarDia = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
 
-  const opsConsumidasInfoDia = calcularPctOPsConsumidas(lineas);
+  const opsConsumidasInfoDia = calcularPctOPsConsumidas(lineasCompletas);
   document.getElementById('progPctOPsConsumidas').textContent = `${opsConsumidasInfoDia.pct.toFixed(0)}%`;
   document.getElementById('progPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfoDia.opsConsumidas} de ${opsConsumidasInfoDia.opsAl100} OPs terminadas ya tienen todo su material consumido${opsConsumidasInfoDia.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('dia'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfoDia.opsPendientes.length} OP(s)</a>` : ''}`;
   window._opsPendientesDia = opsConsumidasInfoDia.opsPendientes;
@@ -4619,6 +4675,14 @@ function volverAResumenMensualDesdeFase(){
   document.getElementById('programa-nivel-mes').classList.remove('hidden');
   filtroOPsEspecificas = null;
 }
+function verMaterialesDeOP(op){
+  verProgramaFase('todas');
+  filtroOPsEspecificas = [op];
+  document.getElementById('avisoFiltroOPsEspecificas').classList.remove('hidden');
+  document.getElementById('avisoFiltroOPsEspecificas').querySelector('span').innerHTML = `🎯 Mostrando solo los materiales de la OP <strong>${op}</strong>.`;
+  document.getElementById('programaFaseTitulo').textContent = `Programa del ${currentProgramaDia} — Materiales de la OP ${op}`;
+  renderTablaProgramaFase();
+}
 function verOPsPendientesDeConsumir(origen){
   let opsPendientes, tituloBase;
   if(origen === 'semana'){
@@ -4637,8 +4701,8 @@ function verOPsPendientesDeConsumir(origen){
     tituloBase = `Programa del ${currentProgramaDia}`;
   }
   filtroOPsEspecificas = opsPendientes;
-  document.getElementById('cantidadOPsFiltradas').textContent = opsPendientes.length;
   document.getElementById('avisoFiltroOPsEspecificas').classList.toggle('hidden', opsPendientes.length===0);
+  document.getElementById('avisoFiltroOPsEspecificas').querySelector('span').innerHTML = `🎯 Mostrando solo las <strong>${opsPendientes.length}</strong> OP(s) que están al 100% pero no cuentan como consumidas.`;
   document.getElementById('programaFaseTitulo').textContent = `${tituloBase} — OPs sin consumir`;
   renderTablaProgramaFase();
 }
@@ -4658,6 +4722,54 @@ function verSemanaCompleta_paraMes(){
   document.getElementById('programa-nivel-mes').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.remove('hidden');
 }
+let listaCompletaProgramasCache = [];
+
+async function verListaCompletaProgramas(){
+  document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-dia').classList.add('hidden');
+  document.getElementById('programa-nivel-fase').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.add('hidden');
+  document.getElementById('programa-nivel-alterno').classList.add('hidden');
+  document.getElementById('programa-nivel-lista-completa').classList.remove('hidden');
+  document.getElementById('tablaListaCompletaProgramas').innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:16px;">Cargando todos los Programas, esto puede tardar unos segundos...</td></tr>';
+
+  const fechas = [...new Set(Object.values(ESTANDARES_OP).map(std=>std.fechaVenc))].filter(Boolean).sort().reverse();
+
+  const filas = [];
+  for(const fecha of fechas){
+    const lineasCompletas = await construirProgramaDia(fecha);
+    if(lineasCompletas.length === 0) continue;
+    // Mismo filtro del Reporte Alterno: se excluyen por completo las lineas con
+    // Consumo Real en 0 (sea porque aun no sale de produccion o porque falto
+    // material -- ninguno de los dos casos es un ahorro real) y las OPs OPM.
+    const lineas = lineasCompletas.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM'));
+    if(lineas.length === 0) continue;
+    const md = calcularMetricasDetalladas(lineas);
+    const cumplimiento = calcularCumplimientoPrograma(lineasCompletas, fecha);
+    const numOPs = new Set(lineas.map(l=>l.noOP)).size;
+    filas.push({fecha, numOPs, pctCumplimiento: cumplimiento.porcentaje, estandarTotal: md.estandarTotal, realTotal: md.realTotal, balance: md.balance});
+  }
+
+  listaCompletaProgramasCache = filas;
+  renderListaCompletaProgramas();
+}
+
+function renderListaCompletaProgramas(){
+  const busqueda = document.getElementById('buscarListaCompleta').value.trim();
+  const filas = busqueda ? listaCompletaProgramasCache.filter(f=>f.fecha.includes(busqueda)) : listaCompletaProgramasCache;
+  const tbody = document.getElementById('tablaListaCompletaProgramas');
+  tbody.innerHTML = filas.length > 0 ? filas.map(f=>`<tr style="cursor:pointer;" onclick="origenProgramaDia='lista-completa'; verProgramaDia('${f.fecha}');">
+    <td><strong>${f.fecha}</strong></td>
+    <td>${f.numOPs}</td>
+    <td>${f.pctCumplimiento.toFixed(0)}%</td>
+    <td class="money">${fmtMoney(f.estandarTotal)}</td>
+    <td class="money">${fmtMoney(f.realTotal)}</td>
+    <td class="money" style="color:${f.balance>0?'var(--bad)':(f.balance<0?'var(--good)':'var(--text)')}; font-weight:600;">${fmtMoney(Math.abs(f.balance))}</td>
+    <td style="color:${f.balance>0?'var(--bad)':(f.balance<0?'var(--good)':'var(--muted)')}; font-weight:700;">${f.balance>0?'Gasto':(f.balance<0?'Ahorro':'—')}</td>
+  </tr>`).join('') : '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:16px;">Sin Programas que coincidan.</td></tr>';
+}
+document.getElementById('buscarListaCompleta').addEventListener('input', renderListaCompletaProgramas);
+
 function verSemanaCompleta(){
   if(!resumenSemanalCache || !resumenSemanalCache.todasLasLineasSemana || resumenSemanalCache.todasLasLineasSemana.length===0){
     alert('Espera a que termine de cargar la semana antes de ver la lista completa.');
