@@ -237,7 +237,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <button class="sidebar-btn" id="sbVistaPrograma" onclick="irAReporte(); volverASemanaPrograma(); marcarSidebarActivo('sbVistaPrograma');">📅 Vista por Programa</button>
     <button class="sidebar-btn" id="sbListaCompleta" onclick="irAReporte(); verListaCompletaProgramas(); marcarSidebarActivo('sbListaCompleta');">📋 Todos los Programas</button>
     <button class="sidebar-btn" id="sbResumenMensual" onclick="irAReporte(); verResumenMensual(); marcarSidebarActivo('sbResumenMensual');">📊 Resumen Mensual</button>
-    <button class="sidebar-btn" id="sbReporteAlterno" onclick="irAReporte(); verReporteAlterno(); marcarSidebarActivo('sbReporteAlterno');">🔀 Reporte Alterno</button>
+    <button class="sidebar-btn" id="sbReporteAlterno" onclick="irAReporte(); verReporteAlterno(); marcarSidebarActivo('sbReporteAlterno');">🔀 Reporte Avance Producción (OP'S Terminadas)</button>
 
     <div class="sidebar-section-label">Datos</div>
     <button class="sidebar-btn" id="sbActualizarDatos" onclick="actualizarDatosDesdeSidebar(this)">🔄 Actualizar Datos</button>
@@ -390,7 +390,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <div class="date-display" style="font-size:16px;">Todos los Programas (ordenados por fecha)</div>
       </div>
       <main>
-        <div class="field-hint" style="margin-bottom:12px;">Se muestran todos los días con Programa cargado en tu catálogo de Estándares, del más reciente al más antiguo. Dale clic a un día para ver su detalle completo (OPs, materiales, Grupo de Material, etc.) 🔀 Los números de esta lista ya excluyen las líneas con Consumo Real en 0 y las OPs OPM (mismo filtro del Reporte Alterno), para no mostrar ahorro falso por material que aún no sale de producción o que falta.</div>
+        <div class="field-hint" style="margin-bottom:12px;">Se muestran todos los días con Programa cargado en tu catálogo de Estándares, del más reciente al más antiguo. Dale clic a un día para ver su detalle completo (OPs, materiales, Grupo de Material, etc.) 🔀 Los números de esta lista ya excluyen las líneas con Consumo Real en 0 y las OPs OPM (mismo filtro del Reporte Avance Producción), para no mostrar ahorro falso por material que aún no sale de producción o que falta.</div>
         <div class="toolbar" style="margin-bottom:12px;">
           <input type="text" id="buscarListaCompleta" placeholder="Buscar por fecha (AAAA-MM-DD)..." style="flex:1;">
         </div>
@@ -406,13 +406,15 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <div id="programa-nivel-alterno" class="hidden">
       <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
         <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <button class="date-arrow" id="prevSemanaAltBtn">‹</button>
         <div class="date-display" id="altProgramaDisplay" style="font-size:16px;">—</div>
+        <button class="date-arrow" id="nextSemanaAltBtn">›</button>
       </div>
       <main>
         <div class="field-hint" style="margin-bottom:16px; padding:10px; background:var(--panel-2); border-radius:6px;">🔀 Este reporte es aparte del Resumen Semanal normal — aquí se excluyen por completo: (1) las líneas con Consumo Real en 0, y (2) las OPs cuyo número empieza con "OPM". No afecta ni cambia el Resumen Semanal estándar.</div>
         <div class="section-title" style="display:flex; align-items:center; gap:12px;">
-          Reporte Alterno (sin líneas en 0, sin OPs OPM)
-          <button class="btn primary" id="btnDescargarResumenAlterno" style="font-size:12px; padding:6px 14px;">⬇ Descargar Reporte Alterno (Excel)</button>
+          Reporte Avance Producción (OP'S Terminadas) (sin líneas en 0, sin OPs OPM)
+          <button class="btn primary" id="btnDescargarResumenAlterno" style="font-size:12px; padding:6px 14px;">⬇ Descargar Reporte Avance Producción (Excel)</button>
           <button class="btn primary" id="btnDescargarResumenAlternoPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
         </div>
 
@@ -677,6 +679,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
                 <th data-key-resumenop="diferenciaNeta">$ Diferencia <span class="sort-arrow">▲▼</span></th>
                 <th>Tipo</th>
                 <th>⚠ Rechazo de Calidad</th>
+                <th>📝 Notas</th>
               </tr>
             </thead>
             <tbody id="tablaResumenPorOP"></tbody>
@@ -860,6 +863,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <button data-panel="fases">Centro de Trabajo → Fase</button>
         <button data-panel="excepciones">Excepciones de Fase</button>
         <button data-panel="ahorro">Materiales con Ahorro Permitido</button>
+        <button data-panel="skus-excluidos">SKUs Excluidos de Reportes</button>
         <button data-panel="razones">Catálogo de Razones</button>
         <button data-panel="config">Umbral / Configuración</button>
       </div>
@@ -1007,6 +1011,18 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           </div>
           <button class="btn primary" id="btnGuardarMaterialesAhorro" style="margin-top:14px;">Guardar Cambios</button>
           <div id="ahorroStatus"></div>
+        </div>
+
+        <div id="panel-skus-excluidos" class="hidden">
+          <h3>SKUs Excluidos de Reportes</h3>
+          <div class="field-hint" style="margin-bottom:14px;">Agrega aquí el número de componente (SKU) de cualquier material que NO quieras que se considere en ningún cálculo ni reporte (Semana, Mes, Día, Reporte Avance Producción, Excel, PDF). Mientras esté en esta lista, ese SKU se ignora por completo, sin importar en qué OP aparezca. Si lo quitas de la lista, vuelve a contar normal.</div>
+          <div id="listaSkusExcluidos"></div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <input type="text" id="nuevoSkuExcluido" placeholder="Ej. 10349203" style="flex:1;">
+            <button class="btn" id="btnAgregarSkuExcluido">+ Agregar</button>
+          </div>
+          <button class="btn primary" id="btnGuardarSkusExcluidos" style="margin-top:14px;">Guardar Cambios</button>
+          <div id="skusExcluidosStatus"></div>
         </div>
 
         <div id="panel-razones" class="hidden">
@@ -1193,8 +1209,10 @@ let currentFaseSeleccionada = null;
 let modoCalculoPorFase = {1:'completo', 2:'completo', 3:'completo', 4:'ajustado'}; // por fase: 'completo' o 'ajustado' (x Avance de OP)
 let MODO_POR_LINEA = {};        // "periodoKey||OP||SKU" -> 'completo'|'ajustado' -- override individual de esa linea agregada
 let RAZONES_POR_LINEA = {};     // "periodoKey||OP||SKU" -> "texto de la razon" (ya no se guarda dentro del reporte diario)
+let NOTAS_POR_OP = {};          // "fecha||OP" -> texto libre de nota, para explicar diferencias de consumo por OP
 let RECHAZOS_CALIDAD = [];      // [{numeroRechazo, fecha, modelo, cantidad, opSufijo, area, pieza, descripcion, definicion}]
 let RAZONES_EXCLUIDAS_TOP_OPS = new Set(['Aun no termina producción']); // Razones que no deben contar en el $ de desviacion del Top 10 OPs (ej. "aun no ha salido de produccion")
+let SKUS_EXCLUIDOS = new Set(); // Numeros de componente (SKU) que NO se deben considerar en ningun calculo/reporte
 let FECHA_ORIGINAL_OP = {};     // "OP0924xxxx" -> fecha ISO original (la primera vez que se vio esa OP). Al inicio de cada mes, la practica interna cambia la Fecha Vencimiento de OPs viejas al primer lunes del mes -- esto ignora ese cambio y siempre usa la fecha original.
 let MATERIALES_CON_AHORRO = []; // ["MELAMINA","TUBULAR","CHAPACINTA","CARTON",...] -- palabras clave de materiales donde SI es normal que haya ahorro. Todo lo demas, por default, NO deberia tener ahorro (cualquier ahorro ahi se marca como sospechoso).
 
@@ -1284,11 +1302,12 @@ document.querySelectorAll('.admin-nav button').forEach(btn=>{
    CARGA INICIAL DE CATALOGOS (Firestore)
    ============================================================ */
 async function cargarTodoAdmin(){
-  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarRazonesExcluidasTopOPsDesdeDB(), cargarUmbralDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarRazonesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarNotasPorOPDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarRazonesExcluidasTopOPsDesdeDB(), cargarSkusExcluidosDesdeDB(), cargarUmbralDesdeDB()]);
   renderFasesAdmin();
   renderRazonesAdmin();
   renderExcepcionesAdmin();
   renderMaterialesAhorroAdmin();
+  renderSkusExcluidosAdmin();
   document.getElementById('umbralInput').value = Math.round(UMBRAL*100);
   renderHistorialReportes();
   renderHistorialCargas();
@@ -1399,6 +1418,10 @@ async function cargarModoPorLineaDesdeDB(){
 async function cargarRazonesPorLineaDesdeDB(){
   const doc = await db.collection('config').doc('razonesPorLinea').get();
   RAZONES_POR_LINEA = doc.exists ? doc.data().mapa : {};
+}
+async function cargarNotasPorOPDesdeDB(){
+  const doc = await db.collection('config').doc('notasPorOP').get();
+  NOTAS_POR_OP = doc.exists ? doc.data().mapa : {};
 }
 async function cargarMaterialesConAhorroDesdeDB(){
   const doc = await db.collection('config').doc('materialesConAhorro').get();
@@ -1527,6 +1550,32 @@ document.getElementById('btnAgregarMaterialAhorro').addEventListener('click', ()
 document.getElementById('btnGuardarMaterialesAhorro').addEventListener('click', async ()=>{
   await db.collection('config').doc('materialesConAhorro').set({lista: MATERIALES_CON_AHORRO});
   document.getElementById('ahorroStatus').innerHTML = '<div class="status-msg ok">Guardado correctamente. Ya se refleja en todos los reportes.</div>';
+});
+
+function renderSkusExcluidosAdmin(){
+  const cont = document.getElementById('listaSkusExcluidos');
+  const lista = [...SKUS_EXCLUIDOS];
+  if(lista.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay SKUs excluidos.</div>';
+    return;
+  }
+  cont.innerHTML = '<table><thead><tr><th>SKU</th><th></th></tr></thead><tbody>' +
+    lista.map(s=>`<tr><td>${s}</td><td><button class="btn small sku-excluido-eliminar" data-sku="${s}">Eliminar</button></td></tr>`).join('') + '</tbody></table>';
+  cont.querySelectorAll('.sku-excluido-eliminar').forEach(b=>b.addEventListener('click', ()=>{
+    SKUS_EXCLUIDOS.delete(b.dataset.sku);
+    renderSkusExcluidosAdmin();
+  }));
+}
+document.getElementById('btnAgregarSkuExcluido').addEventListener('click', ()=>{
+  const sku = document.getElementById('nuevoSkuExcluido').value.trim();
+  if(!sku) return;
+  SKUS_EXCLUIDOS.add(sku);
+  document.getElementById('nuevoSkuExcluido').value = '';
+  renderSkusExcluidosAdmin();
+});
+document.getElementById('btnGuardarSkusExcluidos').addEventListener('click', async ()=>{
+  await db.collection('config').doc('skusExcluidos').set({lista: [...SKUS_EXCLUIDOS]});
+  document.getElementById('skusExcluidosStatus').innerHTML = '<div class="status-msg ok">Guardado correctamente. Ya se refleja en todos los reportes.</div>';
 });
 
 function renderRazonesAdmin(){
@@ -2130,6 +2179,7 @@ document.getElementById('btnRefrescarDiagnostico').addEventListener('click', asy
   document.getElementById('diagnosticoFechaOriginalResumen').textContent = 'Consultando Firebase directamente...';
   await cargarFechaOriginalOPDesdeDB();
   await cargarRazonesExcluidasTopOPsDesdeDB();
+  await cargarSkusExcluidosDesdeDB();
   renderDiagnosticoFechaOriginal();
   document.getElementById('resultadoBusquedaDiagnostico').innerHTML = '';
 });
@@ -2244,6 +2294,11 @@ async function cargarFechaOriginalOPDesdeDB(){
 async function cargarRazonesExcluidasTopOPsDesdeDB(){
   const doc = await db.collection('config').doc('razonesExcluidasTopOPs').get();
   RAZONES_EXCLUIDAS_TOP_OPS = doc.exists ? new Set(doc.data().lista) : new Set(['Aun no termina producción']);
+}
+
+async function cargarSkusExcluidosDesdeDB(){
+  const doc = await db.collection('config').doc('skusExcluidos').get();
+  SKUS_EXCLUIDOS = doc.exists ? new Set(doc.data().lista) : new Set();
 }
 
 function buscarRechazosParaOP(op, modelo){
@@ -2851,7 +2906,7 @@ let currentProgramaDia = null;
 let currentProgramaLineas = [];
 let currentProgramaFaseSeleccionada = null;
 let origenProgramaDia = 'semana'; // 'semana' o 'lista-completa' -- de donde se entro al detalle del dia
-let modoFiltradoDia = true; // true = vista filtrada (Resumen por OP solo OPs al 100%, metricas con reglas del Reporte Alterno)
+let modoFiltradoDia = true; // true = vista filtrada (Resumen por OP solo OPs al 100%, metricas con reglas del Reporte Avance Producción)
 let modoVistaSemanaCompleta = false;
 let vinoDelResumenMensual = false;
 let sortStateProgramaFase = {key:null, dir:1};
@@ -3007,7 +3062,7 @@ document.getElementById('btnDescargarResumenAlterno').addEventListener('click', 
   }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(todasLasOPs), 'Todas las Líneas');
 
-  XLSX.writeFile(wb, `Reporte_Alterno_${r.rangoTexto.replace(/ /g,'_')}.xlsx`);
+  XLSX.writeFile(wb, `Reporte_Avance_Produccion_${r.rangoTexto.replace(/ /g,'_')}.xlsx`);
 });
 
 document.getElementById('btnDescargarResumenMensual').addEventListener('click', ()=>{
@@ -3619,6 +3674,18 @@ document.getElementById('nextSemanaProgramaBtn').addEventListener('click', ()=>{
   currentSemanaProgramaFecha = sumarDiasISO(currentSemanaProgramaFecha, 7);
   renderSemanaPrograma();
 });
+document.getElementById('prevSemanaAltBtn').addEventListener('click', async ()=>{
+  currentSemanaProgramaFecha = sumarDiasISO(currentSemanaProgramaFecha, -7);
+  await renderSemanaPrograma();
+  document.getElementById('altProgramaDisplay').textContent = "Reporte Avance Producción (OP'S Terminadas) — " + resumenSemanalCache.rangoTexto;
+  renderReporteAlterno();
+});
+document.getElementById('nextSemanaAltBtn').addEventListener('click', async ()=>{
+  currentSemanaProgramaFecha = sumarDiasISO(currentSemanaProgramaFecha, 7);
+  await renderSemanaPrograma();
+  document.getElementById('altProgramaDisplay').textContent = "Reporte Avance Producción (OP'S Terminadas) — " + resumenSemanalCache.rangoTexto;
+  renderReporteAlterno();
+});
 
 function lunesDeSemana(fechaISO){
   const d = new Date(fechaISO + 'T00:00:00');
@@ -3636,6 +3703,7 @@ async function construirProgramaDia(fechaD){
     if(std.fechaVenc !== fechaD) return;
     const partes = key.split('__');
     const noOP = partes[0], noComponente = partes.slice(1).join('__');
+    if(SKUS_EXCLUIDOS.has(noComponente)) return; // SKU marcado para no considerar en ningun reporte
     const ruta = std.ruta;
     let fase = (ruta && CENTRO_A_FASE[ruta] != null) ? CENTRO_A_FASE[ruta] : null;
     let fasesMultiples = null;
@@ -3712,7 +3780,7 @@ async function construirProgramaDia(fechaD){
 }
 
 async function refrescarDatosPrograma(){
-  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarRazonesExcluidasTopOPsDesdeDB()]);
+  await Promise.all([cargarEstandaresDesdeDB(), cargarAvanceDesdeDB(), cargarFasesDesdeDB(), cargarExcepcionesDesdeDB(), cargarModoPorLineaDesdeDB(), cargarRazonesPorLineaDesdeDB(), cargarNotasPorOPDesdeDB(), cargarMaterialesConAhorroDesdeDB(), cargarRechazosCalidadDesdeDB(), cargarFechaOriginalOPDesdeDB(), cargarRazonesExcluidasTopOPsDesdeDB(), cargarSkusExcluidosDesdeDB()]);
   lineasHistoricoCache = null; consumoAcumuladoCache = null;
   const ahora = new Date();
   const horaTxt = ahora.toLocaleDateString('es-MX') + ' ' + ahora.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
@@ -3774,16 +3842,21 @@ async function renderResumenMensual(){
   const diasConDatos = [];
   const diasSinDatos = [];
   const todasLasLineasMes = [];
+  const todasLasLineasCompletasMes = [];
 
   const cursor = new Date(primerDia);
   while(cursor <= ultimoDia){
     const dow = cursor.getDay();
     if(dow !== 0 && dow !== 6){ // solo dias entre semana (Lun-Vie)
       const fechaISO = cursor.toISOString().slice(0,10);
-      const lineas = await construirProgramaDia(fechaISO);
-      if(lineas.length > 0){
+      const lineasCompletasDia = await construirProgramaDia(fechaISO);
+      if(lineasCompletasDia.length > 0){
         diasConDatos.push(fechaISO);
-        todasLasLineasMes.push(...lineas.map(l=>({...l, fechaPrograma: fechaISO})));
+        // Mismas reglas del Reporte Avance Producción: se excluyen por completo
+        // las lineas con Consumo Real en 0 y las OPs OPM.
+        const lineasFiltradasDia = lineasCompletasDia.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM'));
+        todasLasLineasMes.push(...lineasFiltradasDia.map(l=>({...l, fechaPrograma: fechaISO})));
+        todasLasLineasCompletasMes.push(...lineasCompletasDia.map(l=>({...l, fechaPrograma: fechaISO})));
       } else {
         diasSinDatos.push(fechaISO);
       }
@@ -3793,7 +3866,7 @@ async function renderResumenMensual(){
 
   const fmtCorta = (iso)=>{ const p = iso.split('-'); return `${p[2]}`; };
   document.getElementById('mesDatosDisponibles').innerHTML = diasConDatos.length > 0
-    ? `📊 <strong>Datos disponibles:</strong> ${diasConDatos.length} día(s) con Programa cargado (días ${diasConDatos.map(fmtCorta).join(', ')} de ${nombresMes[mes]}) — de ${diasConDatos.length + diasSinDatos.length} días hábiles en el mes. ${diasSinDatos.length>0 ? `<span style="color:var(--muted);">Sin Programa: días ${diasSinDatos.map(fmtCorta).join(', ')}.</span>` : ''}`
+    ? `📊 <strong>Datos disponibles:</strong> ${diasConDatos.length} día(s) con Programa cargado (días ${diasConDatos.map(fmtCorta).join(', ')} de ${nombresMes[mes]}) — de ${diasConDatos.length + diasSinDatos.length} días hábiles en el mes. ${diasSinDatos.length>0 ? `<span style="color:var(--muted);">Sin Programa: días ${diasSinDatos.map(fmtCorta).join(', ')}.</span>` : ''}<br>🔀 Los cálculos de este Resumen Mensual ya excluyen las líneas con Consumo Real en 0 y las OPs OPM (mismas reglas del Reporte Avance Producción).`
     : `⚠ No hay ningún Programa cargado para ${nombresMes[mes]} ${anio}.`;
 
   if(diasConDatos.length === 0){
@@ -3812,11 +3885,11 @@ async function renderResumenMensual(){
   const md = calcularMetricasDetalladas(todasLasLineasMes);
   const pctVsEstandarMes = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
 
-  const opsConsumidasInfoMes = calcularPctOPsConsumidas(todasLasLineasMes);
+  const opsConsumidasInfoMes = calcularPctOPsConsumidas(todasLasLineasCompletasMes);
   document.getElementById('mesPctOPsConsumidas').textContent = `${opsConsumidasInfoMes.pct.toFixed(0)}%`;
   document.getElementById('mesPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfoMes.opsConsumidas} de ${opsConsumidasInfoMes.opsAl100} OPs terminadas ya tienen todo su material consumido${opsConsumidasInfoMes.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('mes'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfoMes.opsPendientes.length} OP(s)</a>` : ''}`;
 
-  const opsCerradasMes = calcularPctOPsCerradas(todasLasLineasMes);
+  const opsCerradasMes = calcularPctOPsCerradas(todasLasLineasCompletasMes);
   document.getElementById('mesPctOPsCerradas').textContent = `${opsCerradasMes.pct.toFixed(0)}%`;
   document.getElementById('mesPctOPsCerradasDetail').textContent = `${opsCerradasMes.opsCerradas} de ${opsCerradasMes.opsTotal} OPs ya Terminadas · ${opsCerradasMes.opsAbiertas} siguen abiertas (Lanzada)`;
 
@@ -3902,7 +3975,7 @@ function verReporteAlterno(){
   document.getElementById('programa-nivel-mes').classList.add('hidden');
   document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
   document.getElementById('programa-nivel-alterno').classList.remove('hidden');
-  document.getElementById('altProgramaDisplay').textContent = 'Reporte Alterno — ' + resumenSemanalCache.rangoTexto;
+  document.getElementById('altProgramaDisplay').textContent = "Reporte Avance Producción (OP'S Terminadas) — " + resumenSemanalCache.rangoTexto;
   renderReporteAlterno();
 }
 
@@ -4166,7 +4239,7 @@ function renderResumenPorOP(){
 
   const tbody = document.getElementById('tablaResumenPorOP');
   if(filas.length === 0){
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs que coincidan.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--muted); padding:16px;">Sin OPs que coincidan.</td></tr>';
     return;
   }
   tbody.innerHTML = filas.map(g=>`<tr style="cursor:pointer;" onclick="verMaterialesDeOP('${g.noOP}')" title="Clic para ver solo los materiales de esta OP">
@@ -4180,7 +4253,17 @@ function renderResumenPorOP(){
     <td class="money" style="color:${g.diferenciaNeta>0?'var(--bad)':(g.diferenciaNeta<0?'var(--good)':'var(--text)')}; font-weight:600;">${fmtMoney(Math.abs(g.diferenciaNeta))}</td>
     <td style="color:${g.diferenciaNeta>0?'var(--bad)':(g.diferenciaNeta<0?'var(--good)':'var(--muted)')}; font-weight:700;">${g.diferenciaNeta>0?'Gasto':(g.diferenciaNeta<0?'Ahorro':'—')}</td>
     <td>${g.rechazos.length > 0 ? `<span class="help-icon" style="width:auto; height:auto; padding:3px 8px; border-radius:12px; background:rgba(209,69,59,0.12); color:var(--bad); font-weight:600; font-size:11px; cursor:help;">⚠ ${g.rechazos.length} rechazo(s) <span class="help-tooltip" style="width:280px;">${g.rechazos.map(r=>`${r.fecha} · ${r.coincidencia} · ${r.pieza||''}: ${r.descripcion||''}`).join('<br><br>')}</span></span>` : ''}</td>
+    <td onclick="event.stopPropagation()"><input type="text" class="input-nota-op" data-nota-key="${currentProgramaDia}||${g.noOP}" value="${(NOTAS_POR_OP[`${currentProgramaDia}||${g.noOP}`]||'').replace(/"/g,'&quot;')}" placeholder="Escribe una nota..." style="width:180px; font-size:12px; padding:5px 8px; border:1px solid var(--line); border-radius:5px;"></td>
   </tr>`).join('');
+  tbody.querySelectorAll('.input-nota-op').forEach(inp=>{
+    inp.addEventListener('click', e=> e.stopPropagation());
+    inp.addEventListener('change', async ()=>{
+      const key = inp.dataset.notaKey;
+      if(inp.value.trim()) NOTAS_POR_OP[key] = inp.value.trim();
+      else delete NOTAS_POR_OP[key];
+      await db.collection('config').doc('notasPorOP').set({mapa: NOTAS_POR_OP});
+    });
+  });
 }
 
 document.querySelectorAll('th[data-key-resumenop]').forEach(th=>{
@@ -4516,14 +4599,14 @@ function calcularMetricasPrograma(lineas){
 
 function renderProgramaDiaDetalle(){
   const lineasCompletas = currentProgramaLineas;
-  // Reglas del Reporte Alterno: se excluyen por completo las lineas con Consumo
+  // Reglas del Reporte Avance Producción: se excluyen por completo las lineas con Consumo
   // Real en 0 y las OPs OPM -- para no inflar el ahorro con material que aun
   // no sale de produccion o que falto por completo.
   const lineas = modoFiltradoDia ? lineasCompletas.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM')) : lineasCompletas;
   document.getElementById('programaDiaTitulo').textContent = 'Programa del ' + currentProgramaDia;
   document.getElementById('btnToggleFiltroDia').textContent = modoFiltradoDia ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
   document.getElementById('hintFiltroDia').textContent = modoFiltradoDia
-    ? '🔀 Vista filtrada: solo OPs al 100% de producción en "Resumen por OP", y las tarjetas de abajo excluyen líneas con Consumo Real en 0 y OPs OPM (mismas reglas del Reporte Alterno).'
+    ? '🔀 Vista filtrada: solo OPs al 100% de producción en "Resumen por OP", y las tarjetas de abajo excluyen líneas con Consumo Real en 0 y OPs OPM (mismas reglas del Reporte Avance Producción).'
     : '👁 Vista completa: se muestran todas las OPs y todas las líneas, sin ningún filtro.';
 
   const md = calcularMetricasDetalladas(lineas);
@@ -4739,7 +4822,7 @@ async function verListaCompletaProgramas(){
   for(const fecha of fechas){
     const lineasCompletas = await construirProgramaDia(fecha);
     if(lineasCompletas.length === 0) continue;
-    // Mismo filtro del Reporte Alterno: se excluyen por completo las lineas con
+    // Mismo filtro del Reporte Avance Producción: se excluyen por completo las lineas con
     // Consumo Real en 0 (sea porque aun no sale de produccion o porque falto
     // material -- ninguno de los dos casos es un ahorro real) y las OPs OPM.
     const lineas = lineasCompletas.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM'));
@@ -5125,6 +5208,7 @@ document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
   await cargarExcepcionesDesdeDB();
   await cargarModoPorLineaDesdeDB();
   await cargarRazonesPorLineaDesdeDB();
+  await cargarNotasPorOPDesdeDB();
   await cargarMaterialesConAhorroDesdeDB();
   await cargarUmbralDesdeDB();
   await cargarEstandaresDesdeDB();
@@ -5132,6 +5216,7 @@ document.getElementById('btnExportProgramaFase').addEventListener('click', ()=>{
   await cargarRechazosCalidadDesdeDB();
   await cargarFechaOriginalOPDesdeDB();
   await cargarRazonesExcluidasTopOPsDesdeDB();
+  await cargarSkusExcluidosDesdeDB();
   if(Object.keys(CENTRO_A_FASE).length===0) CENTRO_A_FASE = {...FASES_DEFAULT};
   if(RAZONES.length===0) RAZONES = [...RAZONES_DEFAULT];
   const ahoraInit = new Date();
