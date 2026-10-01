@@ -187,6 +187,7 @@ tr.clickable:hover{background:var(--panel-2);}
 
 .toolbar{display:flex; gap:8px; margin-bottom:12px; align-items:center;}
 .btn{background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 14px; border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--sans); font-weight:500;}
+.filtro-tipo-topops.active-filtro-topops{background:var(--accent); color:#1a1006; border-color:var(--accent); font-weight:700;}
 .btn:hover{border-color:var(--accent);}
 .btn.primary{background:var(--accent); color:#ffffff; border-color:var(--accent); font-weight:600;}
 .btn.small{padding:4px 10px; font-size:11px;}
@@ -364,7 +365,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </div>
         <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="semGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
 
-        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <div class="section-title" style="margin-top:24px; display:flex; align-items:center; gap:10px;">
+          Top 10 OPs con mayor desviación
+          <div style="display:flex; gap:6px; margin-left:12px;">
+            <button class="btn small filtro-tipo-topops active-filtro-topops" data-target="tablaTopOPsSemana" data-tipo="todos" onclick="aplicarFiltroTipoTopOPs('todos','tablaTopOPsSemana',lineasActualesTopOPsSemana,'Sin datos esta semana.')">Todos</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsSemana" data-tipo="gasto" style="color:var(--bad);" onclick="aplicarFiltroTipoTopOPs('gasto','tablaTopOPsSemana',lineasActualesTopOPsSemana,'Sin datos esta semana.')">💸 Solo Gasto</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsSemana" data-tipo="ahorro" style="color:var(--good);" onclick="aplicarFiltroTipoTopOPs('ahorro','tablaTopOPsSemana',lineasActualesTopOPsSemana,'Sin datos esta semana.')">💰 Solo Ahorro</button>
+          </div>
+        </div>
         <table>
           <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
           <tbody id="tablaTopOPsSemana"></tbody>
@@ -413,7 +421,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       <main>
         <div class="field-hint" style="margin-bottom:16px; padding:10px; background:var(--panel-2); border-radius:6px;">🔀 Este reporte es aparte del Resumen Semanal normal — aquí se excluyen por completo: (1) las líneas con Consumo Real en 0, y (2) las OPs cuyo número empieza con "OPM". No afecta ni cambia el Resumen Semanal estándar.</div>
         <div class="section-title" style="display:flex; align-items:center; gap:12px;">
-          Reporte Avance Producción (OP'S Terminadas) (sin líneas en 0, sin OPs OPM)
+          Reporte Avance Producción (OP'S Terminadas)
           <button class="btn primary" id="btnDescargarResumenAlterno" style="font-size:12px; padding:6px 14px;">⬇ Descargar Reporte Avance Producción (Excel)</button>
           <button class="btn primary" id="btnDescargarResumenAlternoPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
         </div>
@@ -503,7 +511,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </div>
         <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="altGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
 
-        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <div class="section-title" style="margin-top:24px; display:flex; align-items:center; gap:10px;">
+          Top 10 OPs con mayor desviación
+          <div style="display:flex; gap:6px; margin-left:12px;">
+            <button class="btn small filtro-tipo-topops active-filtro-topops" data-target="tablaTopOPsAlterno" data-tipo="todos" onclick="aplicarFiltroTipoTopOPs('todos','tablaTopOPsAlterno',lineasActualesTopOPsAlterno,'Sin datos esta semana.')">Todos</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsAlterno" data-tipo="gasto" style="color:var(--bad);" onclick="aplicarFiltroTipoTopOPs('gasto','tablaTopOPsAlterno',lineasActualesTopOPsAlterno,'Sin datos esta semana.')">💸 Solo Gasto</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsAlterno" data-tipo="ahorro" style="color:var(--good);" onclick="aplicarFiltroTipoTopOPs('ahorro','tablaTopOPsAlterno',lineasActualesTopOPsAlterno,'Sin datos esta semana.')">💰 Solo Ahorro</button>
+          </div>
+        </div>
         <table>
           <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
           <tbody id="tablaTopOPsAlterno"></tbody>
@@ -629,7 +644,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </div>
         <div class="field-hint" style="margin-top:8px;">🎯 <strong>Gasto Perdonado (variación normal de corte): <span id="mesGastoPerdonado">$0</span></strong> — sobreconsumo chico (menor al Umbral) en materiales de Ahorro Permitido, no necesita Razón.</div>
 
-        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <div class="section-title" style="margin-top:24px; display:flex; align-items:center; gap:10px;">
+          Top 10 OPs con mayor desviación
+          <div style="display:flex; gap:6px; margin-left:12px;">
+            <button class="btn small filtro-tipo-topops active-filtro-topops" data-target="tablaTopOPsMes" data-tipo="todos" onclick="aplicarFiltroTipoTopOPs('todos','tablaTopOPsMes',lineasActualesTopOPsMes,'Sin datos este mes.')">Todos</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsMes" data-tipo="gasto" style="color:var(--bad);" onclick="aplicarFiltroTipoTopOPs('gasto','tablaTopOPsMes',lineasActualesTopOPsMes,'Sin datos este mes.')">💸 Solo Gasto</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsMes" data-tipo="ahorro" style="color:var(--good);" onclick="aplicarFiltroTipoTopOPs('ahorro','tablaTopOPsMes',lineasActualesTopOPsMes,'Sin datos este mes.')">💰 Solo Ahorro</button>
+          </div>
+        </div>
         <table>
           <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
           <tbody id="tablaTopOPsMes"></tbody>
@@ -787,7 +809,14 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <tbody id="tablaFasesPrograma"></tbody>
         </table>
 
-        <div class="section-title" style="margin-top:24px;">Top 10 OPs con mayor desviación</div>
+        <div class="section-title" style="margin-top:24px; display:flex; align-items:center; gap:10px;">
+          Top 10 OPs con mayor desviación
+          <div style="display:flex; gap:6px; margin-left:12px;">
+            <button class="btn small filtro-tipo-topops active-filtro-topops" data-target="tablaTopOPsDia" data-tipo="todos" onclick="aplicarFiltroTipoTopOPs('todos','tablaTopOPsDia',lineasActualesTopOPsDia,'Sin datos este día.')">Todos</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsDia" data-tipo="gasto" style="color:var(--bad);" onclick="aplicarFiltroTipoTopOPs('gasto','tablaTopOPsDia',lineasActualesTopOPsDia,'Sin datos este día.')">💸 Solo Gasto</button>
+            <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsDia" data-tipo="ahorro" style="color:var(--good);" onclick="aplicarFiltroTipoTopOPs('ahorro','tablaTopOPsDia',lineasActualesTopOPsDia,'Sin datos este día.')">💰 Solo Ahorro</button>
+          </div>
+        </div>
         <table>
           <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
           <tbody id="tablaTopOPsDia"></tbody>
@@ -2907,6 +2936,20 @@ let currentProgramaLineas = [];
 let currentProgramaFaseSeleccionada = null;
 let origenProgramaDia = 'semana'; // 'semana' o 'lista-completa' -- de donde se entro al detalle del dia
 let modoFiltradoDia = true; // true = vista filtrada (Resumen por OP solo OPs al 100%, metricas con reglas del Reporte Avance Producción)
+let filtroTipoTopOPs = 'todos'; // 'todos' | 'gasto' | 'ahorro' -- aplica a la tabla "Top 10 OPs con mayor desviacion" en todas las vistas
+const PREFIJOS_OP_EXCLUIDOS_AVANCE = ['OPM', 'OPP', 'OPGS', 'OPG']; // prefijos de OP que se excluyen del Reporte Avance Producción / Resumen Mensual / vista filtrada del Dia
+function esOPExcluidaDelFiltroAvance(noOP){
+  const op = String(noOP).toUpperCase();
+  return PREFIJOS_OP_EXCLUIDOS_AVANCE.some(prefijo => op.startsWith(prefijo));
+}
+let lineasActualesTopOPsSemana = [], lineasActualesTopOPsMes = [], lineasActualesTopOPsDia = [], lineasActualesTopOPsAlterno = [];
+function aplicarFiltroTipoTopOPs(tipo, tbodyId, lineas, mensajeVacio){
+  filtroTipoTopOPs = tipo;
+  document.querySelectorAll(`.filtro-tipo-topops[data-target="${tbodyId}"]`).forEach(b=>{
+    b.classList.toggle('active-filtro-topops', b.dataset.tipo===tipo);
+  });
+  renderTablaTopOPs(tbodyId, lineas, 'Sin datos que coincidan.');
+}
 let modoVistaSemanaCompleta = false;
 let vinoDelResumenMensual = false;
 let sortStateProgramaFase = {key:null, dir:1};
@@ -3854,7 +3897,7 @@ async function renderResumenMensual(){
         diasConDatos.push(fechaISO);
         // Mismas reglas del Reporte Avance Producción: se excluyen por completo
         // las lineas con Consumo Real en 0 y las OPs OPM.
-        const lineasFiltradasDia = lineasCompletasDia.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM'));
+        const lineasFiltradasDia = lineasCompletasDia.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP));
         todasLasLineasMes.push(...lineasFiltradasDia.map(l=>({...l, fechaPrograma: fechaISO})));
         todasLasLineasCompletasMes.push(...lineasCompletasDia.map(l=>({...l, fechaPrograma: fechaISO})));
       } else {
@@ -3891,7 +3934,9 @@ async function renderResumenMensual(){
 
   const opsCerradasMes = calcularPctOPsCerradas(todasLasLineasCompletasMes);
   document.getElementById('mesPctOPsCerradas').textContent = `${opsCerradasMes.pct.toFixed(0)}%`;
-  document.getElementById('mesPctOPsCerradasDetail').textContent = `${opsCerradasMes.opsCerradas} de ${opsCerradasMes.opsTotal} OPs ya Terminadas · ${opsCerradasMes.opsAbiertas} siguen abiertas (Lanzada)`;
+  document.getElementById('mesPctOPsCerradasDetail').innerHTML = `${opsCerradasMes.opsCerradas} de ${opsCerradasMes.opsTotal} OPs ya Terminadas · ${opsCerradasMes.opsAbiertas} siguen abiertas (Lanzada)` +
+    (opsCerradasMes.opsAl100PeroLanzada.length>0 ? ` · <a href="#" onclick="verOPsInconsistenciaEstado('mes','al100PeroLanzada'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver ${opsCerradasMes.opsAl100PeroLanzada.length} al 100% sin cerrar</a>` : '') +
+    (opsCerradasMes.opsTerminadaPeroNoAl100.length>0 ? ` · <a href="#" onclick="verOPsInconsistenciaEstado('mes','terminadaPeroNoAl100'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver ${opsCerradasMes.opsTerminadaPeroNoAl100.length} cerradas sin 100%</a>` : '');
 
   const balanceRealMes = calcularBalanceOPsTerminadas(todasLasLineasMes);
 
@@ -3930,13 +3975,8 @@ async function renderResumenMensual(){
   document.getElementById('mesSubGastoTotal').textContent = `${pctVsEstandarMes(md.gastoTotal)}% del estándar`;
   document.getElementById('mesGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
-  const topOPsMes = calcularTopOPsPorDesviacion(todasLasLineasMes, 10);
-  document.getElementById('tablaTopOPsMes').innerHTML = topOPsMes.length > 0 ? topOPsMes.map(o=>`<tr>
-    <td>${o.noOP}</td><td>${o.modelo}</td>
-    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
-    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
-    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
-  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
+  lineasActualesTopOPsMes = todasLasLineasMes;
+  renderTablaTopOPs('tablaTopOPsMes', todasLasLineasMes, 'Sin datos este mes.');
 
   const topRazonesMes = calcularTopRazonesPorDinero(todasLasLineasMes, 5);
   document.getElementById('tablaTopRazonesMes').innerHTML = topRazonesMes.length > 0 ? topRazonesMes.map(r=>`<tr>
@@ -3959,7 +3999,7 @@ async function renderResumenMensual(){
     rangoTexto: `${nombresMes[mes]} ${anio}`,
     diasConDatos, diasSinDatos,
     metricas: md, opsConsumidasInfo: opsConsumidasInfoMes, opsCerradas: opsCerradasMes, balanceReal: balanceRealMes,
-    topOPs: topOPsMes, topRazones: topRazonesMes, grupoMaterial: grupoMaterialMes,
+    topOPs: calcularTopOPsPorDesviacion(todasLasLineasMes, 10), topRazones: topRazonesMes, grupoMaterial: grupoMaterialMes,
     todasLasLineasMes
   };
 }
@@ -3981,7 +4021,7 @@ function verReporteAlterno(){
 
 function renderReporteAlterno(){
   const lineasFiltradas = resumenSemanalCache.todasLasLineasSemana.filter(l=>
-    l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM')
+    l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP)
   );
 
   const md = calcularMetricasDetalladas(lineasFiltradas);
@@ -4030,13 +4070,8 @@ function renderReporteAlterno(){
   document.getElementById('altSubGastoTotal').textContent = `${pctVsEstandar(md.gastoTotal)}% del estándar`;
   document.getElementById('altGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
-  const topOPs = calcularTopOPsPorDesviacion(lineasFiltradas, 10);
-  document.getElementById('tablaTopOPsAlterno').innerHTML = topOPs.length > 0 ? topOPs.map(o=>`<tr>
-    <td>${o.noOP}</td><td>${o.modelo}</td>
-    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
-    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
-    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
-  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos esta semana.</td></tr>';
+  lineasActualesTopOPsAlterno = lineasFiltradas;
+  renderTablaTopOPs('tablaTopOPsAlterno', lineasFiltradas, 'Sin datos esta semana.');
 
   const topRazones = calcularTopRazonesPorDinero(lineasFiltradas, 5);
   document.getElementById('tablaTopRazonesAlterno').innerHTML = topRazones.length > 0 ? topRazones.map(r=>`<tr>
@@ -4058,7 +4093,7 @@ function renderReporteAlterno(){
   reporteAlternoCache = {
     rangoTexto: resumenSemanalCache.rangoTexto,
     metricas: md, opsConsumidasInfo, opsCerradas: opsCerradasSemana, balanceReal: balanceRealSemana,
-    topOPs, topRazones, grupoMaterial, lineasFiltradas: lineasFiltradas
+    topOPs: calcularTopOPsPorDesviacion(lineasFiltradas, 10), topRazones, grupoMaterial, lineasFiltradas: lineasFiltradas
   };
 }
 
@@ -4125,7 +4160,9 @@ async function renderSemanaPrograma(){
 
   const opsCerradasSemana = calcularPctOPsCerradas(todasLasLineasSemana);
   document.getElementById('semPctOPsCerradas').textContent = `${opsCerradasSemana.pct.toFixed(0)}%`;
-  document.getElementById('semPctOPsCerradasDetail').textContent = `${opsCerradasSemana.opsCerradas} de ${opsCerradasSemana.opsTotal} OPs ya Terminadas · ${opsCerradasSemana.opsAbiertas} siguen abiertas (Lanzada)`;
+  document.getElementById('semPctOPsCerradasDetail').innerHTML = `${opsCerradasSemana.opsCerradas} de ${opsCerradasSemana.opsTotal} OPs ya Terminadas · ${opsCerradasSemana.opsAbiertas} siguen abiertas (Lanzada)` +
+    (opsCerradasSemana.opsAl100PeroLanzada.length>0 ? ` · <a href="#" onclick="verOPsInconsistenciaEstado('semana','al100PeroLanzada'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver ${opsCerradasSemana.opsAl100PeroLanzada.length} al 100% sin cerrar</a>` : '') +
+    (opsCerradasSemana.opsTerminadaPeroNoAl100.length>0 ? ` · <a href="#" onclick="verOPsInconsistenciaEstado('semana','terminadaPeroNoAl100'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver ${opsCerradasSemana.opsTerminadaPeroNoAl100.length} cerradas sin 100%</a>` : '');
 
   const pctVsEstandar = (v)=> md.estandarTotal!==0 ? ((v/md.estandarTotal)*100).toFixed(1) : '0.0';
 
@@ -4163,13 +4200,8 @@ async function renderSemanaPrograma(){
   document.getElementById('semSubGastoTotal').textContent = `${pctVsEstandar(md.gastoTotal)}% del estándar`;
   document.getElementById('semGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
-  const topOPs = calcularTopOPsPorDesviacion(todasLasLineasSemana, 10);
-  document.getElementById('tablaTopOPsSemana').innerHTML = topOPs.length > 0 ? topOPs.map(o=>`<tr>
-    <td>${o.noOP}</td><td>${o.modelo}</td>
-    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
-    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
-    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
-  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos esta semana.</td></tr>';
+  lineasActualesTopOPsSemana = todasLasLineasSemana;
+  renderTablaTopOPs('tablaTopOPsSemana', todasLasLineasSemana, 'Sin datos esta semana.');
 
   const topRazones = calcularTopRazonesPorDinero(todasLasLineasSemana, 5);
   document.getElementById('tablaTopRazonesSemana').innerHTML = topRazones.length > 0 ? topRazones.map(r=>`<tr>
@@ -4191,7 +4223,7 @@ async function renderSemanaPrograma(){
   resumenSemanalCache = {
     rangoTexto: fmtLegible(dias[0]) + ' al ' + fmtLegible(dias[4]),
     metricas: md, semOpsCompletas, semOpsTotal, pctCumplimientoSemana, opsConsumidasInfo, opsCerradas: opsCerradasSemana, balanceReal: balanceRealSemana,
-    topOPs, topRazones, grupoMaterial, resumenDiasSemana, todasLasLineasSemana
+    topOPs: calcularTopOPsPorDesviacion(todasLasLineasSemana, 10), topRazones, grupoMaterial, resumenDiasSemana, todasLasLineasSemana
   };
 }
 
@@ -4383,7 +4415,15 @@ function calcularPctOPsCerradas(lineas){
   });
   const opsTotal = Object.keys(porOP).length;
   const opsCerradas = Object.values(porOP).filter(Boolean).length;
-  return {opsCerradas, opsTotal, opsAbiertas: opsTotal-opsCerradas, pct: opsTotal>0 ? (opsCerradas/opsTotal)*100 : 0};
+  // Las dos inconsistencias entre Avance (fisico) y Estado (administrativo):
+  const opsAl100PeroLanzada = []; // avance=100% pero Estado sigue Lanzada (deberian cerrarse)
+  const opsTerminadaPeroNoAl100 = []; // Estado ya es Terminada pero el Avance no confirma 100%
+  Object.entries(porOP).forEach(([op, estaTerminada])=>{
+    const al100 = opAlCien(op);
+    if(al100 && !estaTerminada) opsAl100PeroLanzada.push(op);
+    else if(!al100 && estaTerminada) opsTerminadaPeroNoAl100.push(op);
+  });
+  return {opsCerradas, opsTotal, opsAbiertas: opsTotal-opsCerradas, pct: opsTotal>0 ? (opsCerradas/opsTotal)*100 : 0, opsAl100PeroLanzada, opsTerminadaPeroNoAl100};
 }
 
 function calcularPctOPsConsumidas(lineas){
@@ -4522,11 +4562,24 @@ function calcularTopOPsPorDesviacion(lineas, n=10){
     }
     if(l.razon) g.razones.add(l.razon);
   });
-  return Object.values(grupos)
-    .filter(g => Math.abs(g.diffUSD) > 0.01) // si toda su desviacion quedo excluida, no aparece en el top
+  let valores = Object.values(grupos)
+    .filter(g => Math.abs(g.diffUSD) > 0.01); // si toda su desviacion quedo excluida, no aparece en el top
+  if(filtroTipoTopOPs === 'gasto') valores = valores.filter(g=>g.diffUSD>0);
+  else if(filtroTipoTopOPs === 'ahorro') valores = valores.filter(g=>g.diffUSD<0);
+  return valores
     .map(g=>({...g, razones:[...g.razones], pct: g.estandarUSD!==0 ? (g.diffUSD/g.estandarUSD)*100 : 0}))
     .sort((a,b)=> Math.abs(b.diffUSD) - Math.abs(a.diffUSD))
     .slice(0,n);
+}
+
+function renderTablaTopOPs(tbodyId, lineas, mensajeVacio){
+  const topOPs = calcularTopOPsPorDesviacion(lineas, 10);
+  document.getElementById(tbodyId).innerHTML = topOPs.length > 0 ? topOPs.map(o=>`<tr>
+    <td>${o.noOP}</td><td>${o.modelo}</td>
+    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
+    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
+    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
+  </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">${mensajeVacio}</td></tr>`;
 }
 
 function calcularDesviacionPorGrupoMaterial(lineas){
@@ -4602,7 +4655,7 @@ function renderProgramaDiaDetalle(){
   // Reglas del Reporte Avance Producción: se excluyen por completo las lineas con Consumo
   // Real en 0 y las OPs OPM -- para no inflar el ahorro con material que aun
   // no sale de produccion o que falto por completo.
-  const lineas = modoFiltradoDia ? lineasCompletas.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM')) : lineasCompletas;
+  const lineas = modoFiltradoDia ? lineasCompletas.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP)) : lineasCompletas;
   document.getElementById('programaDiaTitulo').textContent = 'Programa del ' + currentProgramaDia;
   document.getElementById('btnToggleFiltroDia').textContent = modoFiltradoDia ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
   document.getElementById('hintFiltroDia').textContent = modoFiltradoDia
@@ -4652,13 +4705,8 @@ function renderProgramaDiaDetalle(){
   document.getElementById('progSubGastoTotal').textContent = `${pctVsEstandarDia(md.gastoTotal)}% del estándar`;
   document.getElementById('progGastoPerdonado').textContent = fmtMoney(md.gastoPerdonado);
 
-  const topOPsDia = calcularTopOPsPorDesviacion(lineas, 10);
-  document.getElementById('tablaTopOPsDia').innerHTML = topOPsDia.length > 0 ? topOPsDia.map(o=>`<tr>
-    <td>${o.noOP}</td><td>${o.modelo}</td>
-    <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
-    <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
-    <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
-  </tr>`).join('') : '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este día.</td></tr>';
+  lineasActualesTopOPsDia = lineas;
+  renderTablaTopOPs('tablaTopOPsDia', lineas, 'Sin datos este día.');
 
   const topRazonesDia = calcularTopRazonesPorDinero(lineas, 5);
   document.getElementById('tablaTopRazonesDia').innerHTML = topRazonesDia.length > 0 ? topRazonesDia.map(r=>`<tr>
@@ -4753,6 +4801,30 @@ function renderProgramaDiaDetalle(){
   tbody.innerHTML = html;
 }
 
+function verOPsInconsistenciaEstado(origen, tipo){
+  let opsLista, cache, tituloBase;
+  if(origen === 'semana'){
+    if(!resumenSemanalCache) return;
+    cache = resumenSemanalCache;
+    opsLista = tipo==='al100PeroLanzada' ? cache.opsCerradas.opsAl100PeroLanzada : cache.opsCerradas.opsTerminadaPeroNoAl100;
+    verSemanaCompleta();
+    tituloBase = `Toda la Semana (${cache.rangoTexto})`;
+  } else {
+    if(!resumenMensualCache) return;
+    cache = resumenMensualCache;
+    opsLista = tipo==='al100PeroLanzada' ? cache.opsCerradas.opsAl100PeroLanzada : cache.opsCerradas.opsTerminadaPeroNoAl100;
+    verSemanaCompleta_paraMes();
+    tituloBase = cache.rangoTexto;
+  }
+  filtroOPsEspecificas = opsLista;
+  const mensajeTipo = tipo==='al100PeroLanzada'
+    ? `están al 100% de Avance pero su Estado sigue siendo "Lanzada" (ya se podrían cerrar)`
+    : `ya tienen Estado "Terminada" pero el Avance no confirma 100% (revisar si están cerradas antes de tiempo)`;
+  document.getElementById('avisoFiltroOPsEspecificas').classList.toggle('hidden', opsLista.length===0);
+  document.getElementById('avisoFiltroOPsEspecificas').querySelector('span').innerHTML = `🎯 Mostrando solo las <strong>${opsLista.length}</strong> OP(s) que ${mensajeTipo}.`;
+  document.getElementById('programaFaseTitulo').textContent = `${tituloBase} — Inconsistencias Estado/Avance`;
+  renderTablaProgramaFase();
+}
 function volverAResumenMensualDesdeFase(){
   document.getElementById('programa-nivel-fase').classList.add('hidden');
   document.getElementById('programa-nivel-mes').classList.remove('hidden');
@@ -4825,7 +4897,7 @@ async function verListaCompletaProgramas(){
     // Mismo filtro del Reporte Avance Producción: se excluyen por completo las lineas con
     // Consumo Real en 0 (sea porque aun no sale de produccion o porque falto
     // material -- ninguno de los dos casos es un ahorro real) y las OPs OPM.
-    const lineas = lineasCompletas.filter(l=> l.cantidadReal !== 0 && !String(l.noOP).toUpperCase().startsWith('OPM'));
+    const lineas = lineasCompletas.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP));
     if(lineas.length === 0) continue;
     const md = calcularMetricasDetalladas(lineas);
     const cumplimiento = calcularCumplimientoPrograma(lineasCompletas, fecha);
