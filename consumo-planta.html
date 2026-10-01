@@ -2937,7 +2937,7 @@ let currentProgramaFaseSeleccionada = null;
 let origenProgramaDia = 'semana'; // 'semana' o 'lista-completa' -- de donde se entro al detalle del dia
 let modoFiltradoDia = true; // true = vista filtrada (Resumen por OP solo OPs al 100%, metricas con reglas del Reporte Avance Producción)
 let filtroTipoTopOPs = 'todos'; // 'todos' | 'gasto' | 'ahorro' -- aplica a la tabla "Top 10 OPs con mayor desviacion" en todas las vistas
-const PREFIJOS_OP_EXCLUIDOS_AVANCE = ['OPM', 'OPP', 'OPGS', 'OPG']; // prefijos de OP que se excluyen del Reporte Avance Producción / Resumen Mensual / vista filtrada del Dia
+const PREFIJOS_OP_EXCLUIDOS_AVANCE = ['OPM', 'OPP']; // prefijos de OP que se excluyen del Reporte Avance Producción / Resumen Mensual / vista filtrada del Dia
 function esOPExcluidaDelFiltroAvance(noOP){
   const op = String(noOP).toUpperCase();
   return PREFIJOS_OP_EXCLUIDOS_AVANCE.some(prefijo => op.startsWith(prefijo));
@@ -4366,6 +4366,8 @@ async function verProgramaDia(fecha){
   currentProgramaLineas = await construirProgramaDia(fecha);
   document.getElementById('programa-nivel-semana').classList.add('hidden');
   document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.add('hidden');
+  document.getElementById('programa-nivel-alterno').classList.add('hidden');
   document.getElementById('programa-nivel-dia').classList.remove('hidden');
   document.getElementById('programa-nivel-fase').classList.add('hidden');
   renderProgramaDiaDetalle();
@@ -4574,12 +4576,22 @@ function calcularTopOPsPorDesviacion(lineas, n=10){
 
 function renderTablaTopOPs(tbodyId, lineas, mensajeVacio){
   const topOPs = calcularTopOPsPorDesviacion(lineas, 10);
-  document.getElementById(tbodyId).innerHTML = topOPs.length > 0 ? topOPs.map(o=>`<tr>
+  document.getElementById(tbodyId).innerHTML = topOPs.length > 0 ? topOPs.map(o=>{
+    const lineaEjemplo = lineas.find(l=>l.noOP===o.noOP);
+    const fecha = lineaEjemplo ? (lineaEjemplo.fechaPrograma || currentProgramaDia || '') : '';
+    return `<tr style="cursor:pointer;" onclick="irAOPDesdeTop('${o.noOP}','${fecha}')" title="Clic para ver los materiales de esta OP">
     <td>${o.noOP}</td><td>${o.modelo}</td>
     <td class="money" style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${o.diffUSD>=0?'+':''}${fmtMoney(o.diffUSD)}</td>
     <td style="color:${o.diffUSD>=0?'var(--bad)':'var(--good)'};">${o.pct>=0?'+':''}${o.pct.toFixed(1)}%</td>
     <td style="font-size:12px; color:var(--muted);">${o.razones.length>0 ? o.razones.join('; ') : '— sin justificar aún'}</td>
-  </tr>`).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">${mensajeVacio}</td></tr>`;
+  </tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">${mensajeVacio}</td></tr>`;
+}
+async function irAOPDesdeTop(op, fecha){
+  if(fecha){
+    await verProgramaDia(fecha);
+  }
+  verMaterialesDeOP(op);
 }
 
 function calcularDesviacionPorGrupoMaterial(lineas){
@@ -4992,6 +5004,10 @@ function verProgramaFase(fase){
   btnFiltroPendJustEl.style.background = '';
   btnFiltroPendJustEl.style.color = 'var(--accent)';
   lineasSeleccionadasLote.clear();
+  document.getElementById('programa-nivel-semana').classList.add('hidden');
+  document.getElementById('programa-nivel-mes').classList.add('hidden');
+  document.getElementById('programa-nivel-alterno').classList.add('hidden');
+  document.getElementById('programa-nivel-lista-completa').classList.add('hidden');
   document.getElementById('programa-nivel-dia').classList.add('hidden');
   document.getElementById('programa-nivel-fase').classList.remove('hidden');
   document.getElementById('programaFaseTitulo').textContent = fase === 'todas' ? 'Todas las Fases (lista completa)' : (fase==null ? 'Sin clasificar' : ('Fase '+fase));
