@@ -240,6 +240,9 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <button class="sidebar-btn" id="sbResumenMensual" onclick="irAReporte(); verResumenMensual(); marcarSidebarActivo('sbResumenMensual');">📊 Resumen Mensual</button>
     <button class="sidebar-btn" id="sbReporteAlterno" onclick="irAReporte(); verReporteAlterno(); marcarSidebarActivo('sbReporteAlterno');">🔀 Reporte Avance Producción (OP'S Terminadas)</button>
 
+    <div class="sidebar-section-label">Seguimiento</div>
+    <button class="sidebar-btn" id="sbMinuta" onclick="irAMinuta()">📝 Minuta</button>
+
     <div class="sidebar-section-label">Datos</div>
     <button class="sidebar-btn" id="sbActualizarDatos" onclick="actualizarDatosDesdeSidebar(this)">🔄 Actualizar Datos</button>
 
@@ -1077,6 +1080,35 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
   </main>
 </div>
 
+<div id="tab-minuta" class="hidden">
+  <div id="minuta-nivel-lista">
+    <main>
+      <div class="section-title" style="display:flex; align-items:center; gap:12px;">📝 Minutas de Reunión</div>
+      <div class="field-hint" style="margin-bottom:16px;">Crea una minuta por fecha, agrégale los puntos tratados, y marca cada uno como cumplido o no conforme avance. Dale clic a una fecha de la lista para abrirla.</div>
+      <div class="toolbar" style="margin-bottom:20px; gap:10px;">
+        <input type="date" id="fechaNuevaMinuta">
+        <button class="btn primary" id="btnCrearMinuta">+ Nueva Minuta</button>
+      </div>
+      <table>
+        <thead><tr><th>Fecha</th><th># Puntos</th><th>✅ Cumplidos</th><th>⏳ Pendientes</th><th></th></tr></thead>
+        <tbody id="tablaListaMinutas"></tbody>
+      </table>
+    </main>
+  </div>
+
+  <div id="minuta-nivel-detalle" class="hidden">
+    <main>
+      <div class="toolbar" style="margin-bottom:16px;">
+        <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverAListaMinutas()">← Volver a Minutas</button>
+        <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="minutaDetalleTitulo">Minuta</span>
+        <button class="btn" style="color:var(--bad); border-color:var(--bad); margin-left:auto;" onclick="eliminarMinutaActual()">🗑️ Eliminar esta Minuta</button>
+      </div>
+      <div id="listaPuntosMinuta"></div>
+      <button class="btn primary" id="btnAgregarPuntoMinuta" style="margin-top:14px;">+ Agregar Punto</button>
+    </main>
+  </div>
+</div>
+
   </div>
   </div>
 
@@ -1277,14 +1309,30 @@ function marcarSidebarActivo(id){
 function irAReporte(){
   document.getElementById('tab-viewer').classList.remove('hidden');
   document.getElementById('tab-admin').classList.add('hidden');
+  document.getElementById('tab-minuta').classList.add('hidden');
 }
 function irAAdmin(){
   document.getElementById('tab-viewer').classList.add('hidden');
   document.getElementById('tab-admin').classList.remove('hidden');
+  document.getElementById('tab-minuta').classList.add('hidden');
   marcarSidebarActivo('sbAdmin');
   if(!document.getElementById('admin-pin-gate').classList.contains('hidden')){
     setTimeout(()=> document.getElementById('pinInput').focus(), 50);
   }
+}
+async function irAMinuta(){
+  document.getElementById('tab-viewer').classList.add('hidden');
+  document.getElementById('tab-admin').classList.add('hidden');
+  document.getElementById('tab-minuta').classList.remove('hidden');
+  marcarSidebarActivo('sbMinuta');
+  document.getElementById('minuta-nivel-detalle').classList.add('hidden');
+  document.getElementById('minuta-nivel-lista').classList.remove('hidden');
+  document.getElementById('tablaListaMinutas').innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Cargando...</td></tr>';
+  if(!document.getElementById('fechaNuevaMinuta').value){
+    document.getElementById('fechaNuevaMinuta').value = new Date().toISOString().slice(0,10);
+  }
+  await cargarMinutasDesdeDB();
+  renderListaMinutas();
 }
 async function actualizarDatosDesdeSidebar(btn){
   btn.textContent = '🔄 Actualizando...';
@@ -1451,6 +1499,127 @@ async function cargarRazonesPorLineaDesdeDB(){
 async function cargarNotasPorOPDesdeDB(){
   const doc = await db.collection('config').doc('notasPorOP').get();
   NOTAS_POR_OP = doc.exists ? doc.data().mapa : {};
+}
+
+/* ============================================================
+   MINUTAS DE REUNION
+   ============================================================ */
+let MINUTAS = {}; // "YYYY-MM-DD" -> {puntos: [{id, texto, cumplido}]}  (cumplido: 'pendiente'|'si'|'no')
+let currentMinutaFecha = null;
+
+async function cargarMinutasDesdeDB(){
+  const snap = await db.collection('minutas').get();
+  const lista = {};
+  snap.forEach(doc => lista[doc.id] = doc.data());
+  MINUTAS = lista;
+}
+
+function renderListaMinutas(){
+  const tbody = document.getElementById('tablaListaMinutas');
+  const fechas = Object.keys(MINUTAS).sort().reverse();
+  if(fechas.length === 0){
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">Aún no hay ninguna minuta creada.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = fechas.map(fecha=>{
+    const puntos = MINUTAS[fecha].puntos || [];
+    const cumplidos = puntos.filter(p=>p.cumplido==='si').length;
+    const pendientes = puntos.filter(p=>p.cumplido!=='si').length;
+    return `<tr style="cursor:pointer;" onclick="abrirMinuta('${fecha}')">
+      <td><strong>${fecha}</strong></td>
+      <td>${puntos.length}</td>
+      <td style="color:var(--good); font-weight:600;">${cumplidos}</td>
+      <td style="color:var(--warn); font-weight:600;">${pendientes}</td>
+      <td onclick="event.stopPropagation()"><button class="btn small" style="color:var(--bad); border-color:var(--bad);" onclick="eliminarMinuta('${fecha}')">Eliminar</button></td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('btnCrearMinuta').addEventListener('click', async ()=>{
+  const fecha = document.getElementById('fechaNuevaMinuta').value;
+  if(!fecha){ alert('Elige una fecha primero'); return; }
+  if(!MINUTAS[fecha]){
+    MINUTAS[fecha] = {puntos: []};
+    await db.collection('minutas').doc(fecha).set(MINUTAS[fecha]);
+  }
+  abrirMinuta(fecha);
+});
+
+function abrirMinuta(fecha){
+  currentMinutaFecha = fecha;
+  document.getElementById('minuta-nivel-lista').classList.add('hidden');
+  document.getElementById('minuta-nivel-detalle').classList.remove('hidden');
+  document.getElementById('minutaDetalleTitulo').textContent = `Minuta del ${fecha}`;
+  renderDetalleMinuta();
+}
+
+function volverAListaMinutas(){
+  document.getElementById('minuta-nivel-detalle').classList.add('hidden');
+  document.getElementById('minuta-nivel-lista').classList.remove('hidden');
+  renderListaMinutas();
+}
+
+async function eliminarMinuta(fecha){
+  if(!confirm(`¿Eliminar por completo la minuta del ${fecha}? Esta acción no se puede deshacer.`)) return;
+  await db.collection('minutas').doc(fecha).delete();
+  delete MINUTAS[fecha];
+  renderListaMinutas();
+}
+
+function eliminarMinutaActual(){
+  eliminarMinuta(currentMinutaFecha).then(()=>{
+    if(!MINUTAS[currentMinutaFecha]) volverAListaMinutas();
+  });
+}
+
+function renderDetalleMinuta(){
+  const cont = document.getElementById('listaPuntosMinuta');
+  const puntos = (MINUTAS[currentMinutaFecha] && MINUTAS[currentMinutaFecha].puntos) || [];
+  if(puntos.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay puntos en esta minuta — dale a "+ Agregar Punto".</div>';
+    return;
+  }
+  cont.innerHTML = puntos.map((p,i)=>`
+    <div style="display:flex; gap:10px; align-items:flex-start; padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:8px; margin-bottom:10px;">
+      <textarea class="punto-minuta-texto" data-idx="${i}" rows="2" style="flex:1; padding:8px; border:1px solid var(--line); border-radius:6px; font-family:var(--sans); font-size:13px; resize:vertical;" placeholder="Describe el punto tratado...">${p.texto||''}</textarea>
+      <select class="punto-minuta-cumplido" data-idx="${i}" style="padding:8px; border:1px solid var(--line); border-radius:6px; font-size:13px; font-weight:600; color:${p.cumplido==='si'?'var(--good)':(p.cumplido==='no'?'var(--bad)':'var(--warn)')};">
+        <option value="pendiente" ${p.cumplido==='pendiente'||!p.cumplido?'selected':''}>⏳ Pendiente</option>
+        <option value="si" ${p.cumplido==='si'?'selected':''}>✅ Cumplido</option>
+        <option value="no" ${p.cumplido==='no'?'selected':''}>❌ No Cumplido</option>
+      </select>
+      <button class="btn small" style="color:var(--bad); border-color:var(--bad);" onclick="eliminarPuntoMinuta(${i})">✕</button>
+    </div>`).join('');
+
+  cont.querySelectorAll('.punto-minuta-texto').forEach(ta=>{
+    ta.addEventListener('change', async ()=>{
+      MINUTAS[currentMinutaFecha].puntos[ta.dataset.idx].texto = ta.value;
+      await guardarMinutaActual();
+    });
+  });
+  cont.querySelectorAll('.punto-minuta-cumplido').forEach(sel=>{
+    sel.addEventListener('change', async ()=>{
+      MINUTAS[currentMinutaFecha].puntos[sel.dataset.idx].cumplido = sel.value;
+      sel.style.color = sel.value==='si'?'var(--good)':(sel.value==='no'?'var(--bad)':'var(--warn)');
+      await guardarMinutaActual();
+    });
+  });
+}
+
+document.getElementById('btnAgregarPuntoMinuta').addEventListener('click', async ()=>{
+  if(!MINUTAS[currentMinutaFecha]) MINUTAS[currentMinutaFecha] = {puntos: []};
+  MINUTAS[currentMinutaFecha].puntos.push({texto:'', cumplido:'pendiente'});
+  await guardarMinutaActual();
+  renderDetalleMinuta();
+});
+
+function eliminarPuntoMinuta(idx){
+  MINUTAS[currentMinutaFecha].puntos.splice(idx,1);
+  guardarMinutaActual();
+  renderDetalleMinuta();
+}
+
+async function guardarMinutaActual(){
+  await db.collection('minutas').doc(currentMinutaFecha).set(MINUTAS[currentMinutaFecha]);
 }
 async function cargarMaterialesConAhorroDesdeDB(){
   const doc = await db.collection('config').doc('materialesConAhorro').get();
