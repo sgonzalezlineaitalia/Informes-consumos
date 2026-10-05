@@ -239,6 +239,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <button class="sidebar-btn" id="sbListaCompleta" onclick="irAReporte(); verListaCompletaProgramas(); marcarSidebarActivo('sbListaCompleta');">📋 Todos los Programas</button>
     <button class="sidebar-btn" id="sbResumenMensual" onclick="irAReporte(); verResumenMensual(); marcarSidebarActivo('sbResumenMensual');">📊 Resumen Mensual</button>
     <button class="sidebar-btn" id="sbReporteAlterno" onclick="irAReporte(); verReporteAlterno(); marcarSidebarActivo('sbReporteAlterno');">🔀 Reporte Avance Producción (OP'S Terminadas)</button>
+    <button class="sidebar-btn" id="sbTransferencias" onclick="irATransferencias()">🚚 Transferencias vs Consumo (Beta)</button>
 
     <div class="sidebar-section-label">Seguimiento</div>
     <button class="sidebar-btn" id="sbMinuta" onclick="irAMinuta()">📝 Minuta</button>
@@ -896,6 +897,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <button data-panel="excepciones">Excepciones de Fase</button>
         <button data-panel="ahorro">Materiales con Ahorro Permitido</button>
         <button data-panel="skus-excluidos">SKUs Excluidos de Reportes</button>
+        <button data-panel="transferencias">Transferencias (carga)</button>
         <button data-panel="razones">Catálogo de Razones</button>
         <button data-panel="config">Umbral / Configuración</button>
       </div>
@@ -1057,6 +1059,19 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <div id="skusExcluidosStatus"></div>
         </div>
 
+        <div id="panel-transferencias" class="hidden">
+          <h3>Transferencias (carga)</h3>
+          <div class="field-hint" style="margin-bottom:14px;">Sube aquí el export <strong>"Movs. productos"</strong> de Business Central tal como sale (no hace falta filtrarlo): la app se queda solo con Autor = AMPOUT hacia WIP, cantidad mayor a 0, y descarta los prototipos (ubicación PROTOTIPOS o documento externo con "PROTOTIP").<br><br>
+          <strong>Desde cuándo bajarlo:</strong> 3 días hábiles antes del primer día hábil del mes que quieras ver, hasta el último día disponible. Puedes volver a subirlo cada vez más largo conforme avanza el mes: cada carga <strong>reemplaza los días que cubre</strong>, así que nunca se duplica nada.</div>
+          <div id="transferenciasResumenCarga"></div>
+          <div class="field" style="margin-top:12px;">
+            <label>Archivo de transferencias (.xlsx)</label>
+            <input type="file" id="fileTransferencias" accept=".xlsx,.xls">
+          </div>
+          <button class="btn primary" id="btnProcesarTransferencias" style="margin-top:10px;">Procesar Transferencias</button>
+          <div id="transferenciasStatus"></div>
+        </div>
+
         <div id="panel-razones" class="hidden">
           <h3>Catálogo de Razones</h3>
           <div id="listaRazones"></div>
@@ -1076,6 +1091,48 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         </div>
 
       </div>
+    </div>
+  </main>
+</div>
+
+<div id="tab-transferencias" class="hidden">
+  <main>
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:14px; flex-wrap:wrap;">
+      <button class="date-arrow" id="prevMesTransfBtn">‹</button>
+      <div class="date-display" id="transfMesDisplay" style="font-size:16px;">—</div>
+      <button class="date-arrow" id="nextMesTransfBtn">›</button>
+      <label style="margin-left:18px; font-size:12px; color:var(--muted);">Corte al:</label>
+      <input type="date" id="transfCorte">
+      <button class="btn primary" id="btnDescargarTransf" style="margin-left:auto;">⬇ Descargar Excel</button>
+    </div>
+    <div class="field-hint" style="margin-bottom:14px; padding:10px; background:var(--panel-2); border-radius:6px;">🚚 <strong>Transferido</strong>: material enviado de almacén a WIP (AMPOUT, sin prototipos), asignado a su fecha programa estimada (+3, +2, +1 o +0 días hábiles según la fase del centro de trabajo). <strong>Real</strong> y <strong>Estándar</strong>: los mismos del Reporte Avance Producción (sin líneas en 0, sin OPM/OPP), de los programas del mes hasta la fecha de corte.</div>
+    <div id="transfAvisos"></div>
+    <div class="bigrow" style="grid-template-columns:repeat(4,1fr);">
+      <div class="card"><div class="label">$ Transferido</div><div class="big" id="transfBigTransferido">$0</div><div class="sub">&nbsp;</div></div>
+      <div class="card"><div class="label">$ Real MP Consumido</div><div class="big" id="transfBigReal">$0</div><div class="sub" id="transfSubReal">&nbsp;</div></div>
+      <div class="card"><div class="label">$ Estándar MP</div><div class="big" id="transfBigEstandar">$0</div><div class="sub" id="transfSubEstandar">&nbsp;</div></div>
+      <div class="card deviation"><div class="label" id="transfLabelDif">Diferencia</div><div class="big" id="transfBigDif">$0</div><div class="sub" id="transfSubDif">&nbsp;</div></div>
+    </div>
+    <div class="field-hint" id="transfInfoExtra" style="margin-bottom:16px;"></div>
+    <div class="toolbar" style="margin-bottom:12px; gap:10px; flex-wrap:wrap;">
+      <input type="text" id="transfBuscar" placeholder="Buscar SKU o descripción..." style="flex:1; min-width:200px;">
+      <select id="transfGrupo"></select>
+      <select id="transfOrden">
+        <option value="difabs">Ordenar: mayor diferencia (absoluta)</option>
+        <option value="dif">Ordenar: mayor merma primero</option>
+        <option value="dif_asc">Ordenar: Real mayor que Transferido primero</option>
+        <option value="transf">Ordenar: mayor $ Transferido</option>
+      </select>
+      <select id="transfVista">
+        <option value="sku">Vista: por SKU</option>
+        <option value="ct">Vista: por SKU y Centro de Trabajo</option>
+      </select>
+    </div>
+    <div class="table-scroll" style="height:auto; max-height:70vh;">
+      <table>
+        <thead id="transfThead"></thead>
+        <tbody id="transfTbody"></tbody>
+      </table>
     </div>
   </main>
 </div>
@@ -1310,11 +1367,13 @@ function irAReporte(){
   document.getElementById('tab-viewer').classList.remove('hidden');
   document.getElementById('tab-admin').classList.add('hidden');
   document.getElementById('tab-minuta').classList.add('hidden');
+  document.getElementById('tab-transferencias').classList.add('hidden');
 }
 function irAAdmin(){
   document.getElementById('tab-viewer').classList.add('hidden');
   document.getElementById('tab-admin').classList.remove('hidden');
   document.getElementById('tab-minuta').classList.add('hidden');
+  document.getElementById('tab-transferencias').classList.add('hidden');
   marcarSidebarActivo('sbAdmin');
   if(!document.getElementById('admin-pin-gate').classList.contains('hidden')){
     setTimeout(()=> document.getElementById('pinInput').focus(), 50);
@@ -1324,6 +1383,7 @@ async function irAMinuta(){
   document.getElementById('tab-viewer').classList.add('hidden');
   document.getElementById('tab-admin').classList.add('hidden');
   document.getElementById('tab-minuta').classList.remove('hidden');
+  document.getElementById('tab-transferencias').classList.add('hidden');
   marcarSidebarActivo('sbMinuta');
   document.getElementById('minuta-nivel-detalle').classList.add('hidden');
   document.getElementById('minuta-nivel-lista').classList.remove('hidden');
@@ -1385,6 +1445,8 @@ async function cargarTodoAdmin(){
   renderExcepcionesAdmin();
   renderMaterialesAhorroAdmin();
   renderSkusExcluidosAdmin();
+  await cargarTransferenciasDesdeDB();
+  renderResumenCargaTransferencias();
   document.getElementById('umbralInput').value = Math.round(UMBRAL*100);
   renderHistorialReportes();
   renderHistorialCargas();
@@ -1500,6 +1562,416 @@ async function cargarNotasPorOPDesdeDB(){
   const doc = await db.collection('config').doc('notasPorOP').get();
   NOTAS_POR_OP = doc.exists ? doc.data().mapa : {};
 }
+
+/* ============================================================
+   TRANSFERENCIAS vs CONSUMO (mes en curso acumulado)
+   ============================================================ */
+let TRANSFERENCIAS_DIA = {}; // "YYYY-MM-DD" -> [{sku, ub, desc, cant, costo}]  (solo AMPOUT, sin prototipos)
+let transfMes = new Date().toISOString().slice(0,7);
+let transfCorteManual = null;
+let transfCache = null;
+const MESES_TRANSF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_TRANSF_POR_FASE = {1:3, 2:2, 3:1, 4:0};
+
+async function cargarTransferenciasDesdeDB(){
+  const snap = await db.collection('transferencias').get();
+  const m = {};
+  snap.forEach(d=>{ m[d.id] = (d.data().filas) || []; });
+  TRANSFERENCIAS_DIA = m;
+}
+
+function fechaCeldaAISO(v){
+  if(v instanceof Date) return new Date(v.getTime() + 12*3600*1000).toISOString().slice(0,10);
+  if(typeof v === 'string'){
+    const t = v.trim();
+    if(/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0,10);
+    const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  return null;
+}
+function normalizarEncabezadoTransf(h){
+  return quitarAcentos(String(h)).toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function escHTMLTransf(s){
+  return String(s ?? '').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function fmtNumTransf(n){
+  return (Math.round(n*100)/100).toLocaleString('es-MX', {maximumFractionDigits:2});
+}
+
+async function procesarTransferenciasArchivo(file, statusEl){
+  statusEl.innerHTML = '<div class="status-msg info">Leyendo archivo de transferencias...</div>';
+  const rows = await leerExcelComoJSON(file);
+  if(rows.length === 0) throw new Error('El archivo no tiene filas.');
+
+  const cols = {};
+  Object.keys(rows[0]).forEach(h=> cols[normalizarEncabezadoTransf(h)] = h);
+  const buscar = (...opciones)=>{ for(const o of opciones){ if(cols[o]) return cols[o]; } return null; };
+  const cFecha = buscar('fecharegistro');
+  const cSku   = buscar('nproducto','noproducto');
+  const cUb    = buscar('codubicacion');
+  const cCant  = buscar('cantidad');
+  const cCosto = buscar('importecostoreal');
+  const cAutor = buscar('autor');
+  const cAlm   = buscar('codalmacen');
+  const cExt   = buscar('ndocumentoexterno','nodocumentoexterno');
+  const cDesc  = buscar('descripcion');
+  const faltan = [];
+  if(!cFecha) faltan.push('Fecha registro');
+  if(!cSku) faltan.push('Nº producto');
+  if(!cUb) faltan.push('Cód. ubicación');
+  if(!cCant) faltan.push('Cantidad');
+  if(!cCosto) faltan.push('Importe costo (Real)');
+  if(!cAutor) faltan.push('Autor');
+  if(faltan.length) throw new Error('Faltan columnas en el archivo: ' + faltan.join(', '));
+
+  let fMin = null, fMax = null, filasArchivo = 0, filasAMPOUT = 0, prototipos = 0;
+  const agg = {}; // fecha -> {sku||ub -> fila}
+  rows.forEach(r=>{
+    const f = fechaCeldaAISO(r[cFecha]);
+    if(!f) return;
+    filasArchivo++;
+    if(!fMin || f < fMin) fMin = f;
+    if(!fMax || f > fMax) fMax = f;
+    if(String(r[cAutor] ?? '').trim().toUpperCase() !== 'AMPOUT') return;
+    if(cAlm && String(r[cAlm] ?? '').trim().toUpperCase() !== 'WIP') return;
+    const cant = parseFloat(r[cCant]) || 0;
+    if(cant <= 0) return;
+    const ub = String(r[cUb] ?? '').trim().toUpperCase();
+    const ext = cExt ? String(r[cExt] ?? '').toUpperCase() : '';
+    if(ub === 'PROTOTIPOS' || ext.includes('PROTOTIP')){ prototipos++; return; }
+    const sku = String(r[cSku] ?? '').trim();
+    if(!sku) return;
+    filasAMPOUT++;
+    const costo = parseFloat(r[cCosto]) || 0;
+    const k = sku + '||' + ub;
+    if(!agg[f]) agg[f] = {};
+    if(!agg[f][k]) agg[f][k] = {sku, ub, desc: cDesc ? String(r[cDesc] ?? '').trim() : '', cant:0, costo:0};
+    agg[f][k].cant += cant;
+    agg[f][k].costo += costo;
+  });
+  if(!fMin) throw new Error('No se encontró ninguna fecha válida en la columna "Fecha registro".');
+
+  statusEl.innerHTML = '<div class="status-msg info">Guardando transferencias por día...</div>';
+  // Se reemplazan TODOS los dias que cubre el archivo (del primero al ultimo),
+  // asi volver a subir un archivo mas largo nunca duplica nada.
+  const ops = [];
+  let diasGuardados = 0, diasBorrados = 0;
+  for(let d = fMin; d <= fMax; d = sumarDiasISO(d, 1)){
+    if(agg[d]){
+      const filas = Object.values(agg[d]).map(x=>({...x, cant: round3(x.cant), costo: round2(x.costo)}));
+      ops.push({ref: db.collection('transferencias').doc(d), data: {fecha: d, filas}});
+      TRANSFERENCIAS_DIA[d] = filas;
+      diasGuardados++;
+    } else if(TRANSFERENCIAS_DIA[d]){
+      ops.push({tipo:'delete', ref: db.collection('transferencias').doc(d)});
+      delete TRANSFERENCIAS_DIA[d];
+      diasBorrados++;
+    }
+  }
+  await commitEnLotes(db, ops);
+  const resumen = `${filasAMPOUT} movimientos AMPOUT (${diasGuardados} días) del ${fMin} al ${fMax}${prototipos>0 ? `, ${prototipos} de prototipos excluidos` : ''}`;
+  await registrarCarga('Transferencias', file.name, resumen);
+  return {filasArchivo, filasAMPOUT, prototipos, diasGuardados, diasBorrados, fMin, fMax};
+}
+
+function renderResumenCargaTransferencias(){
+  const cont = document.getElementById('transferenciasResumenCarga');
+  const fechas = Object.keys(TRANSFERENCIAS_DIA).sort();
+  if(fechas.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay transferencias cargadas.</div>';
+    return;
+  }
+  const total = fechas.reduce((s,f)=> s + TRANSFERENCIAS_DIA[f].reduce((a,x)=>a+x.costo,0), 0);
+  cont.innerHTML = `<div class="field-hint">Cargado actualmente: <strong>${fechas.length}</strong> días con movimientos, del <strong>${fechas[0]}</strong> al <strong>${fechas[fechas.length-1]}</strong> · ${fmtMoney(total)} transferido en total.</div>`;
+}
+
+document.getElementById('btnProcesarTransferencias').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('transferenciasStatus');
+  const f = document.getElementById('fileTransferencias').files[0];
+  if(!f){ statusEl.innerHTML = '<div class="status-msg err">Selecciona el archivo de Movs. productos primero.</div>'; return; }
+  try{
+    await cargarTransferenciasDesdeDB();
+    const res = await procesarTransferenciasArchivo(f, statusEl);
+    statusEl.innerHTML = `<div class="status-msg ok">✓ Listo. De ${res.filasArchivo} filas del archivo, se guardaron ${res.filasAMPOUT} movimientos AMPOUT repartidos en ${res.diasGuardados} días (${res.fMin} a ${res.fMax}). Excluidos por prototipos: ${res.prototipos}.${res.diasBorrados>0 ? ` Se limpiaron ${res.diasBorrados} día(s) que ya no traían movimientos.` : ''}</div>`;
+    renderResumenCargaTransferencias();
+  }catch(err){
+    console.error(err);
+    statusEl.innerHTML = `<div class="status-msg err">No se pudo procesar: ${escHTMLTransf(err.message || err)}</div>`;
+  }
+});
+
+/* ---------- calculo ---------- */
+function sumarDiasHabilesAdelante(fechaISO, n, diasPrograma, maxPrograma){
+  // Cuenta dias habiles hacia ADELANTE. Un dia entre semana cuenta si tuvo
+  // programa (asi se saltan festivos/dias sin programa, igual que en el resto de
+  // la app); despues del ultimo programa conocido cuenta cualquier dia entre semana.
+  let actual = fechaISO, contados = 0, intentos = 0;
+  while(contados < n && intentos < 60){
+    actual = sumarDiasISO(actual, 1);
+    intentos++;
+    if(esFinDeSemana(actual)) continue;
+    if(actual > maxPrograma || diasPrograma.has(actual)) contados++;
+  }
+  return actual;
+}
+function ultimoDiaDeMesISO(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0,10);
+}
+function desplazarMesISO(ym, n){
+  const [y,m] = ym.split('-').map(Number);
+  return new Date(Date.UTC(y, m-1+n, 1)).toISOString().slice(0,7);
+}
+function corteDefaultTransf(ym, diasPrograma){
+  const fin = ultimoDiaDeMesISO(ym);
+  const ayer = sumarDiasISO(new Date().toISOString().slice(0,10), -1);
+  const tope = fin < ayer ? fin : ayer;
+  let d = tope;
+  while(d >= ym + '-01'){
+    if(diasPrograma.has(d)) return d;
+    d = sumarDiasISO(d, -1);
+  }
+  return tope;
+}
+function grupoDeDescripcionTransf(desc){
+  const d = quitarAcentos(String(desc ?? '').toUpperCase());
+  return MATERIALES_CON_AHORRO.find(cat => d.includes(quitarAcentos(cat.toUpperCase()))) || 'Otros';
+}
+
+async function calcularTransferencias(ym, corte, diasPrograma){
+  const maxPrograma = [...diasPrograma].sort().pop() || '';
+  const mapa = {}; // sku||centro -> fila
+  const obtener = (sku, centro, desc)=>{
+    const k = sku + '||' + centro;
+    if(!mapa[k]) mapa[k] = {sku, centro, desc: desc || '', tCant:0, tUSD:0, rCant:0, rUSD:0, eUSD:0, e0USD:0};
+    else if(!mapa[k].desc && desc) mapa[k].desc = desc;
+    return mapa[k];
+  };
+
+  const mesInicio = ym + '-01';
+  const desdeSinFase = sumarDiasISO(mesInicio, -7);
+  const mesFin = ultimoDiaDeMesISO(ym);
+  const sinFase = {filas:0, usd:0, ubicaciones:new Set()};
+  const postCorte = {filas:0, usd:0};
+
+  Object.entries(TRANSFERENCIAS_DIA).forEach(([fecha, filas])=>{
+    filas.forEach(f=>{
+      if(SKUS_EXCLUIDOS.has(f.sku)) return;
+      const fase = (CENTRO_A_FASE[f.ub] != null) ? CENTRO_A_FASE[f.ub] : null;
+      if(fase == null){
+        if(fecha >= desdeSinFase && fecha <= mesFin){ sinFase.filas++; sinFase.usd += f.costo; sinFase.ubicaciones.add(f.ub); }
+        return;
+      }
+      const fp = sumarDiasHabilesAdelante(fecha, DIAS_TRANSF_POR_FASE[fase], diasPrograma, maxPrograma);
+      if(!fp.startsWith(ym)) return; // cae en otro mes
+      if(fp > corte){ postCorte.filas++; postCorte.usd += f.costo; return; }
+      const r = obtener(f.sku, f.ub, f.desc);
+      r.tCant += f.cant;
+      r.tUSD += f.costo;
+    });
+  });
+
+  const dias = [...diasPrograma].filter(d=> d.startsWith(ym) && d <= corte).sort();
+  for(const d of dias){
+    const lineas = await construirProgramaDia(d);
+    lineas.forEach(l=>{
+      if(esOPExcluidaDelFiltroAvance(l.noOP)) return;
+      const r = obtener(String(l.noComponente).trim(), l.ruta || '', l.descripcion);
+      if(l.cantidadReal === 0){
+        r.e0USD += l.estandarUSD;
+      } else {
+        r.rCant += l.cantidadReal;
+        r.rUSD += l.realUSD;
+        r.eUSD += l.estandarUSD;
+      }
+    });
+  }
+
+  const cierre = (r)=>{
+    r.desc = r.desc || '';
+    r.grupo = grupoDeDescripcionTransf(r.desc);
+    r.dif = r.tUSD - r.rUSD;
+    r.pct = r.tUSD !== 0 ? (r.dif / r.tUSD) * 100 : null;
+    return r;
+  };
+  const filasCT = Object.values(mapa).map(cierre);
+  const porSKU = {};
+  filasCT.forEach(r=>{
+    if(!porSKU[r.sku]) porSKU[r.sku] = {sku:r.sku, centro:'', desc:r.desc, tCant:0, tUSD:0, rCant:0, rUSD:0, eUSD:0, e0USD:0};
+    const s = porSKU[r.sku];
+    s.tCant += r.tCant; s.tUSD += r.tUSD; s.rCant += r.rCant; s.rUSD += r.rUSD; s.eUSD += r.eUSD; s.e0USD += r.e0USD;
+    if(!s.desc && r.desc) s.desc = r.desc;
+  });
+  const filasSKU = Object.values(porSKU).map(cierre);
+
+  const tot = filasSKU.reduce((a,r)=>({tUSD:a.tUSD+r.tUSD, rUSD:a.rUSD+r.rUSD, eUSD:a.eUSD+r.eUSD, e0USD:a.e0USD+r.e0USD}), {tUSD:0, rUSD:0, eUSD:0, e0USD:0});
+  tot.dif = tot.tUSD - tot.rUSD;
+  tot.pct = tot.tUSD !== 0 ? (tot.dif / tot.tUSD) * 100 : null;
+
+  // Avisos de cobertura: ¿el archivo cargado alcanza para este mes?
+  const avisos = [];
+  const fechasCargadas = Object.keys(TRANSFERENCIAS_DIA).sort();
+  if(fechasCargadas.length === 0){
+    avisos.push('No hay transferencias cargadas todavía. Súbelas en Admin → "Transferencias (carga)".');
+  } else {
+    const primerProgramaMes = [...diasPrograma].filter(d=>d.startsWith(ym)).sort()[0];
+    if(primerProgramaMes){
+      const inicioNecesario = diaHabilAntes(primerProgramaMes, 3, diasPrograma);
+      if(fechasCargadas[0] > inicioNecesario){
+        avisos.push(`Las transferencias cargadas empiezan el ${fechasCargadas[0]}, pero para ${ym} se necesitan desde el ${inicioNecesario}. El Transferido de Fase 1 y 2 de los primeros días saldrá bajo.`);
+      }
+    }
+    if(fechasCargadas[fechasCargadas.length-1] < corte){
+      avisos.push(`Las transferencias cargadas llegan hasta el ${fechasCargadas[fechasCargadas.length-1]}, antes de la fecha de corte (${corte}). Faltan días por cargar.`);
+    }
+  }
+  return {ym, corte, filasSKU, filasCT, tot, sinFase, postCorte, avisos, diasConsumo: dias.length};
+}
+
+/* ---------- pantalla ---------- */
+async function irATransferencias(){
+  document.getElementById('tab-viewer').classList.add('hidden');
+  document.getElementById('tab-admin').classList.add('hidden');
+  document.getElementById('tab-minuta').classList.add('hidden');
+  document.getElementById('tab-transferencias').classList.remove('hidden');
+  marcarSidebarActivo('sbTransferencias');
+  document.getElementById('transfTbody').innerHTML = '<tr><td colspan="12" style="text-align:center; color:var(--muted); padding:16px;">Cargando...</td></tr>';
+  await cargarTransferenciasDesdeDB();
+  await renderTransferencias();
+}
+
+async function renderTransferencias(){
+  const ym = transfMes;
+  const diasPrograma = calcularDiasPrograma();
+  const corte = transfCorteManual || corteDefaultTransf(ym, diasPrograma);
+  document.getElementById('transfCorte').value = corte;
+  const [y, m] = ym.split('-').map(Number);
+  document.getElementById('transfMesDisplay').textContent = `${MESES_TRANSF[m-1]} ${y}`;
+  transfCache = await calcularTransferencias(ym, corte, diasPrograma);
+  renderTransferenciasTabla();
+}
+
+function renderTransferenciasTabla(){
+  if(!transfCache) return;
+  const c = transfCache;
+
+  // Grupos disponibles en el filtro
+  const selG = document.getElementById('transfGrupo');
+  if(selG.options.length === 0){
+    ['Todos', ...MATERIALES_CON_AHORRO, 'Otros'].forEach(g=>{
+      const o = document.createElement('option');
+      o.value = g === 'Todos' ? 'todos' : g;
+      o.textContent = g;
+      selG.appendChild(o);
+    });
+  }
+
+  document.getElementById('transfAvisos').innerHTML = c.avisos.map(a=>`<div class="status-msg err" style="margin-bottom:8px;">⚠ ${escHTMLTransf(a)}</div>`).join('');
+
+  document.getElementById('transfBigTransferido').textContent = fmtMoney(c.tot.tUSD);
+  document.getElementById('transfBigReal').textContent = fmtMoney(c.tot.rUSD);
+  document.getElementById('transfBigEstandar').textContent = fmtMoney(c.tot.eUSD);
+  document.getElementById('transfSubReal').textContent = c.tot.tUSD > 0 ? `${((c.tot.rUSD/c.tot.tUSD)*100).toFixed(1)}% de lo transferido` : '';
+  document.getElementById('transfSubEstandar').textContent = c.tot.tUSD > 0 ? `${((c.tot.eUSD/c.tot.tUSD)*100).toFixed(1)}% de lo transferido` : '';
+
+  const dif = c.tot.dif;
+  const lblDif = document.getElementById('transfLabelDif');
+  const bigDif = document.getElementById('transfBigDif');
+  lblDif.textContent = dif > 0 ? 'Merma (Transferido − Real)' : (dif < 0 ? 'Real mayor que Transferido' : 'Diferencia');
+  bigDif.textContent = fmtMoney(Math.abs(dif));
+  const colorDif = dif > 0 ? 'var(--bad)' : (dif < 0 ? 'var(--warn)' : 'var(--text)');
+  bigDif.style.color = colorDif;
+  lblDif.style.color = colorDif;
+  document.getElementById('transfSubDif').textContent = c.tot.pct != null ? `${Math.abs(c.tot.pct).toFixed(1)}% de lo transferido` : '';
+
+  document.getElementById('transfInfoExtra').innerHTML =
+    `Consumo de ${c.diasConsumo} día(s) de programa hasta el ${c.corte} · ` +
+    `Estándar de líneas en 0 (aún sin consumo, excluido del Real y Estándar): <strong>${fmtMoney(c.tot.e0USD)}</strong> · ` +
+    `Transferido con fecha programa posterior al corte (aún por consumirse): <strong>${fmtMoney(c.postCorte.usd)}</strong>` +
+    (c.sinFase.filas > 0 ? ` · <span style="color:var(--bad);">Sin fase asignada (${[...c.sinFase.ubicaciones].join(', ')}): ${c.sinFase.filas} movimiento(s), ${fmtMoney(c.sinFase.usd)} — no incluidos. Asígnales fase en Admin → Centro de Trabajo → Fase.</span>` : '');
+
+  const vistaCT = document.getElementById('transfVista').value === 'ct';
+  let filas = vistaCT ? c.filasCT : c.filasSKU;
+  const q = quitarAcentos(document.getElementById('transfBuscar').value.trim().toUpperCase());
+  const g = selG.value;
+  filas = filas.filter(f=>{
+    if(g && g !== 'todos' && f.grupo !== g) return false;
+    if(q && !quitarAcentos((f.sku + ' ' + f.desc + ' ' + f.centro).toUpperCase()).includes(q)) return false;
+    return true;
+  });
+  const orden = document.getElementById('transfOrden').value;
+  filas = [...filas].sort((a,b)=>{
+    if(orden === 'dif') return b.dif - a.dif;
+    if(orden === 'dif_asc') return a.dif - b.dif;
+    if(orden === 'transf') return b.tUSD - a.tUSD;
+    return Math.abs(b.dif) - Math.abs(a.dif);
+  });
+
+  document.getElementById('transfThead').innerHTML = `<tr>
+    <th>SKU</th>${vistaCT ? '<th>Centro</th>' : ''}<th>Descripción</th><th>Grupo</th>
+    <th>Transf. Cant.</th><th>Transf. $</th><th>Real Cant.</th><th>Real $</th><th>Estándar $</th>
+    <th>Diferencia $ <span class="help-icon">?<span class="help-tooltip">Transferido − Real. Positivo = se transfirió más de lo que se consumió (merma o material aún en WIP). Negativo = se consumió más de lo transferido (probable WIP de meses anteriores).</span></span></th>
+    <th>% Merma</th>
+    <th>Est. en 0 $ <span class="help-icon">?<span class="help-tooltip">Estándar de las líneas con Consumo Real en 0 (aún sin consumir). Ese material pudo haberse transferido y por eso explica parte de la diferencia.</span></span></th>
+  </tr>`;
+  const colspan = vistaCT ? 12 : 11;
+  document.getElementById('transfTbody').innerHTML = filas.length > 0 ? filas.map(f=>`<tr>
+    <td>${escHTMLTransf(f.sku)}</td>${vistaCT ? `<td>${escHTMLTransf(f.centro)}</td>` : ''}
+    <td style="font-size:12px;">${escHTMLTransf(f.desc)}</td>
+    <td style="font-size:12px; color:var(--muted);">${escHTMLTransf(f.grupo)}</td>
+    <td>${fmtNumTransf(f.tCant)}</td><td class="money">${fmtMoney(f.tUSD)}</td>
+    <td>${fmtNumTransf(f.rCant)}</td><td class="money">${fmtMoney(f.rUSD)}</td>
+    <td class="money">${fmtMoney(f.eUSD)}</td>
+    <td class="money" style="color:${f.dif>0.5?'var(--bad)':(f.dif<-0.5?'var(--warn)':'var(--text)')}; font-weight:600;">${fmtMoney(f.dif)}</td>
+    <td>${f.pct != null ? f.pct.toFixed(1)+'%' : '—'}</td>
+    <td class="money" style="color:var(--muted);">${fmtMoney(f.e0USD)}</td>
+  </tr>`).join('') : `<tr><td colspan="${colspan}" style="text-align:center; color:var(--muted); padding:16px;">Sin resultados.</td></tr>`;
+}
+
+['transfBuscar','transfGrupo','transfOrden','transfVista'].forEach(id=>{
+  document.getElementById(id).addEventListener(id==='transfBuscar' ? 'input' : 'change', renderTransferenciasTabla);
+});
+document.getElementById('prevMesTransfBtn').addEventListener('click', ()=>{ transfMes = desplazarMesISO(transfMes, -1); transfCorteManual = null; renderTransferencias(); });
+document.getElementById('nextMesTransfBtn').addEventListener('click', ()=>{ transfMes = desplazarMesISO(transfMes, 1); transfCorteManual = null; renderTransferencias(); });
+document.getElementById('transfCorte').addEventListener('change', (e)=>{ transfCorteManual = e.target.value || null; renderTransferencias(); });
+
+document.getElementById('btnDescargarTransf').addEventListener('click', ()=>{
+  if(!transfCache){ alert('Espera a que cargue el reporte antes de descargar.'); return; }
+  const c = transfCache;
+  const wb = XLSX.utils.book_new();
+  const resumen = [
+    {Concepto:'Mes', Valor: c.ym},
+    {Concepto:'Fecha de corte (consumo hasta)', Valor: c.corte},
+    {Concepto:'$ Transferido (AMPOUT, sin prototipos, a fecha programa estimada)', Valor: c.tot.tUSD},
+    {Concepto:'$ Real MP consumido (Reporte Avance Producción)', Valor: c.tot.rUSD},
+    {Concepto:'$ Estándar MP (Reporte Avance Producción)', Valor: c.tot.eUSD},
+    {Concepto:'Diferencia (Transferido − Real)', Valor: c.tot.dif},
+    {Concepto:'% Merma (Diferencia / Transferido)', Valor: c.tot.pct != null ? c.tot.pct.toFixed(1)+'%' : ''},
+    {Concepto:'Estándar de líneas en 0 (excluido)', Valor: c.tot.e0USD},
+    {Concepto:'Transferido con fecha programa posterior al corte', Valor: c.postCorte.usd},
+    {Concepto:'Transferido sin fase asignada (no incluido)', Valor: c.sinFase.usd}
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumen), 'Resumen');
+  const mapear = (r, conCentro)=>{
+    const o = {SKU: r.sku};
+    if(conCentro) o['Centro de Trabajo'] = r.centro;
+    Object.assign(o, {
+      'Descripción': r.desc, Grupo: r.grupo,
+      'Transf. Cant.': round3(r.tCant), 'Transf. $': round2(r.tUSD),
+      'Real Cant.': round3(r.rCant), 'Real $': round2(r.rUSD), 'Estándar $': round2(r.eUSD),
+      'Diferencia $ (Transf − Real)': round2(r.dif), '% Merma': r.pct != null ? round2(r.pct) : '',
+      'Estándar en 0 $': round2(r.e0USD)
+    });
+    return o;
+  };
+  const ord = (arr)=> [...arr].sort((a,b)=> Math.abs(b.dif) - Math.abs(a.dif));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ord(c.filasSKU).map(r=>mapear(r,false))), 'Por SKU');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ord(c.filasCT).map(r=>mapear(r,true))), 'Por SKU y Centro');
+  XLSX.writeFile(wb, `Transferencias_vs_Consumo_${c.ym}.xlsx`);
+});
+
 
 /* ============================================================
    MINUTAS DE REUNION
