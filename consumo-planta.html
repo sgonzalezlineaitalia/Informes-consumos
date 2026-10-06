@@ -51,19 +51,21 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
 .app-layout{display:flex; min-height:100vh;}
 .app-sidebar{
   width:230px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
-  display:flex; flex-direction:column; padding:18px 12px; position:sticky; top:0; height:100vh; overflow-y:auto;
+  display:flex; flex-direction:column; padding:14px 12px; position:sticky; top:0; height:100vh; overflow:hidden;
 }
-.app-sidebar .brand{padding:0 8px 16px; margin-bottom:10px; border-bottom:1px solid var(--line);}
+.sidebar-scroll{flex:1; min-height:0; overflow-y:auto; padding-right:2px;}
+.sidebar-bottom{border-top:1px solid var(--line); padding-top:8px; margin-top:6px;}
+.app-sidebar .brand{padding:0 8px 12px; margin-bottom:6px; border-bottom:1px solid var(--line);}
 .sidebar-btn{
   display:flex; align-items:center; gap:10px; width:100%; text-align:left;
   background:transparent; border:1px solid transparent; color:var(--text);
-  padding:10px 12px; border-radius:8px; font-size:13px; cursor:pointer; font-family:var(--sans);
-  font-weight:500; margin-bottom:2px;
+  padding:7px 12px; border-radius:8px; font-size:13px; cursor:pointer; font-family:var(--sans);
+  font-weight:500; margin-bottom:1px;
 }
 .sidebar-btn:hover{background:var(--panel-2);}
 .sidebar-btn.active{background:var(--panel-2); border-color:var(--line); color:var(--accent);}
 .sidebar-spacer{flex:1;}
-.sidebar-section-label{font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:10px 12px 4px;}
+.sidebar-section-label{font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:8px 12px 3px;}
 .app-main{flex:1; min-width:0;}
 
 .period-bar{
@@ -234,21 +236,24 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       </div>
     </div>
 
+    <div class="sidebar-scroll">
     <div class="sidebar-section-label">Reportes</div>
     <button class="sidebar-btn" id="sbVistaPrograma" onclick="irAReporte(); volverASemanaPrograma(); marcarSidebarActivo('sbVistaPrograma');">📅 Vista por Programa</button>
     <button class="sidebar-btn" id="sbListaCompleta" onclick="irAReporte(); verListaCompletaProgramas(); marcarSidebarActivo('sbListaCompleta');">📋 Todos los Programas</button>
     <button class="sidebar-btn" id="sbResumenMensual" onclick="irAReporte(); verResumenMensual(); marcarSidebarActivo('sbResumenMensual');">📊 Resumen Mensual</button>
     <button class="sidebar-btn" id="sbReporteAlterno" onclick="irAReporte(); verReporteAlterno(); marcarSidebarActivo('sbReporteAlterno');">🔀 Reporte Avance Producción (OP'S Terminadas)</button>
     <button class="sidebar-btn" id="sbTransferencias" onclick="irATransferencias()">🚚 Transferencias vs Consumo (Beta)</button>
+    <button class="sidebar-btn" id="sbCentros" onclick="irACentros()">🏭 Costos por Centro de Trabajo</button>
 
     <div class="sidebar-section-label">Seguimiento</div>
-    <button class="sidebar-btn" id="sbMinuta" onclick="irAMinuta()">📝 Minuta</button>
+    <button class="sidebar-btn" id="sbMinuta" onclick="irAMinuta()">📝 Minuta (acuerdos del equipo)</button>
+    <button class="sidebar-btn" id="sbBitacora" onclick="irABitacora()">📒 Bitácora</button>
+    </div>
 
-    <div class="sidebar-section-label">Datos</div>
-    <button class="sidebar-btn" id="sbActualizarDatos" onclick="actualizarDatosDesdeSidebar(this)">🔄 Actualizar Datos</button>
-
-    <div class="sidebar-spacer"></div>
-    <button class="sidebar-btn" id="sbAdmin" onclick="irAAdmin()">⚙️ Admin</button>
+    <div class="sidebar-bottom">
+      <button class="sidebar-btn" id="sbActualizarDatos" onclick="actualizarDatosDesdeSidebar(this)">🔄 Actualizar Datos</button>
+      <button class="sidebar-btn" id="sbAdmin" onclick="irAAdmin()">⚙️ Admin</button>
+    </div>
   </div>
 
   <div class="app-main">
@@ -398,7 +403,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
     <div id="programa-nivel-lista-completa" class="hidden">
       <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
-        <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <button class="btn" style="position:absolute; left:24px;" onclick="volverAtras(volverASemanaPrograma)">← Volver</button>
         <div class="date-display" style="font-size:16px;">Todos los Programas (ordenados por fecha)</div>
       </div>
       <main>
@@ -417,7 +422,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
     <div id="programa-nivel-alterno" class="hidden">
       <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
-        <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <button class="btn" style="position:absolute; left:24px;" onclick="volverAtras(volverASemanaPrograma)">← Volver</button>
         <button class="date-arrow" id="prevSemanaAltBtn">‹</button>
         <div class="date-display" id="altProgramaDisplay" style="font-size:16px;">—</div>
         <button class="date-arrow" id="nextSemanaAltBtn">›</button>
@@ -545,7 +550,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
 
     <div id="programa-nivel-mes" class="hidden">
       <div style="display:flex; justify-content:center; align-items:center; gap:14px; padding:14px 24px; background:var(--panel); border-bottom:1px solid var(--line); position:relative;">
-        <button class="btn" style="position:absolute; left:24px;" onclick="volverASemanaPrograma()">← Volver a la Semana</button>
+        <button class="btn" style="position:absolute; left:24px;" onclick="volverAtras(volverASemanaPrograma)">← Volver</button>
         <button class="date-arrow" id="prevMesProgramaBtn">‹</button>
         <div class="date-display" id="mesProgramaDisplay" style="font-size:16px;">—</div>
         <button class="date-arrow" id="nextMesProgramaBtn">›</button>
@@ -678,7 +683,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <div id="programa-nivel-dia" class="hidden">
       <main>
         <div class="toolbar" style="margin-bottom:16px;">
-          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverDesdePrograma()">← Volver</button>
+          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverAtras(volverDesdePrograma)">← Volver</button>
           <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="programaDiaTitulo">Programa</span>
           <button class="btn" id="btnRefrescarDia">🔄 Actualizar Datos</button>
           <button class="btn" id="btnExportLanzadasConsumoCero" style="color:var(--bad); border-color:var(--bad);">⬇ Excel: OPs Lanzadas con Consumo Real 0</button>
@@ -844,7 +849,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
     <div id="programa-nivel-fase" class="hidden">
       <main>
         <div class="toolbar" style="margin-bottom:16px;">
-          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="modoVistaSemanaCompleta ? (vinoDelResumenMensual ? volverAResumenMensualDesdeFase() : volverASemanaPrograma()) : volverADiaPrograma()">← Volver</button>
+          <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverAtras(volverDesdeFaseLegacy)">← Volver</button>
           <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="programaFaseTitulo">Fase</span>
         </div>
         <div id="avisoFiltroOPsEspecificas" class="hidden" style="margin-bottom:12px; padding:10px 14px; background:rgba(224,123,57,0.12); border:1px solid var(--accent); border-radius:6px; display:flex; align-items:center; gap:12px;">
@@ -898,6 +903,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <button data-panel="ahorro">Materiales con Ahorro Permitido</button>
         <button data-panel="skus-excluidos">SKUs Excluidos de Reportes</button>
         <button data-panel="transferencias">Transferencias (carga)</button>
+        <button data-panel="responsables">Responsables de Centros</button>
         <button data-panel="razones">Catálogo de Razones</button>
         <button data-panel="config">Umbral / Configuración</button>
       </div>
@@ -1072,6 +1078,22 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <div id="transferenciasStatus"></div>
         </div>
 
+        <div id="panel-responsables" class="hidden">
+          <h3>Responsables de Centros de Trabajo</h3>
+          <div class="field-hint" style="margin-bottom:14px;">Primero captura la lista de personas (nombre y foto). Después, en la segunda tabla, elige para cada centro quién es su responsable de Producción y quién el de Mejora Continua. Una misma persona puede estar en varios centros. Los centros se detectan solos del archivo de Estándares.</div>
+          <h4 style="margin:18px 0 8px;">1. Personas</h4>
+          <div id="listaPersonasAdmin"></div>
+          <div style="display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;">
+            <input type="text" id="nuevaPersonaNombre" placeholder="Nombre completo" style="flex:1; min-width:220px;">
+            <input type="file" id="nuevaPersonaFoto" accept="image/*">
+            <button class="btn" id="btnAgregarPersona">+ Agregar persona</button>
+          </div>
+          <div id="personasStatus"></div>
+          <h4 style="margin:26px 0 8px;">2. Responsables por centro</h4>
+          <div id="tablaCentrosAdminCont"></div>
+          <div id="centrosAdminStatus"></div>
+        </div>
+
         <div id="panel-razones" class="hidden">
           <h3>Catálogo de Razones</h3>
           <div id="listaRazones"></div>
@@ -1137,11 +1159,127 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
   </main>
 </div>
 
+<div id="tab-centros" class="hidden">
+  <main>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap;">
+      <select id="centrosModo"><option value="semana">Semana</option><option value="mes">Mes</option></select>
+      <button class="date-arrow" id="prevCentrosBtn">‹</button>
+      <div class="date-display" id="centrosPeriodoDisplay" style="font-size:16px;">—</div>
+      <button class="date-arrow" id="nextCentrosBtn">›</button>
+    </div>
+    <div class="field-hint" id="hintFiltroCentros" style="margin-bottom:14px;"></div>
+
+    <div id="centros-nivel-lista">
+      <div class="bigrow">
+        <div class="card"><div class="label">$ Estándar MP</div><div class="big" id="centrosBigEstandar">$0</div><div class="sub">Todos los centros</div></div>
+        <div class="card"><div class="label">$ Real MP Consumido</div><div class="big" id="centrosBigReal">$0</div><div class="sub">Todos los centros</div></div>
+        <div class="card deviation"><div class="label" id="centrosLabelDif">Diferencia</div><div class="big" id="centrosBigDif">$0</div><div class="sub" id="centrosSubDif">&nbsp;</div></div>
+      </div>
+      <div class="section-title" style="margin-top:20px; display:flex; align-items:center; gap:12px;">
+        Centros de Trabajo (clic en uno para ver su detalle)
+        <button class="btn" id="btnToggleFiltroCentros" style="font-size:12px; padding:6px 14px; margin-left:auto;">👁 Mostrar Todo (sin filtro)</button>
+      </div>
+      <div class="table-scroll" style="height:auto; max-height:70vh;">
+        <table>
+          <thead><tr><th>Centro</th><th>Resp. de Producción</th><th>Resp. de Mejora Continua</th><th>$ Estándar</th><th>$ Real</th><th>Diferencia</th><th>Tipo</th><th>% vs Estándar</th><th># OPs</th></tr></thead>
+          <tbody id="tablaCentros"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="centros-nivel-detalle" class="hidden">
+      <div class="toolbar" style="margin-bottom:16px;">
+        <button class="btn primary" style="font-size:14px; padding:10px 18px;" id="btnVolverCentros">← Volver a Centros</button>
+        <span style="margin-left:12px; font-size:18px; font-weight:600; color:var(--text);" id="centroDetalleTitulo">Centro</span>
+        <button class="btn" id="btnToggleFiltroCentroDetalle" style="margin-left:auto;">👁 Mostrar Todo (sin filtro)</button>
+      </div>
+      <div id="centroResponsables" style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px;"></div>
+      <div class="bigrow">
+        <div class="card"><div class="label">$ Estándar MP</div><div class="big" id="centroBigEstandar">$0</div><div class="sub">Este centro</div></div>
+        <div class="card"><div class="label">$ Real MP Consumido</div><div class="big" id="centroBigReal">$0</div><div class="sub">Este centro</div></div>
+        <div class="card deviation"><div class="label" id="centroLabelDif">Diferencia</div><div class="big" id="centroBigDif">$0</div><div class="sub" id="centroSubDif">&nbsp;</div></div>
+      </div>
+
+      <div id="centroMultipleSeccion" class="hidden">
+        <div class="section-title" style="margin-top:24px;">Líneas que abarcan varios centros (clic en una para ver sus materiales)</div>
+        <div class="field-hint" style="margin-bottom:10px;">Estas líneas vienen de un archivo de Estándares cargado antes de que la app guardara el detalle por centro. Vuelve a subir el archivo de Estándares y quedarán repartidas entre sus centros (y desaparecerán de esta lista).</div>
+        <div class="table-scroll" style="height:auto; max-height:50vh;">
+          <table>
+            <thead><tr><th>OP</th><th>SKU</th><th>Descripción</th><th>Centros donde aparece</th><th>$ Estándar</th><th>$ Real</th><th>Diferencia</th><th>Tipo</th></tr></thead>
+            <tbody id="tablaCentroMultiple"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px;">Desviación por Grupo de Material</div>
+      <table style="background:#eef0f3;">
+        <thead><tr style="background:#dde1e7;"><th style="background:#dde1e7;">Grupo</th><th style="background:#dde1e7;"># Líneas</th><th style="background:#dde1e7;">$ Desviación Total</th><th style="background:#dde1e7;">$ Promedio por Línea</th><th style="background:#dde1e7;">% vs Estándar</th><th style="background:#dde1e7;">Tipo</th></tr></thead>
+        <tbody id="tablaCentroGrupo"></tbody>
+      </table>
+
+      <div class="section-title" style="margin-top:24px; display:flex; align-items:center; gap:10px;">
+        Top 10 OPs con mayor desviación
+        <div style="display:flex; gap:6px; margin-left:12px;">
+          <button class="btn small filtro-tipo-topops active-filtro-topops" data-target="tablaTopOPsCentro" data-tipo="todos" onclick="aplicarFiltroTipoTopOPs('todos','tablaTopOPsCentro',lineasActualesTopOPsCentro,'Sin datos que coincidan.')">Todos</button>
+          <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsCentro" data-tipo="gasto" style="color:var(--bad);" onclick="aplicarFiltroTipoTopOPs('gasto','tablaTopOPsCentro',lineasActualesTopOPsCentro,'Sin datos que coincidan.')">💸 Solo Gasto</button>
+          <button class="btn small filtro-tipo-topops" data-target="tablaTopOPsCentro" data-tipo="ahorro" style="color:var(--good);" onclick="aplicarFiltroTipoTopOPs('ahorro','tablaTopOPsCentro',lineasActualesTopOPsCentro,'Sin datos que coincidan.')">💰 Solo Ahorro</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>OP</th><th>Modelo</th><th>$ Desviación</th><th>% vs Estándar</th><th>Razón(es) asociadas</th></tr></thead>
+        <tbody id="tablaTopOPsCentro"></tbody>
+      </table>
+
+      <div class="section-title" style="margin-top:24px;">Detalle por SKU</div>
+      <div class="toolbar" style="margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="centroBuscarSKU" placeholder="Buscar SKU o descripción..." style="flex:1; min-width:200px;">
+        <select id="centroOrdenSKU">
+          <option value="abs">Ordenar: mayor desviación</option>
+          <option value="gasto">Ordenar: mayor gasto primero</option>
+          <option value="ahorro">Ordenar: mayor ahorro primero</option>
+        </select>
+      </div>
+      <div class="table-scroll" style="height:auto; max-height:60vh;">
+        <table>
+          <thead><tr><th>SKU</th><th>Descripción</th><th>Grupo</th><th>$ Estándar</th><th>$ Real</th><th>Diferencia</th><th>Tipo</th></tr></thead>
+          <tbody id="tablaCentroSKU"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="tab-bitacora" class="hidden">
+  <main>
+    <div class="section-title">📒 Bitácora</div>
+    <div class="field-hint" style="margin-bottom:16px;">Aquí se registra lo que va pasando (logros, incidentes, observaciones). Los acuerdos del equipo van en la <strong>Minuta</strong>.</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start; padding:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; margin-bottom:18px;">
+      <input type="date" id="bitFecha">
+      <select id="bitCentro"></select>
+      <textarea id="bitTexto" rows="2" placeholder="¿Qué pasó?" style="flex:1; min-width:260px; padding:8px; border:1px solid var(--line); border-radius:6px; font-family:var(--sans); font-size:13px;"></textarea>
+      <button class="btn primary" id="btnAgregarBitacora">+ Agregar</button>
+    </div>
+    <div id="bitStatus"></div>
+    <div class="toolbar" style="margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+      <input type="month" id="bitMes" title="Filtrar por mes">
+      <input type="text" id="bitBuscar" placeholder="Buscar..." style="flex:1; min-width:180px;">
+      <button class="btn small" id="btnLimpiarFiltrosBit">Limpiar filtros</button>
+    </div>
+    <div class="field-hint" id="bitResumen" style="margin-bottom:10px;"></div>
+    <div class="table-scroll" style="height:auto; max-height:70vh;">
+      <table>
+        <thead><tr><th>Fecha</th><th>Centro de trabajo</th><th>Descripción</th><th></th></tr></thead>
+        <tbody id="bitTbody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
 <div id="tab-minuta" class="hidden">
   <div id="minuta-nivel-lista">
     <main>
       <div class="section-title" style="display:flex; align-items:center; gap:12px;">📝 Minutas de Reunión</div>
-      <div class="field-hint" style="margin-bottom:16px;">Crea una minuta por fecha, agrégale los puntos tratados, y marca cada uno como cumplido o no conforme avance. Dale clic a una fecha de la lista para abrirla.</div>
+      <div class="field-hint" style="margin-bottom:16px;">Aquí se registran los <strong>acuerdos del equipo</strong>. Crea una minuta por fecha, agrégale los puntos acordados y marca cada uno como cumplido o no conforme avance. Dale clic a una fecha de la lista para abrirla. (Lo que va pasando se registra en la <strong>Bitácora</strong>.)</div>
       <div class="toolbar" style="margin-bottom:20px; gap:10px;">
         <input type="date" id="fechaNuevaMinuta">
         <button class="btn primary" id="btnCrearMinuta">+ Nueva Minuta</button>
@@ -1156,7 +1294,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
   <div id="minuta-nivel-detalle" class="hidden">
     <main>
       <div class="toolbar" style="margin-bottom:16px;">
-        <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverAListaMinutas()">← Volver a Minutas</button>
+        <button class="btn primary" style="font-size:14px; padding:10px 18px;" onclick="volverAtras(volverAListaMinutas)">← Volver</button>
         <span style="margin-left:12px; font-size:16px; font-weight:600; color:var(--text);" id="minutaDetalleTitulo">Minuta</span>
         <button class="btn" style="color:var(--bad); border-color:var(--bad); margin-left:auto;" onclick="eliminarMinutaActual()">🗑️ Eliminar esta Minuta</button>
       </div>
@@ -1363,27 +1501,22 @@ function marcarSidebarActivo(id){
   const btn = document.getElementById(id);
   if(btn) btn.classList.add('active');
 }
+const TABS_APP = ['tab-viewer','tab-admin','tab-minuta','tab-transferencias','tab-centros','tab-bitacora'];
+function mostrarTab(id){
+  TABS_APP.forEach(t=> document.getElementById(t).classList.toggle('hidden', t !== id));
+}
 function irAReporte(){
-  document.getElementById('tab-viewer').classList.remove('hidden');
-  document.getElementById('tab-admin').classList.add('hidden');
-  document.getElementById('tab-minuta').classList.add('hidden');
-  document.getElementById('tab-transferencias').classList.add('hidden');
+  mostrarTab('tab-viewer');
 }
 function irAAdmin(){
-  document.getElementById('tab-viewer').classList.add('hidden');
-  document.getElementById('tab-admin').classList.remove('hidden');
-  document.getElementById('tab-minuta').classList.add('hidden');
-  document.getElementById('tab-transferencias').classList.add('hidden');
+  mostrarTab('tab-admin');
   marcarSidebarActivo('sbAdmin');
   if(!document.getElementById('admin-pin-gate').classList.contains('hidden')){
     setTimeout(()=> document.getElementById('pinInput').focus(), 50);
   }
 }
 async function irAMinuta(){
-  document.getElementById('tab-viewer').classList.add('hidden');
-  document.getElementById('tab-admin').classList.add('hidden');
-  document.getElementById('tab-minuta').classList.remove('hidden');
-  document.getElementById('tab-transferencias').classList.add('hidden');
+  mostrarTab('tab-minuta');
   marcarSidebarActivo('sbMinuta');
   document.getElementById('minuta-nivel-detalle').classList.add('hidden');
   document.getElementById('minuta-nivel-lista').classList.remove('hidden');
@@ -1447,6 +1580,9 @@ async function cargarTodoAdmin(){
   renderSkusExcluidosAdmin();
   await cargarTransferenciasDesdeDB();
   renderResumenCargaTransferencias();
+  await Promise.all([cargarPersonasDesdeDB(), cargarCentrosConfigDesdeDB()]);
+  renderPersonasAdmin();
+  renderCentrosAdmin();
   document.getElementById('umbralInput').value = Math.round(UMBRAL*100);
   renderHistorialReportes();
   renderHistorialCargas();
@@ -1832,10 +1968,7 @@ async function calcularTransferencias(ym, corte, diasPrograma){
 
 /* ---------- pantalla ---------- */
 async function irATransferencias(){
-  document.getElementById('tab-viewer').classList.add('hidden');
-  document.getElementById('tab-admin').classList.add('hidden');
-  document.getElementById('tab-minuta').classList.add('hidden');
-  document.getElementById('tab-transferencias').classList.remove('hidden');
+  mostrarTab('tab-transferencias');
   marcarSidebarActivo('sbTransferencias');
   document.getElementById('transfTbody').innerHTML = '<tr><td colspan="12" style="text-align:center; color:var(--muted); padding:16px;">Cargando...</td></tr>';
   await cargarTransferenciasDesdeDB();
@@ -1971,6 +2104,617 @@ document.getElementById('btnDescargarTransf').addEventListener('click', ()=>{
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ord(c.filasCT).map(r=>mapear(r,true))), 'Por SKU y Centro');
   XLSX.writeFile(wb, `Transferencias_vs_Consumo_${c.ym}.xlsx`);
 });
+
+
+/* ============================================================
+   COSTOS POR CENTRO DE TRABAJO + RESPONSABLES
+   ============================================================ */
+let PERSONAS = {};        // id -> {id, nombre, foto(dataURL)}
+let CENTROS_CONFIG = {};  // centro -> {nombre, respProd, respMC}
+let centrosModo = 'semana';
+let centrosFecha = new Date().toISOString().slice(0,10);
+let modoFiltradoCentros = true;   // true = reglas del Reporte Avance Producción
+let centrosLineasCompletas = [];  // lineas del periodo, sin filtrar
+let centroActual = null;
+let lineasActualesTopOPsCentro = [];
+
+async function cargarPersonasDesdeDB(){
+  const snap = await db.collection('personas').get();
+  const m = {};
+  snap.forEach(d=>{ const x = d.data(); m[d.id] = {id: d.id, nombre: x.nombre || '', foto: x.foto || ''}; });
+  PERSONAS = m;
+}
+async function cargarCentrosConfigDesdeDB(){
+  const doc = await db.collection('config').doc('centrosTrabajo').get();
+  CENTROS_CONFIG = doc.exists ? (doc.data().mapa || {}) : {};
+}
+function centrosDisponibles(){
+  return Object.keys(CENTRO_A_FASE).filter(c=> c && c !== 'MULTIPLE').sort();
+}
+function nombreCentro(clave){
+  if(clave === 'MULTIPLE') return 'Varios centros (líneas que abarcan más de un centro)';
+  if(clave === '(sin centro)') return 'Sin centro asignado';
+  return (CENTROS_CONFIG[clave] && CENTROS_CONFIG[clave].nombre) || clave;
+}
+function iniciales(nombre){
+  return String(nombre || '?').trim().split(/\s+/).slice(0,2).map(p=>p[0] || '').join('').toUpperCase() || '?';
+}
+function avatarHTML(persona, tam){
+  const estilo = `width:${tam}px; height:${tam}px; border-radius:50%; flex-shrink:0;`;
+  if(persona && persona.foto){
+    return `<img src="${persona.foto}" alt="${escHTMLTransf(persona.nombre)}" style="${estilo} object-fit:cover; border:1px solid var(--line);">`;
+  }
+  return `<div style="${estilo} background:var(--panel-2); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:${Math.round(tam*0.38)}px; font-weight:600; color:var(--muted);">${escHTMLTransf(iniciales(persona && persona.nombre))}</div>`;
+}
+function responsableMiniHTML(personaId){
+  const p = personaId ? PERSONAS[personaId] : null;
+  if(!p) return '<span style="color:var(--muted); font-size:12px;">— Sin asignar</span>';
+  return `<span style="display:inline-flex; align-items:center; gap:8px;">${avatarHTML(p, 30)}<span style="font-size:12px;">${escHTMLTransf(p.nombre)}</span></span>`;
+}
+
+/* ---------- foto: se reduce a 240x240 y se guarda como imagen en Firebase ---------- */
+function fotoADataURL(file, tam){
+  tam = tam || 240;
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const c = document.createElement('canvas');
+      c.width = c.height = tam;
+      const lado = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width-lado)/2, (img.height-lado)/2, lado, lado, 0, 0, tam, tam);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen. Usa un archivo JPG o PNG.')); };
+    img.src = url;
+  });
+}
+
+/* ---------- ADMIN: personas ---------- */
+function renderPersonasAdmin(){
+  const cont = document.getElementById('listaPersonasAdmin');
+  const lista = Object.values(PERSONAS).sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
+  if(lista.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay personas. Agrega la primera abajo.</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(p=>`<div style="display:flex; align-items:center; gap:12px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin-bottom:6px; background:var(--panel);">
+    ${avatarHTML(p, 44)}
+    <input type="text" class="persona-nombre" data-id="${p.id}" value="${escHTMLTransf(p.nombre)}" style="flex:1;">
+    <label class="btn small" style="cursor:pointer;">Cambiar foto<input type="file" accept="image/*" class="persona-foto" data-id="${p.id}" style="display:none;"></label>
+    <button class="btn small persona-eliminar" data-id="${p.id}" style="color:var(--bad); border-color:var(--bad);">Eliminar</button>
+  </div>`).join('');
+
+  cont.querySelectorAll('.persona-nombre').forEach(inp=> inp.addEventListener('change', async ()=>{
+    const nuevo = inp.value.trim();
+    const p = PERSONAS[inp.dataset.id];
+    if(!nuevo){ inp.value = p.nombre; return; }
+    p.nombre = nuevo;
+    await db.collection('personas').doc(p.id).set({nombre: p.nombre, foto: p.foto});
+    renderCentrosAdmin();
+  }));
+  cont.querySelectorAll('.persona-foto').forEach(inp=> inp.addEventListener('change', async ()=>{
+    const f = inp.files[0];
+    if(!f) return;
+    const status = document.getElementById('personasStatus');
+    try{
+      const p = PERSONAS[inp.dataset.id];
+      p.foto = await fotoADataURL(f);
+      await db.collection('personas').doc(p.id).set({nombre: p.nombre, foto: p.foto});
+      status.innerHTML = '<div class="status-msg ok">✓ Foto actualizada.</div>';
+      renderPersonasAdmin();
+    }catch(err){ status.innerHTML = `<div class="status-msg err">${escHTMLTransf(err.message || err)}</div>`; }
+  }));
+  cont.querySelectorAll('.persona-eliminar').forEach(btn=> btn.addEventListener('click', async ()=>{
+    const p = PERSONAS[btn.dataset.id];
+    if(!confirm(`¿Eliminar a ${p.nombre}? También se quitará de los centros donde esté asignado.`)) return;
+    await db.collection('personas').doc(p.id).delete();
+    delete PERSONAS[p.id];
+    Object.keys(CENTROS_CONFIG).forEach(c=>{
+      if(CENTROS_CONFIG[c].respProd === p.id) CENTROS_CONFIG[c].respProd = null;
+      if(CENTROS_CONFIG[c].respMC === p.id) CENTROS_CONFIG[c].respMC = null;
+    });
+    await db.collection('config').doc('centrosTrabajo').set({mapa: CENTROS_CONFIG});
+    renderPersonasAdmin();
+    renderCentrosAdmin();
+  }));
+}
+
+document.getElementById('btnAgregarPersona').addEventListener('click', async ()=>{
+  const status = document.getElementById('personasStatus');
+  const nombre = document.getElementById('nuevaPersonaNombre').value.trim();
+  const archivo = document.getElementById('nuevaPersonaFoto').files[0];
+  if(!nombre){ status.innerHTML = '<div class="status-msg err">Escribe el nombre de la persona.</div>'; return; }
+  try{
+    const foto = archivo ? await fotoADataURL(archivo) : '';
+    const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+    await db.collection('personas').doc(id).set({nombre, foto});
+    PERSONAS[id] = {id, nombre, foto};
+    document.getElementById('nuevaPersonaNombre').value = '';
+    document.getElementById('nuevaPersonaFoto').value = '';
+    status.innerHTML = `<div class="status-msg ok">✓ ${escHTMLTransf(nombre)} agregado${foto ? '' : ' (sin foto — puedes agregarla con "Cambiar foto")'}.</div>`;
+    renderPersonasAdmin();
+    renderCentrosAdmin();
+  }catch(err){ status.innerHTML = `<div class="status-msg err">${escHTMLTransf(err.message || err)}</div>`; }
+});
+
+/* ---------- ADMIN: responsables por centro ---------- */
+function renderCentrosAdmin(){
+  const cont = document.getElementById('tablaCentrosAdminCont');
+  const centros = centrosDisponibles();
+  if(centros.length === 0){
+    cont.innerHTML = '<div class="field-hint">Aún no hay centros de trabajo detectados. Se llenan solos al subir el archivo de Estándares.</div>';
+    return;
+  }
+  const personas = Object.values(PERSONAS).sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
+  const opciones = (sel)=> '<option value="">— Sin asignar —</option>' + personas.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${escHTMLTransf(p.nombre)}</option>`).join('');
+  cont.innerHTML = `<table><thead><tr><th>Centro (código)</th><th>Nombre visible (opcional)</th><th>Resp. de Producción</th><th>Resp. de Mejora Continua</th></tr></thead><tbody>` +
+    centros.map(c=>{
+      const cfg = CENTROS_CONFIG[c] || {};
+      const cEsc = escHTMLTransf(c);
+      return `<tr>
+        <td><strong>${cEsc}</strong></td>
+        <td><input type="text" class="centro-nombre" data-centro="${cEsc}" value="${escHTMLTransf(cfg.nombre || '')}" placeholder="${cEsc}"></td>
+        <td><select class="centro-resp" data-centro="${cEsc}" data-rol="respProd">${opciones(cfg.respProd)}</select></td>
+        <td><select class="centro-resp" data-centro="${cEsc}" data-rol="respMC">${opciones(cfg.respMC)}</select></td>
+      </tr>`;
+    }).join('') + '</tbody></table>';
+
+  const guardar = async ()=>{
+    await db.collection('config').doc('centrosTrabajo').set({mapa: CENTROS_CONFIG});
+    document.getElementById('centrosAdminStatus').innerHTML = '<div class="status-msg ok">✓ Guardado.</div>';
+  };
+  cont.querySelectorAll('.centro-nombre').forEach(inp=> inp.addEventListener('change', async ()=>{
+    const c = inp.dataset.centro;
+    CENTROS_CONFIG[c] = {...(CENTROS_CONFIG[c] || {}), nombre: inp.value.trim()};
+    await guardar();
+  }));
+  cont.querySelectorAll('.centro-resp').forEach(sel=> sel.addEventListener('change', async ()=>{
+    const c = sel.dataset.centro;
+    CENTROS_CONFIG[c] = {...(CENTROS_CONFIG[c] || {}), [sel.dataset.rol]: sel.value || null};
+    await guardar();
+  }));
+}
+
+/* Reparte las lineas "MULTIPLE" entre los centros que trae el archivo de Estandares.
+   El estandar se reparte segun la cantidad esperada de cada centro y el real segun
+   la cantidad consumida de cada centro; asi los totales de la linea no cambian. */
+function expandirLineasPorCentro(lineas){
+  const out = [];
+  lineas.forEach(l=>{
+    if(l.ruta !== 'MULTIPLE' || !Array.isArray(l.porRuta) || l.porRuta.length < 2){ out.push(l); return; }
+    const sumEsp = l.porRuta.reduce((s,p)=> s + (p.cantidadEsperada || 0), 0);
+    const sumCon = l.porRuta.reduce((s,p)=> s + (p.cantConsumida || 0), 0);
+    l.porRuta.forEach(p=>{
+      const shEsp = sumEsp > 0 ? (p.cantidadEsperada || 0) / sumEsp : 1 / l.porRuta.length;
+      const shCon = sumCon > 0 ? (p.cantConsumida || 0) / sumCon : 0;
+      const cantEst = l.cantidadEstandar * shEsp, cantReal = l.cantidadReal * shCon;
+      out.push({...l, ruta: p.ruta, repartida: true,
+        cantidadEstandar: cantEst, cantidadReal: cantReal, diferencia: cantReal - cantEst,
+        estandarUSD: l.estandarUSD * shEsp, realUSD: l.realUSD * shCon});
+    });
+  });
+  return out;
+}
+
+/* ---------- VISTA: costos por centro ---------- */
+function diasDelPeriodoCentros(){
+  if(centrosModo === 'semana'){
+    const lunes = lunesDeSemana(centrosFecha);
+    return [0,1,2,3,4].map(i=> sumarDiasISO(lunes, i));
+  }
+  const ym = centrosFecha.slice(0,7);
+  const fin = ultimoDiaDeMesISO(ym);
+  const dias = [];
+  for(let d = ym + '-01'; d <= fin; d = sumarDiasISO(d, 1)){ if(!esFinDeSemana(d)) dias.push(d); }
+  return dias;
+}
+function etiquetaPeriodoCentros(){
+  if(centrosModo === 'semana'){
+    const dias = diasDelPeriodoCentros();
+    const fmt = (iso)=>{ const p = iso.split('-'); return `${p[2]} ${MESES_TRANSF[parseInt(p[1])-1].slice(0,3)}`; };
+    return `${fmt(dias[0])} al ${fmt(dias[4])}`;
+  }
+  const [y, m] = centrosFecha.slice(0,7).split('-').map(Number);
+  return `${MESES_TRANSF[m-1]} ${y}`;
+}
+function claveCentro(l){ return l.ruta || '(sin centro)'; }
+function lineasCentrosActuales(){
+  return modoFiltradoCentros
+    ? centrosLineasCompletas.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP))
+    : centrosLineasCompletas;
+}
+
+async function irACentros(){
+  mostrarTab('tab-centros');
+  marcarSidebarActivo('sbCentros');
+  document.getElementById('centros-nivel-detalle').classList.add('hidden');
+  document.getElementById('centros-nivel-lista').classList.remove('hidden');
+  centroActual = null;
+  await Promise.all([cargarPersonasDesdeDB(), cargarCentrosConfigDesdeDB()]);
+  await recalcularCentros();
+}
+
+async function recalcularCentros(){
+  document.getElementById('centrosPeriodoDisplay').textContent = etiquetaPeriodoCentros();
+  document.getElementById('centrosModo').value = centrosModo;
+  document.getElementById('tablaCentros').innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:16px;">Calculando...</td></tr>';
+  const completas = [];
+  for(const d of diasDelPeriodoCentros()){
+    const ls = await construirProgramaDia(d);
+    ls.forEach(l=> completas.push({...l, fechaPrograma: d}));
+  }
+  centrosLineasCompletas = expandirLineasPorCentro(completas);
+  renderCentrosVista();
+}
+
+function renderCentrosVista(){
+  document.getElementById('btnToggleFiltroCentros').textContent = modoFiltradoCentros ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
+  document.getElementById('btnToggleFiltroCentroDetalle').textContent = modoFiltradoCentros ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
+  const hint = modoFiltradoCentros
+    ? '🔀 Vista filtrada: sin líneas con Consumo Real en 0 ni OPs OPM/OPP (mismas reglas del Reporte Avance Producción, aplicadas por centro). Las líneas que abarcan varios centros se reparten según lo que trae el archivo de Estándares para cada uno. El "costo real" es cantidad real × costo unitario estándar.'
+    : '👁 Vista completa: se incluyen todas las líneas, sin ningún filtro. El "costo real" es cantidad real × costo unitario estándar.';
+  document.getElementById('hintFiltroCentros').textContent = hint;
+  if(centroActual) renderCentroDetalle(); else renderCentrosLista();
+}
+
+function renderCentrosLista(){
+  const lineas = lineasCentrosActuales();
+  const grupos = {};
+  lineas.forEach(l=>{
+    const k = claveCentro(l);
+    if(!grupos[k]) grupos[k] = {clave:k, est:0, real:0, ops:new Set()};
+    grupos[k].est += l.estandarUSD;
+    grupos[k].real += l.realUSD;
+    grupos[k].ops.add(l.noOP);
+  });
+  centrosDisponibles().forEach(c=>{ if(!grupos[c]) grupos[c] = {clave:c, est:0, real:0, ops:new Set()}; });
+  const filas = Object.values(grupos).map(g=>({...g, dif: g.real - g.est, pct: g.est !== 0 ? ((g.real - g.est)/g.est)*100 : null, nOPs: g.ops.size}));
+  filas.sort((a,b)=> Math.abs(b.dif) - Math.abs(a.dif));
+
+  const est = filas.reduce((s,f)=>s+f.est, 0), real = filas.reduce((s,f)=>s+f.real, 0), dif = real - est;
+  document.getElementById('centrosBigEstandar').textContent = fmtMoney(est);
+  document.getElementById('centrosBigReal').textContent = fmtMoney(real);
+  pintarTarjetaDif('centrosLabelDif', 'centrosBigDif', 'centrosSubDif', dif, est);
+
+  const tbody = document.getElementById('tablaCentros');
+  tbody.innerHTML = filas.map(f=>{
+    const cfg = CENTROS_CONFIG[f.clave] || {};
+    const color = f.dif > 0.5 ? 'var(--bad)' : (f.dif < -0.5 ? 'var(--good)' : 'var(--text)');
+    return `<tr style="cursor:pointer;" data-centro="${escHTMLTransf(f.clave)}" title="${f.clave === 'MULTIPLE' ? 'Clic para ver cuáles son estas líneas y en qué centros aparecen' : 'Clic para ver el detalle de este centro'}">
+      <td><strong>${escHTMLTransf(nombreCentro(f.clave))}</strong>${nombreCentro(f.clave) !== f.clave && f.clave !== 'MULTIPLE' && f.clave !== '(sin centro)' ? `<div style="font-size:11px; color:var(--muted);">${escHTMLTransf(f.clave)}</div>` : ''}</td>
+      <td>${responsableMiniHTML(cfg.respProd)}</td>
+      <td>${responsableMiniHTML(cfg.respMC)}</td>
+      <td class="money">${fmtMoney(f.est)}</td>
+      <td class="money">${fmtMoney(f.real)}</td>
+      <td class="money" style="color:${color}; font-weight:600;">${fmtMoney(Math.abs(f.dif))}</td>
+      <td style="color:${color}; font-weight:700;">${f.dif > 0.5 ? 'Gasto' : (f.dif < -0.5 ? 'Ahorro' : '—')}</td>
+      <td style="color:${color};">${f.pct != null ? (f.pct>=0?'+':'') + f.pct.toFixed(1) + '%' : '—'}</td>
+      <td>${f.nOPs}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:16px;">Sin datos en este periodo.</td></tr>';
+  tbody.querySelectorAll('tr[data-centro]').forEach(tr=> tr.addEventListener('click', ()=> abrirCentro(tr.dataset.centro)));
+}
+
+function pintarTarjetaDif(idLabel, idBig, idSub, dif, est){
+  const lbl = document.getElementById(idLabel), big = document.getElementById(idBig);
+  const color = dif > 0.5 ? 'var(--bad)' : (dif < -0.5 ? 'var(--good)' : 'var(--text)');
+  lbl.textContent = dif > 0.5 ? 'Gasto' : (dif < -0.5 ? 'Ahorro' : 'Diferencia');
+  lbl.style.color = color;
+  big.textContent = fmtMoney(Math.abs(dif));
+  big.style.color = color;
+  document.getElementById(idSub).textContent = est !== 0 ? `${(dif>=0?'+':'')}${((dif/est)*100).toFixed(1)}% vs estándar` : '';
+}
+
+function abrirCentro(clave){
+  centroActual = clave;
+  filtroTipoTopOPs = 'todos';
+  document.getElementById('centros-nivel-lista').classList.add('hidden');
+  document.getElementById('centros-nivel-detalle').classList.remove('hidden');
+  document.getElementById('centroBuscarSKU').value = '';
+  renderCentroDetalle();
+}
+function volverAListaCentros(){
+  centroActual = null;
+  document.getElementById('centros-nivel-detalle').classList.add('hidden');
+  document.getElementById('centros-nivel-lista').classList.remove('hidden');
+  renderCentrosLista();
+}
+
+function renderCentroDetalle(){
+  if(!centroActual) return;
+  const clave = centroActual;
+  const lineas = lineasCentrosActuales().filter(l=> claveCentro(l) === clave);
+  document.getElementById('centroDetalleTitulo').textContent = nombreCentro(clave);
+
+  // Responsables
+  const cfg = CENTROS_CONFIG[clave] || {};
+  const bloque = (rol, id)=>{
+    const p = id ? PERSONAS[id] : null;
+    return `<div style="display:flex; align-items:center; gap:14px; padding:12px 16px; background:var(--panel); border:1px solid var(--line); border-radius:10px;">
+      ${avatarHTML(p, 64)}
+      <div><div style="font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);">${rol}</div>
+      <div style="font-size:15px; font-weight:600;">${p ? escHTMLTransf(p.nombre) : '<span style="color:var(--muted); font-weight:400;">Sin asignar</span>'}</div></div>
+    </div>`;
+  };
+  document.getElementById('centroResponsables').innerHTML = (clave === 'MULTIPLE' || clave === '(sin centro)')
+    ? '<div class="field-hint">Este grupo reúne líneas que no se pueden asignar a un solo centro, por eso no tiene responsables.</div>'
+    : bloque('Responsable de Producción', cfg.respProd) + bloque('Responsable de Mejora Continua', cfg.respMC);
+
+  // Tarjetas
+  const est = lineas.reduce((s,l)=>s+l.estandarUSD, 0), real = lineas.reduce((s,l)=>s+l.realUSD, 0);
+  document.getElementById('centroBigEstandar').textContent = fmtMoney(est);
+  document.getElementById('centroBigReal').textContent = fmtMoney(real);
+  pintarTarjetaDif('centroLabelDif', 'centroBigDif', 'centroSubDif', real - est, est);
+
+  // Solo para "Varios centros": lista de lineas con los centros donde aparece cada una
+  const secMultiple = document.getElementById('centroMultipleSeccion');
+  if(clave === 'MULTIPLE'){
+    secMultiple.classList.remove('hidden');
+    const filasM = lineas.map(l=>({l, dif: l.realUSD - l.estandarUSD})).sort((a,b)=> Math.abs(b.dif) - Math.abs(a.dif));
+    document.getElementById('tablaCentroMultiple').innerHTML = filasM.length > 0 ? filasM.map(({l, dif})=>{
+      const color = dif > 0.5 ? 'var(--bad)' : (dif < -0.5 ? 'var(--good)' : 'var(--text)');
+      const centros = (l.rutasOriginales && l.rutasOriginales.length) ? l.rutasOriginales.map(escHTMLTransf).join(' + ') : '<span style="color:var(--muted);">No disponible</span>';
+      return `<tr style="cursor:pointer;" onclick="irAOPDesdeTop('${escHTMLTransf(l.noOP)}','${l.fechaPrograma || ''}')" title="Clic para ver los materiales de esta OP">
+        <td>${escHTMLTransf(l.noOP)}</td><td>${escHTMLTransf(l.noComponente)}</td><td style="font-size:12px;">${escHTMLTransf(l.descripcion)}</td>
+        <td>${centros}</td><td class="money">${fmtMoney(l.estandarUSD)}</td><td class="money">${fmtMoney(l.realUSD)}</td>
+        <td class="money" style="color:${color}; font-weight:600;">${fmtMoney(Math.abs(dif))}</td>
+        <td style="color:${color}; font-weight:700;">${dif > 0.5 ? 'Gasto' : (dif < -0.5 ? 'Ahorro' : '—')}</td></tr>`;
+    }).join('') : '<tr><td colspan="8" style="text-align:center; color:var(--muted); padding:16px;">Sin líneas en este periodo.</td></tr>';
+  } else {
+    secMultiple.classList.add('hidden');
+  }
+
+  // Grupo de material
+  const grupos = calcularDesviacionPorGrupoMaterial(lineas);
+  document.getElementById('tablaCentroGrupo').innerHTML = grupos.length > 0 ? grupos.map(g=>`<tr>
+    <td>${escHTMLTransf(g.nombre)}</td><td>${g.count}</td>
+    <td class="money" style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'+':''}${fmtMoney(g.totalUSD)}</td>
+    <td class="money">${fmtMoney(g.promedioUSD)}</td>
+    <td style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'};">${g.pct>=0?'+':''}${g.pct.toFixed(1)}%</td>
+    <td style="color:${g.totalUSD>=0?'var(--bad)':'var(--good)'}; font-weight:600;">${g.totalUSD>=0?'Gasto':'Ahorro'}</td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos en este periodo.</td></tr>';
+
+  // Top OPs (clic en una OP -> sus materiales)
+  lineasActualesTopOPsCentro = lineas;
+  document.querySelectorAll('.filtro-tipo-topops[data-target="tablaTopOPsCentro"]').forEach(b=> b.classList.toggle('active-filtro-topops', b.dataset.tipo === 'todos'));
+  renderTablaTopOPs('tablaTopOPsCentro', lineas, 'Sin datos en este periodo.');
+
+  // Detalle por SKU
+  const porSKU = {};
+  lineas.forEach(l=>{
+    const k = String(l.noComponente);
+    if(!porSKU[k]) porSKU[k] = {sku:k, desc:l.descripcion || '', est:0, real:0, n:0};
+    porSKU[k].est += l.estandarUSD; porSKU[k].real += l.realUSD; porSKU[k].n++;
+  });
+  let skus = Object.values(porSKU).map(s=>({...s, dif: s.real - s.est, grupo: grupoDeDescripcionTransf(s.desc)}));
+  const q = quitarAcentos(document.getElementById('centroBuscarSKU').value.trim().toUpperCase());
+  if(q) skus = skus.filter(s=> quitarAcentos((s.sku + ' ' + s.desc).toUpperCase()).includes(q));
+  const orden = document.getElementById('centroOrdenSKU').value;
+  skus.sort((a,b)=> orden === 'gasto' ? b.dif - a.dif : (orden === 'ahorro' ? a.dif - b.dif : Math.abs(b.dif) - Math.abs(a.dif)));
+  document.getElementById('tablaCentroSKU').innerHTML = skus.length > 0 ? skus.map(s=>{
+    const color = s.dif > 0.5 ? 'var(--bad)' : (s.dif < -0.5 ? 'var(--good)' : 'var(--text)');
+    return `<tr>
+      <td>${escHTMLTransf(s.sku)}</td><td style="font-size:12px;">${escHTMLTransf(s.desc)}</td>
+      <td style="font-size:12px; color:var(--muted);">${escHTMLTransf(s.grupo)}</td>
+      <td class="money">${fmtMoney(s.est)}</td><td class="money">${fmtMoney(s.real)}</td>
+      <td class="money" style="color:${color}; font-weight:600;">${fmtMoney(Math.abs(s.dif))}</td>
+      <td style="color:${color}; font-weight:700;">${s.dif > 0.5 ? 'Gasto' : (s.dif < -0.5 ? 'Ahorro' : '—')}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center; color:var(--muted); padding:16px;">Sin resultados.</td></tr>';
+}
+
+/* ---------- controles ---------- */
+function toggleFiltroCentros(){
+  modoFiltradoCentros = !modoFiltradoCentros;
+  renderCentrosVista();
+}
+document.getElementById('btnToggleFiltroCentros').addEventListener('click', toggleFiltroCentros);
+document.getElementById('btnToggleFiltroCentroDetalle').addEventListener('click', toggleFiltroCentros);
+document.getElementById('btnVolverCentros').addEventListener('click', ()=> volverAtras(volverAListaCentros));
+document.getElementById('centrosModo').addEventListener('change', (e)=>{ centrosModo = e.target.value; recalcularCentros(); });
+document.getElementById('prevCentrosBtn').addEventListener('click', ()=>{
+  centrosFecha = centrosModo === 'semana' ? sumarDiasISO(centrosFecha, -7) : desplazarMesISO(centrosFecha.slice(0,7), -1) + '-01';
+  recalcularCentros();
+});
+document.getElementById('nextCentrosBtn').addEventListener('click', ()=>{
+  centrosFecha = centrosModo === 'semana' ? sumarDiasISO(centrosFecha, 7) : desplazarMesISO(centrosFecha.slice(0,7), 1) + '-01';
+  recalcularCentros();
+});
+document.getElementById('centroBuscarSKU').addEventListener('input', ()=>{ if(centroActual) renderCentroDetalle(); });
+document.getElementById('centroOrdenSKU').addEventListener('change', ()=>{ if(centroActual) renderCentroDetalle(); });
+
+
+/* ============================================================
+   NAVEGACION: historial real de pantallas
+   "Volver" (y el boton atras del navegador / celular) regresan a la pantalla
+   en la que estabas antes, sin importar por donde llegaste.
+   ============================================================ */
+const NAV_CONTENEDORES = ['tab-viewer','tab-admin','tab-minuta','tab-transferencias','tab-centros','tab-bitacora',
+  'programa-nivel-semana','programa-nivel-dia','programa-nivel-fase','programa-nivel-mes','programa-nivel-alterno','programa-nivel-lista-completa',
+  'centros-nivel-lista','centros-nivel-detalle','minuta-nivel-lista','minuta-nivel-detalle'];
+const pilaNav = [], pilaNavAdelante = [];
+let navRestaurando = false, navHistoryOK = true, navVersion = 0;
+
+function firmaPantalla(){
+  const vis = NAV_CONTENEDORES.map(id=>{ const el = document.getElementById(id); return (el && !el.classList.contains('hidden')) ? '1' : '0'; }).join('');
+  return [vis, currentProgramaDia, currentProgramaFaseSeleccionada, centroActual, currentMinutaFecha].join('|');
+}
+
+function capturarPantalla(){
+  const vis = {};
+  NAV_CONTENEDORES.forEach(id=>{ const el = document.getElementById(id); vis[id] = el ? el.classList.contains('hidden') : true; });
+  const aviso = document.getElementById('avisoFiltroOPsEspecificas');
+  const activo = document.querySelector('.sidebar-btn.active');
+  return {
+    firma: firmaPantalla(), vis, scrollY: window.scrollY || 0,
+    currentProgramaDia, currentProgramaLineas, currentProgramaFaseSeleccionada, modoVistaSemanaCompleta, vinoDelResumenMensual, origenProgramaDia,
+    filtroOPsEspecificas,
+    avisoHidden: aviso ? aviso.classList.contains('hidden') : true,
+    avisoHTML: (aviso && aviso.querySelector('span')) ? aviso.querySelector('span').innerHTML : '',
+    faseTitulo: document.getElementById('programaFaseTitulo').textContent,
+    centroActual, currentMinutaFecha,
+    sidebarActivo: activo ? activo.id : null
+  };
+}
+
+async function restaurarPantalla(s){
+  navRestaurando = true;
+  try{
+    NAV_CONTENEDORES.forEach(id=>{ const el = document.getElementById(id); if(el) el.classList.toggle('hidden', !!s.vis[id]); });
+    currentProgramaDia = s.currentProgramaDia;
+    currentProgramaLineas = s.currentProgramaLineas;
+    currentProgramaFaseSeleccionada = s.currentProgramaFaseSeleccionada;
+    modoVistaSemanaCompleta = s.modoVistaSemanaCompleta;
+    vinoDelResumenMensual = s.vinoDelResumenMensual;
+    origenProgramaDia = s.origenProgramaDia;
+    filtroOPsEspecificas = s.filtroOPsEspecificas;
+    centroActual = s.centroActual;
+    currentMinutaFecha = s.currentMinutaFecha;
+    const visible = (id)=> !s.vis[id];
+    const seguro = (fn)=>{ try{ fn(); }catch(e){ console.error('restaurarPantalla:', e); } };
+    // El contenido de estas pantallas se comparte/reescribe, asi que se vuelve a pintar
+    if(visible('programa-nivel-dia') && currentProgramaDia) seguro(()=>{ renderProgramaDiaDetalle(); renderResumenPorOP(); });
+    if(visible('programa-nivel-fase')){
+      seguro(()=>{
+        const aviso = document.getElementById('avisoFiltroOPsEspecificas');
+        aviso.classList.toggle('hidden', !!s.avisoHidden);
+        if(aviso.querySelector('span')) aviso.querySelector('span').innerHTML = s.avisoHTML;
+        document.getElementById('programaFaseTitulo').textContent = s.faseTitulo;
+        renderTablaProgramaFase();
+      });
+    }
+    if(visible('tab-centros')) seguro(()=>{ if(visible('centros-nivel-detalle') && centroActual) renderCentroDetalle(); else renderCentrosLista(); });
+    if(visible('tab-minuta')) seguro(()=>{ if(visible('minuta-nivel-detalle') && currentMinutaFecha) renderDetalleMinuta(); else renderListaMinutas(); });
+    marcarSidebarActivo(s.sidebarActivo);
+    window.scrollTo(0, s.scrollY || 0);
+  } finally {
+    navRestaurando = false;
+  }
+}
+
+// Cada clic que cambia de pantalla guarda la pantalla anterior en la pila
+document.addEventListener('click', ()=>{
+  if(navRestaurando) return;
+  const antes = capturarPantalla();
+  const version = navVersion;
+  [0, 250, 800, 2000].forEach(ms=> setTimeout(()=>{
+    if(antes.registrado || navRestaurando || version !== navVersion) return;
+    if(firmaPantalla() !== antes.firma){
+      antes.registrado = true;
+      pilaNav.push(antes);
+      pilaNavAdelante.length = 0;
+      try{ history.pushState({nav: pilaNav.length}, ''); }catch(e){ navHistoryOK = false; }
+    }
+  }, ms));
+}, true);
+
+window.addEventListener('popstate', async (e)=>{
+  const objetivo = (e.state && typeof e.state.nav === 'number') ? e.state.nav : 0;
+  if(objetivo === pilaNav.length) return;
+  navVersion++;
+  let actual = capturarPantalla();
+  if(objetivo < pilaNav.length){
+    while(pilaNav.length > objetivo){ const snap = pilaNav.pop(); pilaNavAdelante.push(actual); actual = snap; }
+  } else {
+    while(pilaNav.length < objetivo && pilaNavAdelante.length){ pilaNav.push(actual); actual = pilaNavAdelante.pop(); }
+  }
+  await restaurarPantalla(actual);
+});
+try{ history.replaceState({nav: 0}, ''); }catch(e){ navHistoryOK = false; }
+
+// Botones "Volver": regresan a la pantalla anterior; si no hay historial (p. ej. se recargo la pagina) usan su regla de siempre
+function volverAtras(fallback){
+  navVersion++;
+  if(pilaNav.length > 0){
+    if(navHistoryOK){ history.back(); }
+    else { const snap = pilaNav.pop(); pilaNavAdelante.push(capturarPantalla()); restaurarPantalla(snap); }
+  } else if(typeof fallback === 'function'){
+    fallback();
+  }
+}
+function volverDesdeFaseLegacy(){
+  if(modoVistaSemanaCompleta){ vinoDelResumenMensual ? volverAResumenMensualDesdeFase() : volverASemanaPrograma(); }
+  else volverADiaPrograma();
+}
+
+/* ============================================================
+   BITACORA (cosas buenas y malas)  --  la Minuta es para acuerdos del equipo
+   ============================================================ */
+let BITACORA = {};  // id -> {id, fecha, texto, centro, creado}
+
+async function cargarBitacoraDesdeDB(){
+  const snap = await db.collection('bitacora').get();
+  const m = {};
+  snap.forEach(d=>{
+    const x = d.data();
+    m[d.id] = {id: d.id, fecha: x.fecha || '', texto: x.texto || '', centro: x.centro || '', creado: x.creado || 0};
+  });
+  BITACORA = m;
+}
+async function irABitacora(){
+  mostrarTab('tab-bitacora');
+  marcarSidebarActivo('sbBitacora');
+  if(!document.getElementById('bitFecha').value) document.getElementById('bitFecha').value = new Date().toISOString().slice(0,10);
+  document.getElementById('bitTbody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">Cargando...</td></tr>';
+  await Promise.all([cargarBitacoraDesdeDB(), cargarCentrosConfigDesdeDB()]);
+  document.getElementById('bitCentro').innerHTML = opcionesCentrosBitacora('');
+  renderBitacora();
+}
+function opcionesCentrosBitacora(sel){
+  return '<option value="">General / sin centro</option>' +
+    centrosDisponibles().map(c=>`<option value="${escHTMLTransf(c)}" ${sel === c ? 'selected' : ''}>${escHTMLTransf(nombreCentro(c))}</option>`).join('');
+}
+function renderBitacora(){
+  const mes = document.getElementById('bitMes').value;
+  const q = quitarAcentos(document.getElementById('bitBuscar').value.trim().toUpperCase());
+  let lista = Object.values(BITACORA);
+  if(mes) lista = lista.filter(b=> b.fecha.startsWith(mes));
+  if(q) lista = lista.filter(b=> quitarAcentos((b.texto + ' ' + nombreCentro(b.centro || '')).toUpperCase()).includes(q));
+  lista.sort((a,b)=> (b.fecha.localeCompare(a.fecha)) || ((b.creado||0) - (a.creado||0)));
+
+  document.getElementById('bitResumen').innerHTML = `<strong>${lista.length}</strong> registro(s)`;
+
+  const tbody = document.getElementById('bitTbody');
+  tbody.innerHTML = lista.length === 0
+    ? '<tr><td colspan="4" style="text-align:center; color:var(--muted); padding:16px;">Sin registros que coincidan.</td></tr>'
+    : lista.map(b=>`<tr>
+      <td><input type="date" class="bit-fecha" data-id="${b.id}" value="${escHTMLTransf(b.fecha)}"></td>
+      <td><select class="bit-centro" data-id="${b.id}">${opcionesCentrosBitacora(b.centro)}</select></td>
+      <td><textarea class="bit-texto" data-id="${b.id}" rows="2" style="width:100%; min-width:260px; padding:6px; border:1px solid var(--line); border-radius:6px; font-family:var(--sans); font-size:13px; resize:vertical;">${escHTMLTransf(b.texto)}</textarea></td>
+      <td><button class="btn small bit-eliminar" data-id="${b.id}" style="color:var(--bad); border-color:var(--bad);">✕</button></td>
+    </tr>`).join('');
+
+  const guardar = (b)=> db.collection('bitacora').doc(b.id).set({fecha: b.fecha, texto: b.texto, centro: b.centro, creado: b.creado});
+  tbody.querySelectorAll('.bit-fecha').forEach(el=> el.addEventListener('change', async ()=>{ const b = BITACORA[el.dataset.id]; if(!el.value){ el.value = b.fecha; return; } b.fecha = el.value; await guardar(b); renderBitacora(); }));
+  tbody.querySelectorAll('.bit-centro').forEach(el=> el.addEventListener('change', async ()=>{ const b = BITACORA[el.dataset.id]; b.centro = el.value; await guardar(b); }));
+  tbody.querySelectorAll('.bit-texto').forEach(el=> el.addEventListener('change', async ()=>{ const b = BITACORA[el.dataset.id]; b.texto = el.value.trim(); await guardar(b); }));
+  tbody.querySelectorAll('.bit-eliminar').forEach(el=> el.addEventListener('click', async ()=>{
+    if(!confirm('¿Eliminar este registro de la bitácora?')) return;
+    await db.collection('bitacora').doc(el.dataset.id).delete();
+    delete BITACORA[el.dataset.id];
+    renderBitacora();
+  }));
+}
+
+document.getElementById('btnAgregarBitacora').addEventListener('click', async ()=>{
+  const status = document.getElementById('bitStatus');
+  const fecha = document.getElementById('bitFecha').value;
+  const texto = document.getElementById('bitTexto').value.trim();
+  if(!fecha){ status.innerHTML = '<div class="status-msg err">Elige la fecha.</div>'; return; }
+  if(!texto){ status.innerHTML = '<div class="status-msg err">Escribe qué pasó.</div>'; return; }
+  const id = 'b_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+  const reg = {id, fecha, texto, centro: document.getElementById('bitCentro').value || '', creado: Date.now()};
+  await db.collection('bitacora').doc(id).set({fecha: reg.fecha, texto: reg.texto, centro: reg.centro, creado: reg.creado});
+  BITACORA[id] = reg;
+  document.getElementById('bitTexto').value = '';
+  status.innerHTML = '<div class="status-msg ok">✓ Registrado.</div>';
+  renderBitacora();
+});
+document.getElementById('bitMes').addEventListener('change', renderBitacora);
+document.getElementById('bitBuscar').addEventListener('input', renderBitacora);
+document.getElementById('btnLimpiarFiltrosBit').addEventListener('click', ()=>{ document.getElementById('bitMes').value = ''; document.getElementById('bitBuscar').value = ''; renderBitacora(); });
 
 
 /* ============================================================
@@ -2334,24 +3078,41 @@ async function cargarEstandaresDesdeArchivo(file, statusEl){
       // en vez de perder el anterior, y marcamos que abarca multiples centros
       // (el archivo de Movimientos no permite saber cuanto se consumio en cada area).
       if(registros[key].ruta && ruta && registros[key].ruta !== ruta && registros[key].ruta !== 'MULTIPLE'){
+        const prev = registros[key];
+        const espFila = parseFloat(r['Cantidad esperada']) || 0;
+        const conFila = parseFloat(r['Cant. consumida']) || 0;
         registros[key] = {
-          cantidadEsperada: registros[key].cantidadEsperada + (parseFloat(r['Cantidad esperada']) || 0),
-          cantidadPendiente: registros[key].cantidadPendiente + (parseFloat(r['Cantidad pendiente']) || 0),
-          cantConsumida: registros[key].cantConsumida + (parseFloat(r['Cant. consumida']) || 0),
-          costoUnitario: parseFloat(r['Costo unitario']) || registros[key].costoUnitario,
-          modelo: registros[key].modelo,
-          descripcion: registros[key].descripcion,
+          cantidadEsperada: prev.cantidadEsperada + espFila,
+          cantidadPendiente: prev.cantidadPendiente + (parseFloat(r['Cantidad pendiente']) || 0),
+          cantConsumida: prev.cantConsumida + conFila,
+          costoUnitario: parseFloat(r['Costo unitario']) || prev.costoUnitario,
+          modelo: prev.modelo,
+          descripcion: prev.descripcion,
           ruta: 'MULTIPLE',
-          rutasOriginales: [registros[key].ruta, ruta],
-          estado: registros[key].estado,
-          fechaVenc: registros[key].fechaVenc
+          rutasOriginales: [prev.ruta, ruta],
+          // Detalle por centro: lo que trae el archivo en cada fila, para poder
+          // repartir despues el estandar y el real entre los centros.
+          porRuta: [
+            {ruta: prev.ruta, cantidadEsperada: prev.cantidadEsperada, cantConsumida: prev.cantConsumida},
+            {ruta: ruta, cantidadEsperada: espFila, cantConsumida: conFila}
+          ],
+          estado: prev.estado,
+          fechaVenc: prev.fechaVenc
         };
         return;
       } else if(registros[key].ruta === 'MULTIPLE'){
-        registros[key].cantidadEsperada += (parseFloat(r['Cantidad esperada']) || 0);
+        const espFila = parseFloat(r['Cantidad esperada']) || 0;
+        const conFila = parseFloat(r['Cant. consumida']) || 0;
+        registros[key].cantidadEsperada += espFila;
         registros[key].cantidadPendiente += (parseFloat(r['Cantidad pendiente']) || 0);
-        registros[key].cantConsumida += (parseFloat(r['Cant. consumida']) || 0);
+        registros[key].cantConsumida += conFila;
         if(ruta && !registros[key].rutasOriginales.includes(ruta)) registros[key].rutasOriginales.push(ruta);
+        if(ruta){
+          if(!registros[key].porRuta) registros[key].porRuta = [];
+          const existente = registros[key].porRuta.find(x=>x.ruta === ruta);
+          if(existente){ existente.cantidadEsperada += espFila; existente.cantConsumida += conFila; }
+          else registros[key].porRuta.push({ruta: ruta, cantidadEsperada: espFila, cantConsumida: conFila});
+        }
         return;
       }
     }
@@ -4447,7 +5208,7 @@ async function construirProgramaDia(fechaD){
     const razonGuardada = (RAZONES_POR_LINEA[lineaKey] && RAZONES_POR_LINEA[lineaKey].tipo === tipoDeDesviacion(diferencia)) ? RAZONES_POR_LINEA[lineaKey].razon : '';
 
     lineas.push({
-      noOP, noComponente, modelo: std.modelo, descripcion: std.descripcion, ruta, fase, fasesMultiples,
+      noOP, noComponente, modelo: std.modelo, descripcion: std.descripcion, ruta, fase, fasesMultiples, rutasOriginales: std.rutasOriginales || null, porRuta: std.porRuta || null,
       estado: std.estado || '',
       fechaEsperada, cantidadEstandar, cantidadReal: round3(cantidadRealConsumida), diferencia, pct,
       estandarUSD, realUSD: round2(cantidadRealConsumida * std.costoUnitario), costoUnitarioEstandar: std.costoUnitario,
@@ -5229,6 +5990,8 @@ function renderTablaTopOPs(tbodyId, lineas, mensajeVacio){
   }).join('') : `<tr><td colspan="5" style="text-align:center; color:var(--muted); padding:16px;">${mensajeVacio}</td></tr>`;
 }
 async function irAOPDesdeTop(op, fecha){
+  irAReporte();
+  marcarSidebarActivo('sbVistaPrograma');
   if(fecha){
     await verProgramaDia(fecha);
   }
