@@ -189,7 +189,7 @@ tr.clickable:hover{background:var(--panel-2);}
 
 .toolbar{display:flex; gap:8px; margin-bottom:12px; align-items:center;}
 .btn{background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:7px 14px; border-radius:6px; font-size:12px; cursor:pointer; font-family:var(--sans); font-weight:500;}
-.filtro-tipo-topops.active-filtro-topops{background:var(--accent); color:#1a1006; border-color:var(--accent); font-weight:700;}
+.filtro-tipo-centros.active-filtro-topops,.filtro-tipo-topops.active-filtro-topops{background:var(--accent); color:#1a1006; border-color:var(--accent); font-weight:700;}
 .btn:hover{border-color:var(--accent);}
 .btn.primary{background:var(--accent); color:#ffffff; border-color:var(--accent); font-weight:600;}
 .btn.small{padding:4px 10px; font-size:11px;}
@@ -1196,9 +1196,18 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         Centros de Trabajo (clic en uno para ver su detalle)
         <button class="btn" id="btnToggleFiltroCentros" style="font-size:12px; padding:6px 14px; margin-left:auto;">👁 Mostrar Todo (sin filtro)</button>
       </div>
+      <div class="toolbar" style="margin:8px 0 10px; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:12px; color:var(--muted);">Ver:</span>
+        <button class="btn filtro-tipo-centros" data-tipo="todos" style="font-size:12px; padding:6px 14px;">Todos</button>
+        <button class="btn filtro-tipo-centros" data-tipo="gasto" style="font-size:12px; padding:6px 14px;">💸 Solo Gasto</button>
+        <button class="btn filtro-tipo-centros" data-tipo="ahorro" style="font-size:12px; padding:6px 14px;">💰 Solo Ahorro</button>
+        <span style="margin-left:auto;"></span>
+        <button class="btn primary btn-reporte-centros" data-fmt="xlsx" style="font-size:12px; padding:6px 14px;">📊 Reporte Excel</button>
+        <button class="btn primary btn-reporte-centros" data-fmt="pdf" style="font-size:12px; padding:6px 14px;">📄 Reporte PDF</button>
+      </div>
       <div class="table-scroll" style="height:auto; max-height:70vh;">
         <table>
-          <thead><tr><th>Centro</th><th>Resp. de Producción</th><th>Resp. de Mejora Continua</th><th>$ Estándar</th><th>$ Real</th><th>Diferencia</th><th>Tipo</th><th>% vs Estándar</th><th># OPs</th></tr></thead>
+          <thead><tr><th>Centro</th><th>Resp. de Producción</th><th>Resp. de Mejora Continua</th><th>$ Estándar</th><th>$ Real</th><th style="color:var(--bad)">Gasto (suma)</th><th style="color:var(--good)">Ahorro (suma)</th><th>Balance</th><th>Tipo</th><th>% vs Estándar</th><th># OPs</th></tr></thead>
           <tbody id="tablaCentros"></tbody>
         </table>
       </div>
@@ -1209,6 +1218,15 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
         <button class="btn primary" style="font-size:14px; padding:10px 18px;" id="btnVolverCentros">← Volver a Centros</button>
         <span style="margin-left:12px; font-size:18px; font-weight:600; color:var(--text);" id="centroDetalleTitulo">Centro</span>
         <button class="btn" id="btnToggleFiltroCentroDetalle" style="margin-left:auto;">👁 Mostrar Todo (sin filtro)</button>
+      </div>
+      <div class="toolbar" style="margin:-6px 0 14px; gap:8px; flex-wrap:wrap;">
+        <span style="font-size:12px; color:var(--muted);">Ver:</span>
+        <button class="btn filtro-tipo-centros" data-tipo="todos" style="font-size:12px; padding:6px 14px;">Todos</button>
+        <button class="btn filtro-tipo-centros" data-tipo="gasto" style="font-size:12px; padding:6px 14px;">💸 Solo Gasto</button>
+        <button class="btn filtro-tipo-centros" data-tipo="ahorro" style="font-size:12px; padding:6px 14px;">💰 Solo Ahorro</button>
+        <span style="margin-left:auto;"></span>
+        <button class="btn primary btn-reporte-centros" data-fmt="xlsx" style="font-size:12px; padding:6px 14px;">📊 Reporte Excel</button>
+        <button class="btn primary btn-reporte-centros" data-fmt="pdf" style="font-size:12px; padding:6px 14px;">📄 Reporte PDF</button>
       </div>
       <div id="centroResponsables" style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:18px;"></div>
       <div class="bigrow">
@@ -2383,10 +2401,101 @@ function etiquetaPeriodoCentros(){
   return `${MESES_TRANSF[m-1]} ${y}`;
 }
 function claveCentro(l){ return l.ruta || '(sin centro)'; }
+let filtroTipoCentros = 'todos', filasCentrosVisibles = [], skusCentroVisibles = [];
+function pasaFiltroTipoCentros(dif){
+  return filtroTipoCentros === 'gasto' ? dif > 0.5 : (filtroTipoCentros === 'ahorro' ? dif < -0.5 : true);
+}
+function pintarBotonesFiltroTipoCentros(){
+  document.querySelectorAll('.filtro-tipo-centros').forEach(b=> b.classList.toggle('active-filtro-topops', b.dataset.tipo === filtroTipoCentros));
+}
+function textoFiltroCentros(){
+  return filtroTipoCentros === 'gasto' ? 'Solo Gasto' : (filtroTipoCentros === 'ahorro' ? 'Solo Ahorro' : 'Todos');
+}
+function generarReporteCentros(fmt){
+  const periodo = etiquetaPeriodoCentros();
+  const enDetalle = !!centroActual;
+  const tipoTxt = textoFiltroCentros();
+  const nombreArch = 'Costos_por_Centro_' + (enDetalle ? quitarAcentos(nombreCentro(centroActual)).replace(/[^A-Za-z0-9]+/g,'_') + '_' : '') + periodo.replace(/[^A-Za-z0-9]+/g,'_') + '_' + tipoTxt.replace(/ /g,'_');
+  const tipoDe = d => d > 0.5 ? 'Gasto' : (d < -0.5 ? 'Ahorro' : '-');
+  let encabezado, filas, titulo;
+  if(!enDetalle){
+    titulo = 'Costos por Centro de Trabajo';
+    encabezado = ['Centro','Resp. Produccion','Resp. Mejora Continua','$ Estandar MP','$ Real MP','Gasto (suma)','Ahorro (suma)','Balance','Tipo','% vs Estandar','# OPs'];
+    filas = filasCentrosVisibles.map(f=>{
+      const c = CENTROS_CONFIG[f.clave] || {};
+      const rp = c.respProd && PERSONAS[c.respProd] ? PERSONAS[c.respProd].nombre : '';
+      const rm = c.respMC && PERSONAS[c.respMC] ? PERSONAS[c.respMC].nombre : '';
+      return [nombreCentro(f.clave), rp, rm, Math.round(f.est*100)/100, Math.round(f.real*100)/100, Math.round(f.gasto*100)/100, Math.round(f.ahorro*100)/100, Math.round(Math.abs(f.dif)*100)/100, tipoDe(f.dif), f.pct != null ? Math.round(f.pct*10)/10 : '', f.nOPs];
+    });
+  } else {
+    titulo = 'Centro: ' + nombreCentro(centroActual);
+    encabezado = ['SKU','Descripcion','Grupo de material','$ Estandar MP','$ Real MP','Diferencia','Tipo'];
+    filas = skusCentroVisibles.map(s=> [s.sku, s.desc, s.grupo, Math.round(s.est*100)/100, Math.round(s.real*100)/100, Math.round(Math.abs(s.dif)*100)/100, tipoDe(s.dif)]);
+  }
+  const totEst = filas.reduce((a,r)=>a+r[enDetalle?3:3],0), totReal = filas.reduce((a,r)=>a+r[4],0);
+  const totDif = (enDetalle ? skusCentroVisibles : filasCentrosVisibles).reduce((a,x)=>a+(x.real-x.est),0);
+  const totGasto = enDetalle ? 0 : filasCentrosVisibles.reduce((a,x)=>a+x.gasto,0), totAhorro = enDetalle ? 0 : filasCentrosVisibles.reduce((a,x)=>a+x.ahorro,0);
+  const iBal = enDetalle ? 5 : 7, iTipoCol = enDetalle ? 6 : 8;
+  const llenarTot = (fm)=>{ const t = new Array(encabezado.length).fill(''); t[0]='TOTAL'; t[3]=fm(totEst); t[4]=fm(totReal);
+    if(!enDetalle){ t[5]=fm(totGasto); t[6]=fm(totAhorro); } t[iBal]=fm(Math.abs(totDif)); t[iTipoCol]=tipoDe(totDif); return t; };
+  if(filas.length === 0){ alert('No hay datos para generar el reporte con este filtro.'); return; }
+  // Si se descargan solo gastos, sin columna de Ahorro; si solo ahorros, sin columna de Gasto
+  const drop = enDetalle ? -1 : (filtroTipoCentros === 'gasto' ? 6 : (filtroTipoCentros === 'ahorro' ? 5 : -1));
+  const quitar = arr => drop < 0 ? arr : arr.filter((_,i)=> i !== drop);
+  const mapi = i => (drop >= 0 && i > drop) ? i - 1 : i;
+  if(fmt === 'xlsx'){
+    const aoa = [[titulo],['Periodo: ' + periodo],['Filtro: ' + tipoTxt],[]];
+    aoa.push(quitar(encabezado));
+    filas.forEach(r=> aoa.push(quitar(r)));
+    aoa.push(quitar(llenarTot(v=> Math.round(v*100)/100)));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'Reporte');
+    XLSX.writeFile(wb, nombreArch + '.xlsx');
+  } else {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm', format:'letter', orientation:'landscape'});
+    doc.setFontSize(15); doc.setTextColor(30,64,110);
+    doc.text(quitarAcentos(titulo), 14, 16);
+    doc.setFontSize(9); doc.setTextColor(107,122,137);
+    doc.text(quitarAcentos('Periodo: ' + periodo + '  |  Filtro: ' + tipoTxt), 14, 22);
+    const body = filas.map(r=> quitar(r.map((v,i)=>{
+      if(typeof v === 'number' && (i>=3 && i<=(enDetalle?5:7))) return fmtMoney(v);
+      if(typeof v === 'number' && !enDetalle && i===9) return (v>=0?'+':'') + v.toFixed(1) + '%';
+      return quitarAcentos(String(v));
+    })));
+    body.push(quitar(llenarTot(fmtMoney)));
+    const iTipo = mapi(iTipoCol);
+    const colsDer = (enDetalle ? [3,4,5] : [3,4,5,6,7,9,10]).filter(i=> i !== drop).map(mapi);
+    const columnStylesPdf = {}; colsDer.forEach(i=> columnStylesPdf[i] = {halign:'right'});
+    doc.autoTable({
+      startY: 27, head:[quitar(encabezado)], body, theme:'grid',
+      headStyles:{fillColor:[30,64,110], textColor:255},
+      styles:{fontSize:8, cellPadding:2},
+      columnStyles: columnStylesPdf,
+      didParseCell: (d)=>{
+        if(d.section === 'body'){
+          if(d.column.index === iTipo){
+            if(d.cell.raw === 'Gasto') d.cell.styles.textColor = [209,69,59];
+            else if(d.cell.raw === 'Ahorro') d.cell.styles.textColor = [30,158,106];
+          }
+          if(d.row.index === body.length-1) d.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+    const n = doc.internal.getNumberOfPages();
+    for(let i=1;i<=n;i++){
+      doc.setPage(i); doc.setFontSize(8); doc.setTextColor(107,122,137);
+      doc.text('Consumo de Materiales - Linea Italia  |  Pagina ' + i + ' de ' + n, 14, 210);
+    }
+    doc.save(nombreArch + '.pdf');
+  }
+}
 function lineasCentrosActuales(){
-  return modoFiltradoCentros
+  let ls = modoFiltradoCentros
     ? centrosLineasCompletas.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP))
     : centrosLineasCompletas;
+  if(filtroTipoCentros !== 'todos') ls = ls.filter(l=> pasaFiltroTipoCentros(l.realUSD - l.estandarUSD));
+  return ls;
 }
 
 async function irACentros(){
@@ -2402,7 +2511,7 @@ async function irACentros(){
 async function recalcularCentros(){
   document.getElementById('centrosPeriodoDisplay').textContent = etiquetaPeriodoCentros();
   document.getElementById('centrosModo').value = centrosModo;
-  document.getElementById('tablaCentros').innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:16px;">Calculando...</td></tr>';
+  document.getElementById('tablaCentros').innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--muted); padding:16px;">Calculando...</td></tr>';
   const completas = [];
   for(const d of diasDelPeriodoCentros()){
     const ls = await construirProgramaDia(d);
@@ -2413,12 +2522,10 @@ async function recalcularCentros(){
 }
 
 function renderCentrosVista(){
+  pintarBotonesFiltroTipoCentros();
   document.getElementById('btnToggleFiltroCentros').textContent = modoFiltradoCentros ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
   document.getElementById('btnToggleFiltroCentroDetalle').textContent = modoFiltradoCentros ? '👁 Mostrar Todo (sin filtro)' : '🔀 Volver a Vista Filtrada';
-  const hint = modoFiltradoCentros
-    ? '🔀 Vista filtrada: sin líneas con Consumo Real en 0 ni OPs OPM/OPP (mismas reglas del Reporte Avance Producción, aplicadas por centro). Las líneas que abarcan varios centros se reparten según lo que trae el archivo de Estándares para cada uno. El "costo real" es cantidad real × costo unitario estándar.'
-    : '👁 Vista completa: se incluyen todas las líneas, sin ningún filtro. El "costo real" es cantidad real × costo unitario estándar.';
-  document.getElementById('hintFiltroCentros').textContent = hint;
+  document.getElementById('hintFiltroCentros').textContent = '';
   if(centroActual) renderCentroDetalle(); else renderCentrosLista();
 }
 
@@ -2427,14 +2534,18 @@ function renderCentrosLista(){
   const grupos = {};
   lineas.forEach(l=>{
     const k = claveCentro(l);
-    if(!grupos[k]) grupos[k] = {clave:k, est:0, real:0, ops:new Set()};
+    if(!grupos[k]) grupos[k] = {clave:k, est:0, real:0, gasto:0, ahorro:0, ops:new Set()};
     grupos[k].est += l.estandarUSD;
     grupos[k].real += l.realUSD;
+    { const d = l.realUSD - l.estandarUSD; if(d > 0.5) grupos[k].gasto += d; else if(d < -0.5) grupos[k].ahorro += -d; }
     grupos[k].ops.add(l.noOP);
   });
-  centrosDisponibles().forEach(c=>{ if(!grupos[c]) grupos[c] = {clave:c, est:0, real:0, ops:new Set()}; });
+  if(filtroTipoCentros === 'todos') centrosDisponibles().forEach(c=>{ if(!grupos[c]) grupos[c] = {clave:c, est:0, real:0, gasto:0, ahorro:0, ops:new Set()}; });
   const filas = Object.values(grupos).map(g=>({...g, dif: g.real - g.est, pct: g.est !== 0 ? ((g.real - g.est)/g.est)*100 : null, nOPs: g.ops.size}));
   filas.sort((a,b)=> Math.abs(b.dif) - Math.abs(a.dif));
+  if(filtroTipoCentros === 'gasto') filas.sort((a,b)=> b.gasto - a.gasto);
+  else if(filtroTipoCentros === 'ahorro') filas.sort((a,b)=> b.ahorro - a.ahorro);
+  filasCentrosVisibles = filas;
 
   const est = filas.reduce((s,f)=>s+f.est, 0), real = filas.reduce((s,f)=>s+f.real, 0), dif = real - est;
   document.getElementById('centrosBigEstandar').textContent = fmtMoney(est);
@@ -2451,12 +2562,14 @@ function renderCentrosLista(){
       <td>${responsableMiniHTML(cfg.respMC)}</td>
       <td class="money">${fmtMoney(f.est)}</td>
       <td class="money">${fmtMoney(f.real)}</td>
+      <td class="money" style="color:var(--bad);">${f.gasto > 0 ? fmtMoney(f.gasto) : '—'}</td>
+      <td class="money" style="color:var(--good);">${f.ahorro > 0 ? fmtMoney(f.ahorro) : '—'}</td>
       <td class="money" style="color:${color}; font-weight:600;">${fmtMoney(Math.abs(f.dif))}</td>
       <td style="color:${color}; font-weight:700;">${f.dif > 0.5 ? 'Gasto' : (f.dif < -0.5 ? 'Ahorro' : '—')}</td>
       <td style="color:${color};">${f.pct != null ? (f.pct>=0?'+':'') + f.pct.toFixed(1) + '%' : '—'}</td>
       <td>${f.nOPs}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9" style="text-align:center; color:var(--muted); padding:16px;">Sin datos en este periodo.</td></tr>';
+  }).join('') || '<tr><td colspan="11" style="text-align:center; color:var(--muted); padding:16px;">Sin datos en este periodo' + (filtroTipoCentros !== 'todos' ? ' con este filtro' : '') + '.</td></tr>';
   tbody.querySelectorAll('tr[data-centro]').forEach(tr=> tr.addEventListener('click', ()=> abrirCentro(tr.dataset.centro)));
 }
 
@@ -2556,6 +2669,7 @@ function renderCentroDetalle(){
   if(q) skus = skus.filter(s=> quitarAcentos((s.sku + ' ' + s.desc).toUpperCase()).includes(q));
   const orden = document.getElementById('centroOrdenSKU').value;
   skus.sort((a,b)=> orden === 'gasto' ? b.dif - a.dif : (orden === 'ahorro' ? a.dif - b.dif : Math.abs(b.dif) - Math.abs(a.dif)));
+  skusCentroVisibles = skus;
   document.getElementById('tablaCentroSKU').innerHTML = skus.length > 0 ? skus.map(s=>{
     const color = s.dif > 0.5 ? 'var(--bad)' : (s.dif < -0.5 ? 'var(--good)' : 'var(--text)');
     return `<tr>
@@ -2569,6 +2683,12 @@ function renderCentroDetalle(){
 }
 
 /* ---------- controles ---------- */
+document.querySelectorAll('.filtro-tipo-centros').forEach(b=> b.addEventListener('click', ()=>{
+  filtroTipoCentros = b.dataset.tipo;
+  pintarBotonesFiltroTipoCentros();
+  if(centroActual) renderCentroDetalle(); else renderCentrosLista();
+}));
+document.querySelectorAll('.btn-reporte-centros').forEach(b=> b.addEventListener('click', ()=> generarReporteCentros(b.dataset.fmt)));
 function toggleFiltroCentros(){
   modoFiltradoCentros = !modoFiltradoCentros;
   renderCentrosVista();
