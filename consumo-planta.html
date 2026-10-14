@@ -561,6 +561,7 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           Resumen Mensual Estándar
           <button class="btn primary" id="btnDescargarResumenMensual" style="font-size:12px; padding:6px 14px;">⬇ Descargar Resumen Mensual (Excel)</button>
           <button class="btn primary" id="btnDescargarResumenMensualPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
+          <button class="btn" id="btnToggleTodoMes" style="font-size:12px; padding:6px 14px; margin-left:auto;">👁 Ver Todo (con OPM y líneas en 0)</button>
         </div>
 
         <div class="field-hint" style="margin-bottom:16px; padding:10px; background:var(--panel-2); border-radius:6px;" id="mesDatosDisponibles">Cargando...</div>
@@ -1126,7 +1127,8 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
       <button class="date-arrow" id="nextMesTransfBtn">›</button>
       <label style="margin-left:18px; font-size:12px; color:var(--muted);">Corte al:</label>
       <input type="date" id="transfCorte">
-      <button class="btn primary" id="btnDescargarTransf" style="margin-left:auto;">⬇ Descargar Excel</button>
+      <button class="btn primary" id="btnInformeTransf" style="margin-left:auto;">📄 Informe PDF</button>
+      <button class="btn primary" id="btnDescargarTransf">⬇ Descargar Excel</button>
     </div>
     <div class="field-hint" style="margin-bottom:14px; padding:10px; background:var(--panel-2); border-radius:6px;">🚚 <strong>Transferido</strong>: todos los movimientos al almacén WIP (de cualquier autor), sin prototipos ni PROCESOS, asignados a su fecha programa estimada (+3, +2, +1 o +0 días hábiles según la fase del centro de trabajo). <strong>Real</strong> y <strong>Estándar</strong>: los mismos del Reporte Avance Producción (sin líneas en 0, sin OPM/OPP), de los programas del mes hasta la fecha de corte.</div>
     <div id="transfAvisos"></div>
@@ -2184,6 +2186,107 @@ document.getElementById('btnDescargarTransf').addEventListener('click', ()=>{
     SKU: r.sku, 'Descripción': r.desc, Grupo: r.grupo, 'Real Cant.': round3(r.rCant), 'Real $': round2(r.rUSD), 'Estándar $': round2(r.eUSD), 'Estándar en 0 $': round2(r.e0USD)
   }))), 'Producción interna');
   XLSX.writeFile(wb, `Transferencias_vs_Consumo_${c.ym}.xlsx`);
+});
+
+/* ---------- Informe PDF: Balance de Transferencias vs. Consumo ---------- */
+function familiaInformeTransf(desc){
+  const d = quitarAcentos(String(desc ?? '').toUpperCase());
+  if(d.includes('MELAMINA')) return 'Melamina';
+  if(d.includes('CHAPACINTA')) return 'Chapacinta';
+  if(/\b(CARTON|CAJA|ESQUINERO|UNICEL)\b/.test(d)) return 'Materiales de empaque';
+  if(/\b(LAMINA|TUBULAR|TUBO|PTR|ACERO)\b/.test(d)) return 'Acero';
+  return 'Otros materiales';
+}
+document.getElementById('btnInformeTransf').addEventListener('click', ()=>{
+  if(!transfCache){ alert('Espera a que cargue el reporte antes de generar el informe.'); return; }
+  const c = transfCache;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'letter'});
+  const W = 216, H = 279, PAD = 16;
+  const AZUL = [30,64,110], TXT = [28,39,51], MUTED = [107,122,137];
+  const sn = (t)=> quitarAcentos(String(t ?? ''));
+  const mon = (n)=> (n < 0 ? '-' : '') + '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
+  const dif$ = (n)=> (n >= 0 ? '+' : '-') + '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
+  const [yy, mm] = c.ym.split('-').map(Number);
+  const mesTxt = `${MESES_TRANSF[mm-1]} ${yy}`;
+  const finMes = ultimoDiaDeMesISO(c.ym);
+  let y = 20;
+  const parrafo = (txt, size, color, bold, italic)=>{
+    doc.setFont('helvetica', italic ? 'italic' : (bold ? 'bold' : 'normal')); doc.setFontSize(size); doc.setTextColor(...color);
+    const lines = doc.splitTextToSize(sn(txt), W - 2*PAD);
+    lines.forEach(l=>{ if(y > H - 18){ doc.addPage(); y = 20; } doc.text(l, PAD, y); y += size*0.46 + 1.2; });
+  };
+  const titulo = (txt)=>{ y += 3; if(y > H - 30){ doc.addPage(); y = 20; } parrafo(txt, 13, AZUL, true); y += 1; };
+
+  parrafo('Balance de Transferencias vs. Consumo', 20, AZUL, true);
+  parrafo(`${mesTxt} - Mejora Continua`, 11, MUTED, false);
+  y += 2;
+
+  // Panorama general: barras
+  titulo('Panorama general');
+  const barras = [['Transferido', c.tot.tUSD, [47,128,201]], ['Consumido Real', c.tot.rUSD, [30,158,106]], ['Consumido Estandar', c.tot.eUSD, [201,138,26]]];
+  const maxV = Math.max(...barras.map(b=>b[1]), 1);
+  const x0 = PAD + 42, anchoMax = W - PAD - x0 - 34;
+  barras.forEach(([nom, v, col])=>{
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...TXT);
+    doc.text(nom, PAD, y + 5);
+    doc.setFillColor(...col); doc.rect(x0, y, Math.max(1, anchoMax * (v / maxV)), 7, 'F');
+    doc.setFont('helvetica','bold'); doc.text(mon(v), x0 + Math.max(1, anchoMax * (v / maxV)) + 2, y + 5);
+    y += 11;
+  });
+
+  titulo('Que se comparo?');
+  parrafo('Se cruzo, por codigo de material, todo lo transferido de almacen a WIP durante el mes contra lo que el sistema registra como consumido (Real y Estandar) en el mismo periodo. Para que la comparacion fuera justa, la ventana de tiempo se realineo segun la fase de produccion de cada centro de trabajo (Fase 1: +3 dias habiles, Fase 2: +2, Fase 3: +1, Fase 4: +0): se quitaron transferencias de fin de mes que en realidad son para programas del mes siguiente, y se incluyeron transferencias de fines del mes anterior que si alimentan programas de este mes.', 10, TXT, false);
+  y += 1;
+  const pctEst = c.tot.eUSD !== 0 ? ((c.tot.tUSD - c.tot.eUSD) / c.tot.eUSD) * 100 : null;
+  parrafo(`Lo Transferido contra el Estandar difiere ${pctEst != null ? Math.abs(pctEst).toFixed(1) + '%' : '-'}, y contra lo Real ${c.tot.pct != null ? Math.abs(c.tot.pct).toFixed(1) + '%' : '-'}; este ultimo remanente puede tomarse como referencia de la merma de operacion del mes.`, 10, TXT, false, true);
+  if(c.corte < finMes) parrafo(`Nota: el consumo se considera hasta el ${c.corte} (fecha de corte).`, 9, MUTED, false, true);
+
+  titulo('Consideraciones y limitaciones');
+  parrafo('- Inventario en proceso (WIP): al inicio del mes ya existe material en planta disponible para produccion ademas de lo transferido, y al cierre queda material sin consumir para el siguiente. El ajuste por fase corrige parte de este efecto, pero no sustituye un balance completo de Inventario Inicial + Transferido - Consumido = Inventario Final.', 10, TXT, false);
+  parrafo('- Margen de error en el dato Real: al ser un cruce de reciente implementacion, conviene considerar un margen de error razonable en el consumo Real reportado, por posibles datos atipicos o de captura aun no depurados.', 10, TXT, false);
+  parrafo(`- Se excluyen OPM, prototipos y ubicaciones PROCESOS. Los ${c.totInterno.n} SKU sin transferencias en el mes (produccion interna) suman ${mon(c.totInterno.rUSD)} de Real y estan incluidos en los totales, pero no aparecen en los listados por familia.`, 10, TXT, false);
+
+  titulo('Resumen');
+  doc.autoTable({
+    startY: y, margin:{left:PAD, right:PAD}, theme:'grid',
+    head:[['Concepto','Valor']],
+    body:[
+      ['$ Total Transferido (ventana correcta "para el mes")', mon(c.tot.tUSD)],
+      ['$ Total Consumido Real (sin OPM)', mon(c.tot.rUSD)],
+      ['$ Total Consumido Estandar (sin OPM)', mon(c.tot.eUSD)],
+      ['Transferido - Real', mon(c.tot.tUSD - c.tot.rUSD)],
+      ['Transferido - Estandar', mon(c.tot.tUSD - c.tot.eUSD)]
+    ],
+    headStyles:{fillColor:AZUL, textColor:255}, styles:{fontSize:10, cellPadding:2.5, textColor:TXT},
+    columnStyles:{1:{halign:'right', fontStyle:'bold'}}
+  });
+  y = doc.lastAutoTable.finalY + 4;
+
+  titulo('Materiales con mayor diferencia, por familia');
+  parrafo('Top 10 codigos por familia con transferencia registrada, ordenados por magnitud de diferencia (positivo = se transfirio de mas; negativo = se consumio mas de lo transferido).', 9, MUTED, false, true);
+  const familias = ['Melamina','Chapacinta','Materiales de empaque','Acero','Otros materiales'];
+  familias.forEach(fam=>{
+    const top = c.filasSKU.filter(r=> familiaInformeTransf(r.desc) === fam).sort((a,b)=> Math.abs(b.dif) - Math.abs(a.dif)).slice(0,10);
+    if(top.length === 0) return;
+    if(y > H - 50){ doc.addPage(); y = 20; }
+    y += 2; parrafo(fam, 11.5, AZUL, true);
+    doc.autoTable({
+      startY: y, margin:{left:PAD, right:PAD}, theme:'grid',
+      head:[['SKU','Descripcion','Transferido','Real','Diferencia']],
+      body: top.map(r=>[sn(r.sku), sn(r.desc), mon(r.tUSD), mon(r.rUSD), dif$(r.dif)]),
+      headStyles:{fillColor:AZUL, textColor:255}, styles:{fontSize:8.5, cellPadding:2, textColor:TXT},
+      columnStyles:{0:{cellWidth:22}, 2:{halign:'right', cellWidth:26}, 3:{halign:'right', cellWidth:26}, 4:{halign:'right', fontStyle:'bold', cellWidth:26}}
+    });
+    y = doc.lastAutoTable.finalY + 3;
+  });
+
+  const n = doc.internal.getNumberOfPages();
+  for(let i=1;i<=n;i++){
+    doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    doc.text(`Consumo de Materiales - Linea Italia  |  Pagina ${i} de ${n}`, PAD, H - 8);
+  }
+  doc.save(`Balance_Transferencias_${c.ym}.pdf`);
 });
 
 
@@ -5440,6 +5543,7 @@ document.getElementById('btnRefrescarDia').addEventListener('click', async (e)=>
 
 let currentMesProgramaFecha = new Date().toISOString().slice(0,10);
 let resumenMensualCache = null;
+let mesVerTodo = false;   // true = sin filtros del Reporte Avance Producción (incluye OPM/OPP y líneas con Consumo Real en 0)
 
 function verResumenMensual(){
   document.getElementById('programa-nivel-semana').classList.add('hidden');
@@ -5463,11 +5567,13 @@ document.getElementById('nextMesProgramaBtn').addEventListener('click', ()=>{
   renderResumenMensual();
 });
 
+document.getElementById('btnToggleTodoMes').addEventListener('click', ()=>{ mesVerTodo = !mesVerTodo; renderResumenMensual(); });
 async function renderResumenMensual(){
   const nombresMes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   const d = new Date(currentMesProgramaFecha + 'T00:00:00');
   const anio = d.getFullYear(), mes = d.getMonth();
-  document.getElementById('mesProgramaDisplay').textContent = `${nombresMes[mes]} ${anio}`;
+  document.getElementById('mesProgramaDisplay').textContent = `${nombresMes[mes]} ${anio}` + (mesVerTodo ? ' (todo, sin filtros)' : '');
+  document.getElementById('btnToggleTodoMes').textContent = mesVerTodo ? '🔀 Volver a Vista Filtrada' : '👁 Ver Todo (con OPM y líneas en 0)';
 
   const primerDia = new Date(anio, mes, 1);
   const ultimoDia = new Date(anio, mes+1, 0);
@@ -5489,7 +5595,7 @@ async function renderResumenMensual(){
         diasConDatos.push(fechaISO);
         // Mismas reglas del Reporte Avance Producción: se excluyen por completo
         // las lineas con Consumo Real en 0 y las OPs OPM.
-        const lineasFiltradasDia = lineasCompletasDia.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP));
+        const lineasFiltradasDia = mesVerTodo ? lineasCompletasDia : lineasCompletasDia.filter(l=> l.cantidadReal !== 0 && !esOPExcluidaDelFiltroAvance(l.noOP));
         todasLasLineasMes.push(...lineasFiltradasDia.map(l=>({...l, fechaPrograma: fechaISO})));
         todasLasLineasCompletasMes.push(...lineasCompletasDia.map(l=>({...l, fechaPrograma: fechaISO})));
       } else {
@@ -5588,7 +5694,7 @@ async function renderResumenMensual(){
   </tr>`).join('') : '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:16px;">Sin datos este mes.</td></tr>';
 
   resumenMensualCache = {
-    rangoTexto: `${nombresMes[mes]} ${anio}`,
+    rangoTexto: `${nombresMes[mes]} ${anio}` + (mesVerTodo ? ' (todo, sin filtros)' : ''),
     diasConDatos, diasSinDatos,
     metricas: md, opsConsumidasInfo: opsConsumidasInfoMes, opsCerradas: opsCerradasMes, balanceReal: balanceRealMes,
     topOPs: calcularTopOPsPorDesviacion(todasLasLineasMes, 10), topRazones: topRazonesMes, grupoMaterial: grupoMaterialMes,
