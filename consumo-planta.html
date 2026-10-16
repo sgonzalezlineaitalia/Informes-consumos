@@ -285,11 +285,16 @@ select.razon.empty{border-color:var(--warn); background:#fbf0dd;}
           <button class="btn primary" id="btnDescargarResumenSemanalPDF" style="font-size:12px; padding:6px 14px; background:var(--bad); border-color:var(--bad);">📄 Descargar Reporte PDF</button>
         </div>
 
-        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr;">
+        <div class="alertrow" style="margin-bottom:16px; grid-template-columns:1fr 1fr 1fr;">
           <div class="alertcard">
             <div class="label">✅ % de OPs Consumidas <span class="help-icon">?<span class="help-tooltip">De las OPs que ya terminaron de producir (100% en el Avance), qué % ya tiene TODOS sus materiales con Consumo Real mayor a 0 — salvo que la OP ya tenga Estado "Terminada", en cuyo caso cuenta como consumida aunque le falte algún material en 0.</span></span></div>
             <div class="headline" id="semPctOPsConsumidas">—</div>
             <div class="detail" id="semPctOPsConsumidasDetail">&nbsp;</div>
+          </div>
+          <div class="alertcard">
+            <div class="label">⏳ % de OPs No Consumidas</div>
+            <div class="headline" id="semPctOPsNoConsumidas">—</div>
+            <div class="detail" id="semPctOPsNoConsumidasDetail">&nbsp;</div>
           </div>
           <div class="alertcard">
             <div class="label">🔒 % de OPs Cerradas <span class="help-icon">?<span class="help-tooltip">De TODAS las OPs de este periodo (sin importar su Avance), qué % ya tiene Estado = "Terminada" en el sistema. Te dice cuántas OPs siguen abiertas (Lanzada) pendientes de cerrar administrativamente.</span></span></div>
@@ -5894,6 +5899,13 @@ async function renderSemanaPrograma(){
   const opsConsumidasInfo = calcularPctOPsConsumidas(todasLasLineasSemana);
   document.getElementById('semPctOPsConsumidas').textContent = `${opsConsumidasInfo.pct.toFixed(0)}%`;
   document.getElementById('semPctOPsConsumidasDetail').innerHTML = `${opsConsumidasInfo.opsConsumidas} de ${opsConsumidasInfo.opsAl100} OPs terminadas ya tienen todo su material consumido (ninguna línea en 0)${opsConsumidasInfo.opsPendientes.length>0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('semana'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${opsConsumidasInfo.opsPendientes.length} OP(s)</a>` : ''}`;
+  {
+    const nNo = opsConsumidasInfo.opsPendientes.length;
+    const elNo = document.getElementById('semPctOPsNoConsumidas');
+    elNo.textContent = opsConsumidasInfo.opsAl100 > 0 ? `${((nNo/opsConsumidasInfo.opsAl100)*100).toFixed(1)}%` : '—';
+    elNo.style.color = nNo > 0 ? 'var(--bad)' : 'var(--good)';
+    document.getElementById('semPctOPsNoConsumidasDetail').innerHTML = `${nNo} de ${opsConsumidasInfo.opsAl100} OPs terminadas (100% en Avance) aún tienen material sin consumir esta semana` + (nNo > 0 ? ` · <a href="#" onclick="verOPsPendientesDeConsumir('semana'); return false;" style="color:var(--accent-2); font-weight:600;">🔍 Ver esas ${nNo} OP(s)</a>` : '');
+  }
 
   const balanceRealSemana = calcularBalanceOPsTerminadas(todasLasLineasSemana);
 
